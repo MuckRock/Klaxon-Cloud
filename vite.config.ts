@@ -1,7 +1,10 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+	test: {
+		environment: 'happy-dom'
+	},
 	plugins: [
 		svelte({
 			compilerOptions: {
