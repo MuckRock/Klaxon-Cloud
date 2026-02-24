@@ -2,7 +2,10 @@
 export function selectorForElement(el: Element): string {
 	const tag = el.nodeName.toLowerCase();
 	const id = el.id ? '#' + el.id : '';
-	const cls = el.className ? '.' + el.className.replace(/\s+/g, '.') : '';
+	const classes = el.className
+		? el.className.trim().split(/\s+/).filter(c => !c.startsWith('klaxon-'))
+		: [];
+	const cls = classes.length > 0 ? '.' + classes.join('.') : '';
 	return tag + id + cls;
 }
 

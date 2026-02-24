@@ -15,14 +15,14 @@ declare global {
 	}
 }
 
-const HOVER_COLOR = 'rgba(255, 11, 58, 0.3)';
-const SAVED_COLOR = 'rgba(58, 255, 11, 0.3)';
 const DRAG_COLOR = 'rgba(255, 11, 58, 0.15)';
 const DRAG_BORDER = 'rgba(255, 11, 58, 0.6)';
 const SIDEBAR_WIDTH = '300px';
 const HOST_ID = 'klaxon-host';
 const STYLE_ID = 'klaxon-css-inject';
 const MIN_DRAG_PX = 5;
+const CANDIDATE_CLS = 'klaxon-selection-candidate';
+const SELECTED_CLS = 'klaxon-selected';
 
 (function () {
 	if (window._klaxonInject === true) {
@@ -47,6 +47,10 @@ const MIN_DRAG_PX = 5;
 
 	const highlightStyles = document.createElement('style');
 	highlightStyles.id = STYLE_ID;
+	highlightStyles.innerHTML =
+		'body { cursor: crosshair !important; }\n' +
+		'.' + CANDIDATE_CLS + ' { background-color: rgba(255, 11, 58, 0.3) !important; }\n' +
+		'.' + SELECTED_CLS + ' { background-color: rgba(58, 255, 11, 0.3) !important; }\n';
 	document.head.appendChild(highlightStyles);
 
 	// --- Drag overlay ---
@@ -59,24 +63,31 @@ const MIN_DRAG_PX = 5;
 
 	// --- Highlight styling ---
 
-	let savedSelector = '';
 	let isDragging = false;
 	let dragStartX = 0;
 	let dragStartY = 0;
-
-	function updateHighlight(selector: string) {
-		let css = 'body { cursor: crosshair !important; }\n';
-		css += selector + ' { background-color: ' + HOVER_COLOR + '; }\n';
-		if (savedSelector) {
-			css += savedSelector + ' { background-color: ' + SAVED_COLOR + '; }\n';
+	function clearClass(cls: string) {
+		for (const el of document.querySelectorAll('.' + cls)) {
+			el.classList.remove(cls);
 		}
-		highlightStyles.innerHTML = css;
+	}
+
+	function setCandidate(selector: string) {
+		const next = new Set(selector ? document.querySelectorAll(selector) : []);
+		for (const el of document.querySelectorAll('.' + CANDIDATE_CLS)) {
+			if (!next.has(el)) el.classList.remove(CANDIDATE_CLS);
+		}
+		for (const el of next) {
+			el.classList.add(CANDIDATE_CLS);
+		}
 	}
 
 	// --- Reactive state & Svelte mount ---
 
 	let currentSelector = $state('');
 	let currentMatchText = $state('');
+	let lockedSelector = $state('');
+	let lockedMatchText = $state('');
 
 	const sidebar = mount(Sidebar, {
 		target: mountPoint,
@@ -86,6 +97,12 @@ const MIN_DRAG_PX = 5;
 			},
 			get matchText() {
 				return currentMatchText;
+			},
+			get lockedSelector() {
+				return lockedSelector;
+			},
+			get lockedMatchText() {
+				return lockedMatchText;
 			},
 			url: getCanonicalURL(),
 			onClose: cleanup
@@ -102,13 +119,21 @@ const MIN_DRAG_PX = 5;
 			dragOverlay.style.top = r.y + 'px';
 			dragOverlay.style.width = r.width + 'px';
 			dragOverlay.style.height = r.height + 'px';
+
+			// Live highlight elements that pass selection criteria
+			const elements = collectVisibleElements(document.body, host);
+			const ranked = rankByOverlap(elements, r);
+			const selArea = r.width * r.height;
+			const selector = dominantSelectors(ranked, selArea);
+			setCandidate(selector);
+			currentSelector = selector;
 			return;
 		}
 		const target = resolveTarget(evt, host);
 		if (!target) return;
 		currentSelector = target.selector;
 		currentMatchText = target.matchText;
-		updateHighlight(target.selector);
+		setCandidate(target.selector);
 	}
 
 	function onMouseDown(evt: MouseEvent) {
@@ -133,22 +158,28 @@ const MIN_DRAG_PX = 5;
 		document.body.style.userSelect = '';
 
 		const sel = resolveSelectionRect(dragStartX, dragStartY, evt.clientX, evt.clientY);
-		if (sel.width < MIN_DRAG_PX && sel.height < MIN_DRAG_PX) return;
+		if (sel.width < MIN_DRAG_PX && sel.height < MIN_DRAG_PX) {
+			setCandidate('');
+			return;
+		}
 
 		const elements = collectVisibleElements(document.body, host);
 		const ranked = rankByOverlap(elements, sel);
 		const selArea = sel.width * sel.height;
 		const selector = dominantSelectors(ranked, selArea);
+		setCandidate('');
 		if (!selector) return;
 
-		savedSelector = selector;
 		currentSelector = selector;
 		const matched = document.querySelectorAll(selector);
 		const texts = Array.from(matched).map(
 			(m) => m.textContent?.trim().slice(0, 200) ?? ''
 		);
 		currentMatchText = texts.filter(Boolean).join(' | ');
-		updateHighlight(selector);
+		lockedSelector = selector;
+		lockedMatchText = currentMatchText;
+		clearClass(SELECTED_CLS);
+		for (const el of matched) el.classList.add(SELECTED_CLS);
 	}
 
 	function onClick(evt: MouseEvent) {
@@ -156,10 +187,15 @@ const MIN_DRAG_PX = 5;
 		evt.preventDefault();
 		const target = resolveTarget(evt, host);
 		if (!target) return;
-		savedSelector = target.selector;
 		currentSelector = target.selector;
 		currentMatchText = target.matchText;
-		updateHighlight(target.selector);
+		lockedSelector = target.selector;
+		lockedMatchText = target.matchText;
+		setCandidate('');
+		clearClass(SELECTED_CLS);
+		for (const el of document.querySelectorAll(target.selector)) {
+			el.classList.add(SELECTED_CLS);
+		}
 	}
 
 	window.addEventListener('mousemove', onMouseMove);
@@ -171,9 +207,14 @@ const MIN_DRAG_PX = 5;
 
 	function cleanup() {
 		window.removeEventListener('mousemove', onMouseMove);
+		window.removeEventListener('mousedown', onMouseDown);
+		window.removeEventListener('mouseup', onMouseUp);
 		window.removeEventListener('click', onClick);
+		clearClass(CANDIDATE_CLS);
+		clearClass(SELECTED_CLS);
 		document.body.style.marginRight = prevMarginRight;
 		highlightStyles.remove();
+		dragOverlay.remove();
 		unmount(sidebar);
 		host.remove();
 		window._klaxonInject = false;

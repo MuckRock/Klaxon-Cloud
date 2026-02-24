@@ -2,11 +2,13 @@
 	interface Props {
 		selector: string;
 		matchText: string;
+		lockedSelector: string;
+		lockedMatchText: string;
 		url: string;
 		onClose: () => void;
 	}
 
-	let { selector, matchText, url, onClose }: Props = $props();
+	let { selector, matchText, lockedSelector, lockedMatchText, url, onClose }: Props = $props();
 </script>
 
 <div class="sidebar">
@@ -21,19 +23,37 @@
 			<input type="text" readonly value={url} />
 		</label>
 
+		{#if lockedSelector}
+			<div class="locked-section">
+				<label>
+					Locked Selector
+					<input type="text" readonly value={lockedSelector} />
+				</label>
+
+				{#if lockedMatchText}
+					<div class="match-text">
+						<strong>Matched text:</strong>
+						<p>{lockedMatchText}</p>
+					</div>
+				{/if}
+			</div>
+		{/if}
+
 		<label>
-			CSS Selector
+			{lockedSelector ? 'Hovered Selector' : 'CSS Selector'}
 			<input type="text" readonly value={selector} />
 		</label>
 
 		{#if matchText}
 			<div class="match-text">
-				<strong>Matched text:</strong>
+				<strong>Hovered text:</strong>
 				<p>{matchText}</p>
 			</div>
 		{/if}
 
-		<p class="hint">Click an element on the page to lock the selection.</p>
+		{#if !lockedSelector}
+			<p class="hint">Click an element on the page to lock the selection.</p>
+		{/if}
 	</div>
 </div>
 
@@ -129,6 +149,22 @@
 		line-height: 1.4;
 		max-height: 200px;
 		overflow-y: auto;
+	}
+
+	.locked-section {
+		padding: 12px;
+		margin-bottom: 12px;
+		background: #f0fff0;
+		border: 1px solid #b2dfb2;
+		border-radius: 6px;
+	}
+
+	.locked-section label {
+		margin-bottom: 8px;
+	}
+
+	.locked-section .match-text {
+		margin-bottom: 0;
 	}
 
 	.hint {
