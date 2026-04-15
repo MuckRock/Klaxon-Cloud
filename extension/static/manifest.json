@@ -1,0 +1,19 @@
+{
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_icon": "icon-128.png",
+    "default_title": "Klaxon Cloud"
+  },
+  "name": "Klaxon Cloud",
+  "description": "Klaxon sends you alerts when webpages you're watching change.",
+  "homepage_url": "https://www.documentcloud.org/add-ons/MuckRock/Klaxon/",
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "version": "0.1",
+  "manifest_version": 3
+}
