@@ -1,9 +1,22 @@
+/** Escape special CSS selector characters in a class name or id. */
+function cssEscape(value: string): string {
+  return value.replace(/([^\w-])/g, "\\$1");
+}
+
 /** Build a CSS selector string for a single element (tag#id.class1.class2). */
 export function selectorForElement(el: Element): string {
   const tag = el.nodeName.toLowerCase();
-  const id = el.id ? "#" + el.id : "";
-  const cls = el.className ? "." + el.className.replace(/\s+/g, ".") : "";
-  return tag + id + cls;
+  const id = el.id ? "#" + cssEscape(el.id) : "";
+  const KLAXON_CLASSES = ["klaxon-hover", "klaxon-selection", "klaxon-overlay"];
+  const classes = el.className
+    ? el.className
+        .trim()
+        .split(/\s+/)
+        .filter((c) => c && !KLAXON_CLASSES.includes(c))
+        .map((c) => "." + cssEscape(c))
+        .join("")
+    : "";
+  return tag + id + classes;
 }
 
 /**
@@ -26,7 +39,12 @@ export function resolveTarget(
   const selector = deepestSelector(el);
   if (!selector) return null;
 
-  const matched = document.querySelector(selector);
+  let matched: Element | null;
+  try {
+    matched = document.querySelector(selector);
+  } catch {
+    return null;
+  }
   const matchText = matched?.textContent?.trim().slice(0, 200) ?? "";
   return { selector, matchText };
 }
