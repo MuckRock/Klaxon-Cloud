@@ -1,7 +1,7 @@
 import Sidebar from "./Sidebar.svelte";
 import { mount, unmount } from "svelte";
 import { getCanonicalURL } from "./url";
-import { initCanvas } from "../lib/canvas/index.svelte.ts";
+import { initCanvas } from "../lib/canvas.svelte.ts";
 
 declare global {
   interface Window {
