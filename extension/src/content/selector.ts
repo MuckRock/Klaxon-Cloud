@@ -386,15 +386,8 @@ export function cssSelector(el: Element): StructuredSelector {
 
 // ── Resolve Target ───────────────────────────────────────────────────────────
 
-/** Resolve the element under the cursor, ignoring a given host container. */
-export function resolveTarget(
-  evt: MouseEvent,
-  host: HTMLElement,
-): ResolvedTarget | null {
-  const el = document.elementFromPoint(evt.clientX, evt.clientY);
-  if (!el || host.contains(el)) return null;
-  if (el === document.body) return null;
-
+/** Build a ResolvedTarget from a DOM element, or null if the selector is invalid. */
+function buildResolvedTarget(el: Element): ResolvedTarget | null {
   const structured = cssSelector(el);
   const selector = serialize(structured);
 
@@ -407,4 +400,99 @@ export function resolveTarget(
 
   const matchText = matched?.textContent?.trim().slice(0, 200) ?? "";
   return { el, structured, selector, matchText };
+}
+
+/** Resolve the element under the cursor, ignoring a given host container. */
+export function resolveTarget(
+  evt: MouseEvent,
+  host: HTMLElement,
+): ResolvedTarget | null {
+  const el = document.elementFromPoint(evt.clientX, evt.clientY);
+  if (!el || host.contains(el)) return null;
+  if (el === document.body) return null;
+  return buildResolvedTarget(el);
+}
+
+// ── Drag-to-Select ──────────────────────────────────────────────────────────
+
+/** Intersection-over-union of two rects. Returns 0 for no overlap, 1 for identical. */
+function iou(a: DOMRect, b: DOMRect): number {
+  const left = Math.max(a.left, b.left);
+  const top = Math.max(a.top, b.top);
+  const right = Math.min(a.right, b.right);
+  const bottom = Math.min(a.bottom, b.bottom);
+  if (left >= right || top >= bottom) return 0;
+
+  const intersection = (right - left) * (bottom - top);
+  const union = a.width * a.height + b.width * b.height - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+/**
+ * Finds the element whose bounding rect best matches `rect` by IoU score.
+ * Considers all sampled leaf elements and their ancestors up to body.
+ */
+function bestOverlapElement(
+  leafElements: Element[],
+  rect: DOMRect,
+): Element {
+  let bestEl: Element = document.body;
+  let bestScore = 0;
+
+  const visited = new Set<Element>();
+
+  for (const leaf of leafElements) {
+    let el: Element | null = leaf;
+    while (el && el !== document.body) {
+      if (visited.has(el)) break;
+      visited.add(el);
+
+      const score = iou(el.getBoundingClientRect(), rect);
+      if (score > bestScore) {
+        bestScore = score;
+        bestEl = el;
+      }
+      el = el.parentElement;
+    }
+  }
+
+  return bestEl;
+}
+
+const MIN_DRAG_AREA = 100; // px², ignore tiny drag rects
+
+/**
+ * Resolves a drag rectangle to the element whose bounding box best
+ * overlaps it (by IoU). Samples corners + center, then walks ancestors.
+ */
+export function resolveEnclosingElement(
+  rect: DOMRect,
+  host: HTMLElement,
+): ResolvedTarget | null {
+  if (rect.width * rect.height < MIN_DRAG_AREA) return null;
+
+  // Sample 5 points: 4 corners (inset 1px) + center
+  const inset = 1;
+  const points: [number, number][] = [
+    [rect.left + inset, rect.top + inset],
+    [rect.right - inset, rect.top + inset],
+    [rect.left + inset, rect.bottom - inset],
+    [rect.right - inset, rect.bottom - inset],
+    [rect.left + rect.width / 2, rect.top + rect.height / 2],
+  ];
+
+  const elements: Element[] = [];
+  for (const [x, y] of points) {
+    const el = document.elementFromPoint(x, y);
+    if (el && !host.contains(el) && el !== document.body) {
+      elements.push(el);
+    }
+  }
+
+  if (elements.length === 0) return null;
+
+  const el = bestOverlapElement(elements, rect);
+  if (el === document.body) return null;
+
+  return buildResolvedTarget(el);
 }

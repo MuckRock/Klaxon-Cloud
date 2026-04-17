@@ -33,7 +33,7 @@
       </div>
     {/if}
 
-    <p class="hint">Click an element on the page to lock the selection.</p>
+    <p class="hint">Click an element or drag to select a region.</p>
   </div>
 </div>
 
