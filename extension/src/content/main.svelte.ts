@@ -35,7 +35,7 @@ const HOST_ID = "klaxon-host";
 
   // --- Canvas & Svelte mount ---
 
-  const canvas = initCanvas(host);
+  const canvas = initCanvas(host, shadow);
 
   const sidebar = mount(Sidebar, {
     target: mountPoint,

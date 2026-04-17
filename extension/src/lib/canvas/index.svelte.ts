@@ -1,10 +1,16 @@
-import { resolveTarget } from "../../content/selector";
 import {
+  resolveTarget,
+  type StructuredSelector,
+} from "../../content/selector";
+import {
+  initHighlight,
+  destroyHighlight,
   applyHover,
   applySelection,
   clearAll,
   clearHover,
   clearSelection,
+  updatePositions,
 } from "./highlight";
 import { injectStyles, removeStyles } from "./styles";
 
@@ -13,6 +19,7 @@ export interface CanvasState {
   readonly selector: string;
   readonly matchText: string;
   readonly locked: boolean;
+  readonly structured?: StructuredSelector;
 }
 
 export interface Canvas {
@@ -20,13 +27,15 @@ export interface Canvas {
   destroy(): void;
 }
 
-export function initCanvas(host: HTMLElement): Canvas {
+export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
   let mouse = $state({ x: 0, y: 0 });
   let selector = $state("");
   let matchText = $state("");
   let locked = $state(false);
+  let structured = $state<StructuredSelector | undefined>(undefined);
 
   injectStyles();
+  initHighlight(shadow);
   console.debug("[klaxon canvas] initialized");
 
   function onMouseMove(evt: MouseEvent) {
@@ -43,13 +52,16 @@ export function initCanvas(host: HTMLElement): Canvas {
     console.debug("[klaxon canvas] mousemove →", target.selector);
     selector = target.selector;
     matchText = target.matchText;
-
-    const el = document.querySelector(target.selector);
-    if (el) applyHover(el);
+    structured = target.structured;
+    applyHover(target.el);
   }
 
   function onClick(evt: MouseEvent) {
+    // Let clicks inside the sidebar (host) pass through normally
+    if (host.contains(evt.target as Node)) return;
+
     evt.preventDefault();
+    evt.stopPropagation();
     const target = resolveTarget(evt, host);
     if (!target) return;
 
@@ -61,20 +73,30 @@ export function initCanvas(host: HTMLElement): Canvas {
       clearSelection();
       selector = "";
       matchText = "";
+      structured = undefined;
       locked = false;
       return;
     }
 
     selector = target.selector;
     matchText = target.matchText;
+    structured = target.structured;
     locked = true;
+    applySelection(target.el);
+  }
 
-    const el = document.querySelector(target.selector);
-    if (el) applySelection(el);
+  function onScroll() {
+    updatePositions();
+  }
+
+  function onResize() {
+    updatePositions();
   }
 
   window.addEventListener("mousemove", onMouseMove);
-  window.addEventListener("click", onClick);
+  window.addEventListener("click", onClick, true);
+  window.addEventListener("scroll", onScroll, true);
+  window.addEventListener("resize", onResize);
 
   return {
     get state() {
@@ -91,12 +113,18 @@ export function initCanvas(host: HTMLElement): Canvas {
         get locked() {
           return locked;
         },
+        get structured() {
+          return structured;
+        },
       };
     },
     destroy() {
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("click", onClick);
+      window.removeEventListener("click", onClick, true);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
       clearAll();
+      destroyHighlight();
       removeStyles();
     },
   };
