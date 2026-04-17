@@ -1,18 +1,10 @@
 let shadowRoot: ShadowRoot | null = null;
 let hoverOverlay: HTMLDivElement | null = null;
 let selectionOverlay: HTMLDivElement | null = null;
+let dimmingOverlay: HTMLDivElement | null = null;
 
 let currentHoverEl: Element | null = null;
 let currentSelectionEl: Element | null = null;
-let savedBackground: string = "";
-
-/** Resolve the effective background: walk up until we find a non-transparent one. */
-function resolveBackground(el: Element | null): string {
-  if (!el) return "white";
-  const bg = getComputedStyle(el).backgroundColor;
-  if (bg && bg !== "transparent" && bg !== "rgba(0, 0, 0, 0)") return bg;
-  return resolveBackground(el.parentElement);
-}
 
 const OVERLAY_BASE_STYLE = `
   position: fixed;
@@ -42,9 +34,44 @@ function hideOverlay(overlay: HTMLDivElement): void {
   overlay.style.display = "none";
 }
 
+/**
+ * Computes a clip-path polygon that covers the entire viewport with a
+ * rectangular cutout at the given element's bounding box.
+ */
+function clipPathCutout(el: Element): string {
+  const rect = el.getBoundingClientRect();
+  const l = `${rect.left}px`;
+  const t = `${rect.top}px`;
+  const r = `${rect.right}px`;
+  const b = `${rect.bottom}px`;
+
+  // evenodd: outer rect (full viewport) with an inner rect (cutout)
+  return `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${l} ${t}, ${r} ${t}, ${r} ${b}, ${l} ${b}, ${l} ${t})`;
+}
+
+function showDimming(el: Element): void {
+  if (!dimmingOverlay) return;
+  dimmingOverlay.style.clipPath = clipPathCutout(el);
+  dimmingOverlay.style.display = "block";
+}
+
+function hideDimming(): void {
+  if (!dimmingOverlay) return;
+  dimmingOverlay.style.display = "none";
+}
+
 /** Create overlay divs and attach them to the shadow root. */
 export function initHighlight(root: ShadowRoot): void {
   shadowRoot = root;
+
+  dimmingOverlay = createOverlay(
+    "klaxon-dimming-overlay",
+    `
+    inset: 0;
+    z-index: 2147483640;
+    background: rgba(14, 30, 40, 0.66);
+    `,
+  );
 
   hoverOverlay = createOverlay(
     "klaxon-hover-overlay",
@@ -65,6 +92,7 @@ export function initHighlight(root: ShadowRoot): void {
     `,
   );
 
+  shadowRoot.appendChild(dimmingOverlay);
   shadowRoot.appendChild(hoverOverlay);
   shadowRoot.appendChild(selectionOverlay);
 }
@@ -77,24 +105,9 @@ export function applyHover(el: Element): void {
 
 export function applySelection(el: Element): void {
   if (!selectionOverlay) return;
-
-  // Clear previous selection's punch-through
-  if (currentSelectionEl && currentSelectionEl !== el) {
-    (currentSelectionEl as HTMLElement).style.backgroundColor = savedBackground;
-    currentSelectionEl.classList.remove("klaxon-selection");
-  }
-
-  // Punch-through: raise element above the dimming overlay
-  const htmlEl = el as HTMLElement;
-  savedBackground = htmlEl.style.backgroundColor;
-  htmlEl.style.backgroundColor = resolveBackground(el);
-  el.classList.add("klaxon-selection");
-
-  // Dimming overlay on body
-  document.body.classList.add("klaxon-overlay");
-
   currentSelectionEl = el;
   positionOverlay(selectionOverlay, el);
+  showDimming(el);
 }
 
 export function clearHover(): void {
@@ -104,13 +117,8 @@ export function clearHover(): void {
 
 export function clearSelection(): void {
   if (selectionOverlay) hideOverlay(selectionOverlay);
-  if (currentSelectionEl) {
-    (currentSelectionEl as HTMLElement).style.backgroundColor = savedBackground;
-    currentSelectionEl.classList.remove("klaxon-selection");
-    currentSelectionEl = null;
-    savedBackground = "";
-  }
-  document.body.classList.remove("klaxon-overlay");
+  hideDimming();
+  currentSelectionEl = null;
 }
 
 export function clearAll(): void {
@@ -125,14 +133,17 @@ export function updatePositions(): void {
   }
   if (currentSelectionEl && selectionOverlay) {
     positionOverlay(selectionOverlay, currentSelectionEl);
+    showDimming(currentSelectionEl);
   }
 }
 
 /** Remove overlay divs from the shadow root. */
 export function destroyHighlight(): void {
   clearAll();
+  dimmingOverlay?.remove();
   hoverOverlay?.remove();
   selectionOverlay?.remove();
+  dimmingOverlay = null;
   hoverOverlay = null;
   selectionOverlay = null;
   shadowRoot = null;

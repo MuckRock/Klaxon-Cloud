@@ -12,7 +12,7 @@ import {
   clearSelection,
   updatePositions,
 } from "./highlight";
-import { injectStyles, removeStyles } from "./styles";
+
 
 export interface CanvasState {
   readonly mouse: { x: number; y: number };
@@ -34,7 +34,6 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
   let locked = $state(false);
   let structured = $state<StructuredSelector | undefined>(undefined);
 
-  injectStyles();
   initHighlight(shadow);
   console.debug("[klaxon canvas] initialized");
 
@@ -125,7 +124,6 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
       window.removeEventListener("resize", onResize);
       clearAll();
       destroyHighlight();
-      removeStyles();
     },
   };
 }
