@@ -47,7 +47,7 @@ const HOST_ID = "klaxon-host";
         return canvas.state.matchText;
       },
       url: getCanonicalURL(),
-      onClose: cleanup,
+      onclose: cleanup,
     },
   });
 

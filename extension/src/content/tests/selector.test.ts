@@ -5,7 +5,7 @@ import {
   resolveTarget,
   type StructuredSelector,
   type SpecificityLevel,
-} from "./selector";
+} from "../selector";
 
 /** Helper: serialize a structured selector at full specificity. */
 function toCSS(sel: StructuredSelector): string {
@@ -221,7 +221,14 @@ describe("serialize", () => {
   it("produces full CSS with all levels", () => {
     const sel: StructuredSelector = {
       segments: [
-        seg("div", { attributes: { id: "#wrapper", classes: [], dataAttrs: [], semantic: [] } }),
+        seg("div", {
+          attributes: {
+            id: "#wrapper",
+            classes: [],
+            dataAttrs: [],
+            semantic: [],
+          },
+        }),
         seg("p", {
           attributes: { classes: ["intro"], dataAttrs: [], semantic: [] },
           structural: { nthOfType: 2 },
@@ -247,22 +254,37 @@ describe("serialize", () => {
   it("uses only target segment when containers excluded", () => {
     const sel: StructuredSelector = {
       segments: [
-        seg("div", { attributes: { id: "#wrapper", classes: [], dataAttrs: [], semantic: [] } }),
-        seg("p", { attributes: { classes: ["intro"], dataAttrs: [], semantic: [] } }),
+        seg("div", {
+          attributes: {
+            id: "#wrapper",
+            classes: [],
+            dataAttrs: [],
+            semantic: [],
+          },
+        }),
+        seg("p", {
+          attributes: { classes: ["intro"], dataAttrs: [], semantic: [] },
+        }),
       ],
     };
-    const levels: Set<SpecificityLevel> = new Set([
-      "attributes",
-      "structural",
-    ]);
+    const levels: Set<SpecificityLevel> = new Set(["attributes", "structural"]);
     expect(serialize(sel, levels)).toBe("p.intro");
   });
 
   it("uses only tag names when attributes excluded", () => {
     const sel: StructuredSelector = {
       segments: [
-        seg("div", { attributes: { id: "#wrapper", classes: [], dataAttrs: [], semantic: [] } }),
-        seg("p", { attributes: { classes: ["intro"], dataAttrs: [], semantic: [] } }),
+        seg("div", {
+          attributes: {
+            id: "#wrapper",
+            classes: [],
+            dataAttrs: [],
+            semantic: [],
+          },
+        }),
+        seg("p", {
+          attributes: { classes: ["intro"], dataAttrs: [], semantic: [] },
+        }),
       ],
     };
     const levels: Set<SpecificityLevel> = new Set(["containers"]);

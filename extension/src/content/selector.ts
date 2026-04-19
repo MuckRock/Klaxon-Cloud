@@ -95,7 +95,12 @@ function trySimpleSelectors(el: Element): SelectorSegment | null {
   if (seg.attributes.id && isUnique(seg.attributes.id)) {
     return {
       tag,
-      attributes: { ...seg.attributes, classes: [], dataAttrs: [], semantic: [] },
+      attributes: {
+        ...seg.attributes,
+        classes: [],
+        dataAttrs: [],
+        semantic: [],
+      },
     };
   }
 
@@ -253,10 +258,7 @@ function checkEntries(entries: Entry[], el: Element): boolean {
  * Post-processes the segment array: removes redundant intermediate segments
  * and relaxes strict child combinators (`>`) to descendant combinators (` `).
  */
-function optimize(
-  segments: SelectorSegment[],
-  el: Element,
-): SelectorSegment[] {
+function optimize(segments: SelectorSegment[], el: Element): SelectorSegment[] {
   if (segments.length <= 1) return segments;
 
   let entries: Entry[] = segments.map((segment, i) => ({
@@ -302,7 +304,10 @@ export function cssSelector(el: Element): StructuredSelector {
   if (el === document.body) {
     return {
       segments: [
-        { tag: "body", attributes: { classes: [], dataAttrs: [], semantic: [] } },
+        {
+          tag: "body",
+          attributes: { classes: [], dataAttrs: [], semantic: [] },
+        },
       ],
     };
   }
@@ -432,10 +437,7 @@ function iou(a: DOMRect, b: DOMRect): number {
  * Finds the element whose bounding rect best matches `rect` by IoU score.
  * Considers all sampled leaf elements and their ancestors up to body.
  */
-function bestOverlapElement(
-  leafElements: Element[],
-  rect: DOMRect,
-): Element {
+function bestOverlapElement(leafElements: Element[], rect: DOMRect): Element {
   let bestEl: Element = document.body;
   let bestScore = 0;
 
