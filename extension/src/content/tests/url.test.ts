@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { getCanonicalURL } from "./url";
+import { getCanonicalURL } from "../url";
 
 describe("getCanonicalURL", () => {
   beforeEach(() => {

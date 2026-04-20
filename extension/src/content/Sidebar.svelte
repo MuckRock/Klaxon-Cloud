@@ -3,16 +3,16 @@
     selector: string;
     matchText: string;
     url: string;
-    onClose: () => void;
+    onclose: () => void;
   }
 
-  let { selector, matchText, url, onClose }: Props = $props();
+  let { selector, matchText, url, onclose }: Props = $props();
 </script>
 
 <div class="sidebar">
   <div class="header">
     <h2>Klaxon</h2>
-    <button onclick={onClose} aria-label="Close">&times;</button>
+    <button onclick={onclose} aria-label="Close">&times;</button>
   </div>
 
   <div class="body">
@@ -33,7 +33,7 @@
       </div>
     {/if}
 
-    <p class="hint">Click an element on the page to lock the selection.</p>
+    <p class="hint">Click an element or drag to select a region.</p>
   </div>
 </div>
 
