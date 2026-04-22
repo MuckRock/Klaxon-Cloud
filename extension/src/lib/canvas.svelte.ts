@@ -19,6 +19,7 @@ export interface CanvasState {
 export interface Canvas {
   readonly state: CanvasState;
   clearSelection(): void;
+  setSelector(css: string): Element | null;
   destroy(): void;
 }
 
@@ -361,6 +362,18 @@ export function initCanvas(
       };
     },
     clearSelection,
+    setSelector(css: string): Element | null {
+      const el = document.querySelector(css);
+      if (!el || host.contains(el)) return null;
+      selector = css;
+      matchText = el.textContent?.trim().slice(0, 200) ?? "";
+      structured = undefined;
+      locked = true;
+      selectionEl = el;
+      showSelection(el);
+      showApertureBar(el);
+      return el;
+    },
     destroy() {
       window.removeEventListener("click", onClick, true);
       window.removeEventListener("mousedown", onMouseDown, true);

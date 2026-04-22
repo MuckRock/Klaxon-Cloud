@@ -13,10 +13,11 @@
     url: string;
     locked: boolean;
     onclearselection: () => void;
+    onselectorchange: (css: string) => Element | null;
     onclose: () => void;
   }
 
-  let { selector, matchText, url, locked, onclearselection, onclose }: Props =
+  let { selector, matchText, url, locked, onclearselection, onselectorchange, onclose }: Props =
     $props();
 
   let currentView = $state<View>("createAlert");
@@ -48,7 +49,7 @@
     {#if currentView === "debug"}
       <Debug {selector} {matchText} {url} />
     {:else if currentView === "createAlert"}
-      <CreateAlert {locked} {selector} {matchText} />
+      <CreateAlert {locked} {selector} {matchText} {onselectorchange} {onclearselection} />
     {:else if currentView === "saveAlert"}
       <SaveAlert {selector} {matchText} {url} {watchMode} />
     {/if}
@@ -104,7 +105,6 @@
   }
 
   .body {
-    padding: 16px;
     overflow-y: auto;
     flex: 1;
   }

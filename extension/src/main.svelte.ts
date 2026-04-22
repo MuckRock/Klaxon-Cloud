@@ -51,6 +51,7 @@ const HOST_ID = "klaxon-host";
       },
       url: getCanonicalURL(),
       onclearselection: () => canvas.clearSelection(),
+      onselectorchange: (css: string) => canvas.setSelector(css),
       onclose: cleanup,
     },
   });
