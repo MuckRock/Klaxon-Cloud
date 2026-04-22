@@ -1,8 +1,11 @@
+import { mount, unmount } from "svelte";
 import {
   resolveTarget,
   resolveEnclosingElement,
+  buildResolvedTarget,
   type StructuredSelector,
 } from "./selector";
+import ApertureBar from "./components/ApertureBar.svelte";
 
 export interface CanvasState {
   readonly mouse: { x: number; y: number };
@@ -42,6 +45,7 @@ export function initCanvas(
   let hoverEl: Element | null = null;
   let selectionEl: Element | null = null;
   let mouseDownPos: { x: number; y: number } | null = null;
+  let apertureTarget = $state<Element | null>(null);
 
   // Prevent text selection on the page while the extension is active
   const prevUserSelect = document.body.style.userSelect;
@@ -82,6 +86,31 @@ export function initCanvas(
   shadow.appendChild(dismissBtn);
   shadow.appendChild(dragDiv);
 
+  // ── Aperture control bar ────────────────────────────────────────────────
+
+  const apertureMountPoint = document.createElement("div");
+  shadow.appendChild(apertureMountPoint);
+
+  const apertureBar = mount(ApertureBar, {
+    target: apertureMountPoint,
+    props: {
+      get target() {
+        return apertureTarget;
+      },
+      sidebarWidth,
+      host,
+      onselect(el: Element) {
+        const resolved = buildResolvedTarget(el);
+        if (!resolved) return;
+        selector = resolved.selector;
+        matchText = resolved.matchText;
+        structured = resolved.structured;
+        selectionEl = el;
+        showSelection(el);
+      },
+    },
+  });
+
   // ── Overlay helpers ──────────────────────────────────────────────────────
 
   function positionAt(div: HTMLDivElement, el: Element) {
@@ -95,7 +124,7 @@ export function initCanvas(
 
   const EDGE_PAD = 4;
   const BTN_SIZE = 24;
-  const BTN_OFFSET = 8; // how far from the selection corner the button sits
+  const BTN_OFFSET = 12; // how far from the selection corner the button sits
 
   function showSelection(el: Element) {
     positionAt(selectionDiv, el);
@@ -140,10 +169,19 @@ export function initCanvas(
   function clearSelection() {
     hideHover();
     hideSelection();
+    hideApertureBar();
     selector = "";
     matchText = "";
     structured = undefined;
     locked = false;
+  }
+
+  function showApertureBar(el: Element) {
+    apertureTarget = el;
+  }
+
+  function hideApertureBar() {
+    apertureTarget = null;
   }
 
   /** Build a DOMRect from the mousedown origin to the current mouse position. */
@@ -248,6 +286,7 @@ export function initCanvas(
         locked = true;
         selectionEl = target.el;
         showSelection(target.el);
+        showApertureBar(target.el);
       }
 
       mouseDownPos = null;
@@ -267,6 +306,7 @@ export function initCanvas(
 
     if (locked && target.selector !== selector) {
       hideSelection();
+      hideApertureBar();
       selector = "";
       matchText = "";
       structured = undefined;
@@ -280,6 +320,7 @@ export function initCanvas(
     locked = true;
     selectionEl = target.el;
     showSelection(target.el);
+    showApertureBar(target.el);
   }
 
   function onScrollOrResize() {
@@ -333,6 +374,8 @@ export function initCanvas(
       selectionDiv.remove();
       dismissBtn.remove();
       dragDiv.remove();
+      unmount(apertureBar);
+      apertureMountPoint.remove();
     },
   };
 }

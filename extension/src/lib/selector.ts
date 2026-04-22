@@ -392,7 +392,7 @@ export function cssSelector(el: Element): StructuredSelector {
 // ── Resolve Target ───────────────────────────────────────────────────────────
 
 /** Build a ResolvedTarget from a DOM element, or null if the selector is invalid. */
-function buildResolvedTarget(el: Element): ResolvedTarget | null {
+export function buildResolvedTarget(el: Element): ResolvedTarget | null {
   const structured = cssSelector(el);
   const selector = serialize(structured);
 
