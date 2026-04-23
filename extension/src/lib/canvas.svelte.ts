@@ -1,8 +1,11 @@
+import { mount, unmount } from "svelte";
 import {
   resolveTarget,
   resolveEnclosingElement,
+  buildResolvedTarget,
   type StructuredSelector,
-} from "../content/selector";
+} from "./selector";
+import ApertureBar from "./components/ApertureBar.svelte";
 
 export interface CanvasState {
   readonly mouse: { x: number; y: number };
@@ -15,6 +18,9 @@ export interface CanvasState {
 
 export interface Canvas {
   readonly state: CanvasState;
+  active: boolean;
+  clearSelection(): void;
+  setSelector(css: string): Element | null;
   destroy(): void;
 }
 
@@ -26,7 +32,12 @@ function clipPathCutout(el: Element): string {
 
 const DRAG_THRESHOLD = 5;
 
-export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
+export function initCanvas(
+  host: HTMLElement,
+  shadow: ShadowRoot,
+  sidebarWidth: number,
+): Canvas {
+  let active = $state(false);
   let mouse = $state({ x: 0, y: 0 });
   let selector = $state("");
   let matchText = $state("");
@@ -37,10 +48,35 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
   let hoverEl: Element | null = null;
   let selectionEl: Element | null = null;
   let mouseDownPos: { x: number; y: number } | null = null;
+  let apertureTarget = $state<Element | null>(null);
 
-  // Prevent text selection on the page while the extension is active
   const prevUserSelect = document.body.style.userSelect;
-  document.body.style.userSelect = "none";
+
+  function addInteractionListeners() {
+    window.addEventListener("click", onClick, true);
+    window.addEventListener("mousedown", onMouseDown, true);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp, true);
+  }
+
+  function removeInteractionListeners() {
+    window.removeEventListener("click", onClick, true);
+    window.removeEventListener("mousedown", onMouseDown, true);
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("mouseup", onMouseUp, true);
+  }
+
+  function setActive(v: boolean) {
+    if (v === active) return;
+    active = v;
+    if (active) {
+      document.body.style.userSelect = "none";
+      addInteractionListeners();
+    } else {
+      document.body.style.userSelect = prevUserSelect;
+      removeInteractionListeners();
+    }
+  }
 
   // ── Overlay divs ─────────────────────────────────────────────────────────
 
@@ -56,6 +92,17 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
   selectionDiv.style.cssText =
     "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:4px solid #1EBE38; outline-offset:0;";
 
+  const dismissBtn = document.createElement("button");
+  dismissBtn.setAttribute("aria-label", "Clear selection");
+  dismissBtn.textContent = "\u00d7";
+  dismissBtn.style.cssText =
+    "position:fixed; pointer-events:auto; z-index:2147483647; display:none; box-sizing:border-box; width:28px; height:28px; border-radius:50%; border:2px solid #1EBE38; background:#1EBE38; color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0; text-align:center;";
+  dismissBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    clearSelection();
+  });
+
   const dragDiv = document.createElement("div");
   dragDiv.style.cssText =
     "position:fixed; pointer-events:none; z-index:2147483645; display:none; box-sizing:border-box; border:2px dashed rgba(39,198,162,0.8); background:rgba(39,198,162,0.08);";
@@ -63,7 +110,33 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
   shadow.appendChild(dimming);
   shadow.appendChild(hoverDiv);
   shadow.appendChild(selectionDiv);
+  shadow.appendChild(dismissBtn);
   shadow.appendChild(dragDiv);
+
+  // ── Aperture control bar ────────────────────────────────────────────────
+
+  const apertureMountPoint = document.createElement("div");
+  shadow.appendChild(apertureMountPoint);
+
+  const apertureBar = mount(ApertureBar, {
+    target: apertureMountPoint,
+    props: {
+      get target() {
+        return apertureTarget;
+      },
+      sidebarWidth,
+      host,
+      onselect(el: Element) {
+        const resolved = buildResolvedTarget(el);
+        if (!resolved) return;
+        selector = resolved.selector;
+        matchText = resolved.matchText;
+        structured = resolved.structured;
+        selectionEl = el;
+        showSelection(el);
+      },
+    },
+  });
 
   // ── Overlay helpers ──────────────────────────────────────────────────────
 
@@ -76,10 +149,34 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
     div.style.display = "block";
   }
 
+  const EDGE_PAD = 4;
+  const BTN_SIZE = 24;
+  const BTN_OFFSET = 12; // how far from the selection corner the button sits
+
   function showSelection(el: Element) {
     positionAt(selectionDiv, el);
     dimming.style.clipPath = clipPathCutout(el);
     dimming.style.display = "block";
+
+    // Position dismiss button at top-right of selection, clamped to viewport
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let btnLeft = rect.right - BTN_OFFSET;
+    let btnTop = rect.top - BTN_SIZE + BTN_OFFSET;
+
+    // Clamp to keep at least EDGE_PAD from each viewport edge and the sidebar
+    const rightEdge = vw - sidebarWidth;
+    btnLeft = Math.max(
+      EDGE_PAD,
+      Math.min(btnLeft, rightEdge - BTN_SIZE - EDGE_PAD),
+    );
+    btnTop = Math.max(EDGE_PAD, Math.min(btnTop, vh - BTN_SIZE - EDGE_PAD));
+
+    dismissBtn.style.left = `${btnLeft}px`;
+    dismissBtn.style.top = `${btnTop}px`;
+    dismissBtn.style.display = "block";
   }
 
   function hideHover() {
@@ -90,12 +187,31 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
   function hideSelection() {
     selectionDiv.style.display = "none";
     dimming.style.display = "none";
+    dismissBtn.style.display = "none";
     selectionEl = null;
   }
 
   function hideDrag() {
     dragDiv.style.display = "none";
     dragging = false;
+  }
+
+  function clearSelection() {
+    hideHover();
+    hideSelection();
+    hideApertureBar();
+    selector = "";
+    matchText = "";
+    structured = undefined;
+    locked = false;
+  }
+
+  function showApertureBar(el: Element) {
+    apertureTarget = el;
+  }
+
+  function hideApertureBar() {
+    apertureTarget = null;
   }
 
   /** Build a DOMRect from the mousedown origin to the current mouse position. */
@@ -109,9 +225,16 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
 
   // ── Event handlers ───────────────────────────────────────────────────────
 
-  function onMouseDown(evt: MouseEvent) {
-    if (locked) return;
+  function onClick(evt: MouseEvent) {
     if (host.contains(evt.target as Node)) return;
+    evt.preventDefault();
+    evt.stopPropagation();
+  }
+
+  function onMouseDown(evt: MouseEvent) {
+    if (host.contains(evt.target as Node)) return;
+    evt.preventDefault();
+    if (locked) return;
     mouseDownPos = { x: evt.clientX, y: evt.clientY };
   }
 
@@ -193,19 +316,10 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
         locked = true;
         selectionEl = target.el;
         showSelection(target.el);
+        showApertureBar(target.el);
       }
 
       mouseDownPos = null;
-
-      // Suppress the click event that follows mouseup after a drag
-      window.addEventListener(
-        "click",
-        (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        },
-        { capture: true, once: true },
-      );
       return;
     }
 
@@ -222,6 +336,7 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
 
     if (locked && target.selector !== selector) {
       hideSelection();
+      hideApertureBar();
       selector = "";
       matchText = "";
       structured = undefined;
@@ -235,6 +350,7 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
     locked = true;
     selectionEl = target.el;
     showSelection(target.el);
+    showApertureBar(target.el);
   }
 
   function onScrollOrResize() {
@@ -244,9 +360,6 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
 
   // ── Listeners ────────────────────────────────────────────────────────────
 
-  window.addEventListener("mousedown", onMouseDown, true);
-  window.addEventListener("mousemove", onMouseMove);
-  window.addEventListener("mouseup", onMouseUp, true);
   window.addEventListener("scroll", onScrollOrResize, true);
   window.addEventListener("resize", onScrollOrResize);
 
@@ -273,17 +386,37 @@ export function initCanvas(host: HTMLElement, shadow: ShadowRoot): Canvas {
         },
       };
     },
+    get active() {
+      return active;
+    },
+    set active(v: boolean) {
+      setActive(v);
+    },
+    clearSelection,
+    setSelector(css: string): Element | null {
+      const el = document.querySelector(css);
+      if (!el || host.contains(el)) return null;
+      selector = css;
+      matchText = el.textContent?.trim().slice(0, 200) ?? "";
+      structured = undefined;
+      locked = true;
+      selectionEl = el;
+      showSelection(el);
+      showApertureBar(el);
+      return el;
+    },
     destroy() {
-      window.removeEventListener("mousedown", onMouseDown, true);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp, true);
+      removeInteractionListeners();
       window.removeEventListener("scroll", onScrollOrResize, true);
       window.removeEventListener("resize", onScrollOrResize);
       document.body.style.userSelect = prevUserSelect;
       dimming.remove();
       hoverDiv.remove();
       selectionDiv.remove();
+      dismissBtn.remove();
       dragDiv.remove();
+      unmount(apertureBar);
+      apertureMountPoint.remove();
     },
   };
 }

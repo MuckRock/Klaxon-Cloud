@@ -1,7 +1,5 @@
-import Sidebar from "./Sidebar.svelte";
 import { mount, unmount } from "svelte";
-import { getCanonicalURL } from "./url";
-import { initCanvas } from "../lib/canvas.svelte.ts";
+import App from "./lib/components/App.svelte";
 
 declare global {
   interface Window {
@@ -9,7 +7,7 @@ declare global {
   }
 }
 
-const SIDEBAR_WIDTH = "300px";
+const SIDEBAR_WIDTH = 300;
 const HOST_ID = "klaxon-host";
 
 (function () {
@@ -31,22 +29,16 @@ const HOST_ID = "klaxon-host";
   shadow.appendChild(mountPoint);
 
   const prevMarginRight = document.body.style.marginRight;
-  document.body.style.marginRight = SIDEBAR_WIDTH;
+  document.body.style.marginRight = `${SIDEBAR_WIDTH}px`;
 
-  // --- Canvas & Svelte mount ---
+  // --- Svelte mount ---
 
-  const canvas = initCanvas(host, shadow);
-
-  const sidebar = mount(Sidebar, {
+  const app = mount(App, {
     target: mountPoint,
     props: {
-      get selector() {
-        return canvas.state.selector;
-      },
-      get matchText() {
-        return canvas.state.matchText;
-      },
-      url: getCanonicalURL(),
+      host,
+      shadow,
+      sidebarWidth: SIDEBAR_WIDTH,
       onclose: cleanup,
     },
   });
@@ -54,9 +46,8 @@ const HOST_ID = "klaxon-host";
   // --- Teardown ---
 
   function cleanup() {
-    canvas.destroy();
     document.body.style.marginRight = prevMarginRight;
-    unmount(sidebar);
+    unmount(app);
     host.remove();
     window._klaxonInject = false;
     console.debug("Closed Klaxon");

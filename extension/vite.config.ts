@@ -16,7 +16,7 @@ export default defineConfig({
   publicDir: "static",
   build: {
     rollupOptions: {
-      input: "src/content/main.svelte.ts",
+      input: "src/main.svelte.ts",
       output: {
         // Single IIFE bundle for content script injection
         format: "iife",

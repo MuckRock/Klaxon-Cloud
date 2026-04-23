@@ -1,21 +1,20 @@
 <script lang="ts">
+  import { ArrowRight } from "@lucide/svelte";
+  import { getRouter } from "../components/Router.svelte";
+
   interface Props {
     selector: string;
     matchText: string;
     url: string;
-    onclose: () => void;
   }
 
-  let { selector, matchText, url, onclose }: Props = $props();
+  let { selector, matchText, url }: Props = $props();
+
+  const router = getRouter();
 </script>
 
-<div class="sidebar">
-  <div class="header">
-    <h2>Klaxon</h2>
-    <button onclick={onclose} aria-label="Close">&times;</button>
-  </div>
-
-  <div class="body">
+<div class="container">
+  <div class="section">
     <label>
       Page URL
       <input type="text" readonly value={url} />
@@ -35,62 +34,24 @@
 
     <p class="hint">Click an element or drag to select a region.</p>
   </div>
+  <footer class="button-row">
+    <button class="btn-primary" onclick={() => router.navigate("createAlert")}>
+      Create alert
+      <ArrowRight />
+    </button>
+  </footer>
 </div>
 
 <style>
-  .sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 300px;
-    height: 100vh;
-    background: #fff;
-    border-left: 2px solid #ccc;
-    font-family:
-      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 14px;
-    color: #333;
-    z-index: 2147483647;
+  .container {
     display: flex;
     flex-direction: column;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    height: 100%;
   }
-
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid #eee;
-    background: #f8f8f8;
+  .section {
+    padding: 1em;
+    flex: 1 1 auto;
   }
-
-  h2 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  .header button {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #666;
-    padding: 0 4px;
-    line-height: 1;
-  }
-
-  .header button:hover {
-    color: #000;
-  }
-
-  .body {
-    padding: 16px;
-    overflow-y: auto;
-    flex: 1;
-  }
-
   label {
     display: block;
     margin-bottom: 12px;
