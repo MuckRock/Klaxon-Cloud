@@ -3,6 +3,7 @@
     "rewriteRelativeImportExtensions": true,
     "allowJs": true,
     "checkJs": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
