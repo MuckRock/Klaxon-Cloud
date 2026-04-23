@@ -52,6 +52,9 @@ const HOST_ID = "klaxon-host";
       url: getCanonicalURL(),
       onclearselection: () => canvas.clearSelection(),
       onselectorchange: (css: string) => canvas.setSelector(css),
+      onroutechange: (view: string) => {
+        canvas.active = view === "createAlert";
+      },
       onclose: cleanup,
     },
   });

@@ -18,6 +18,7 @@ export interface CanvasState {
 
 export interface Canvas {
   readonly state: CanvasState;
+  active: boolean;
   clearSelection(): void;
   setSelector(css: string): Element | null;
   destroy(): void;
@@ -36,6 +37,7 @@ export function initCanvas(
   shadow: ShadowRoot,
   sidebarWidth: number,
 ): Canvas {
+  let active = $state(false);
   let mouse = $state({ x: 0, y: 0 });
   let selector = $state("");
   let matchText = $state("");
@@ -48,9 +50,18 @@ export function initCanvas(
   let mouseDownPos: { x: number; y: number } | null = null;
   let apertureTarget = $state<Element | null>(null);
 
-  // Prevent text selection on the page while the extension is active
   const prevUserSelect = document.body.style.userSelect;
-  document.body.style.userSelect = "none";
+
+  function setActive(v: boolean) {
+    if (v === active) return;
+    active = v;
+    if (active) {
+      document.body.style.userSelect = "none";
+    } else {
+      document.body.style.userSelect = prevUserSelect;
+      clearSelection();
+    }
+  }
 
   // ── Overlay divs ─────────────────────────────────────────────────────────
 
@@ -197,12 +208,14 @@ export function initCanvas(
   // ── Event handlers ───────────────────────────────────────────────────────
 
   function onClick(evt: MouseEvent) {
+    if (!active) return;
     if (host.contains(evt.target as Node)) return;
     evt.preventDefault();
     evt.stopPropagation();
   }
 
   function onMouseDown(evt: MouseEvent) {
+    if (!active) return;
     if (host.contains(evt.target as Node)) return;
     evt.preventDefault();
     if (locked) return;
@@ -210,6 +223,7 @@ export function initCanvas(
   }
 
   function onMouseMove(evt: MouseEvent) {
+    if (!active) return;
     mouse = { x: evt.clientX, y: evt.clientY };
 
     // If mouse is down, check for drag
@@ -262,6 +276,7 @@ export function initCanvas(
   }
 
   function onMouseUp(evt: MouseEvent) {
+    if (!active) return;
     if (!mouseDownPos) return;
 
     if (host.contains(evt.target as Node)) {
@@ -360,6 +375,12 @@ export function initCanvas(
           return structured;
         },
       };
+    },
+    get active() {
+      return active;
+    },
+    set active(v: boolean) {
+      setActive(v);
     },
     clearSelection,
     setSelector(css: string): Element | null {

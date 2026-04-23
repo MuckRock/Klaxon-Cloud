@@ -22,11 +22,13 @@
 
   interface Props {
     initialView: View;
+    onchange?: (view: View) => void;
     children: Snippet<[Router]>;
   }
 
   let {
     initialView,
+    onchange,
     children
   }: Props = $props();
 
@@ -40,6 +42,7 @@
     },
     navigate(v: View) {
       currentView = v;
+      onchange?.(v);
     },
   };
 

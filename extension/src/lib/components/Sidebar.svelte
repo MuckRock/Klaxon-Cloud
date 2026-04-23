@@ -12,14 +12,15 @@
     locked: boolean;
     onclearselection: () => void;
     onselectorchange: (css: string) => Element | null;
+    onroutechange: (view: string) => void;
     onclose: () => void;
   }
 
-  let { selector, matchText, url, locked, onclearselection, onselectorchange, onclose }: Props =
+  let { selector, matchText, url, locked, onclearselection, onselectorchange, onroutechange, onclose }: Props =
     $props();
 </script>
 
-<Router initialView="home">
+<Router initialView="home" onchange={onroutechange}>
   {#snippet children(router)}
   <div class="sidebar">
     <div class="header">
