@@ -1,7 +1,5 @@
 import { mount, unmount } from "svelte";
-import { getCanonicalURL } from "./lib/url";
-import { initCanvas } from "./lib/canvas.svelte.ts"
-import Sidebar from "./lib/components/Sidebar.svelte"
+import App from "./lib/components/App.svelte";
 
 declare global {
   interface Window {
@@ -9,7 +7,7 @@ declare global {
   }
 }
 
-const SIDEBAR_WIDTH = "300px";
+const SIDEBAR_WIDTH = 300;
 const HOST_ID = "klaxon-host";
 
 (function () {
@@ -31,30 +29,16 @@ const HOST_ID = "klaxon-host";
   shadow.appendChild(mountPoint);
 
   const prevMarginRight = document.body.style.marginRight;
-  document.body.style.marginRight = SIDEBAR_WIDTH;
+  document.body.style.marginRight = `${SIDEBAR_WIDTH}px`;
 
-  // --- Canvas & Svelte mount ---
+  // --- Svelte mount ---
 
-  const canvas = initCanvas(host, shadow, parseInt(SIDEBAR_WIDTH));
-
-  const sidebar = mount(Sidebar, {
+  const app = mount(App, {
     target: mountPoint,
     props: {
-      get selector() {
-        return canvas.state.selector;
-      },
-      get matchText() {
-        return canvas.state.matchText;
-      },
-      get locked() {
-        return canvas.state.locked;
-      },
-      url: getCanonicalURL(),
-      onclearselection: () => canvas.clearSelection(),
-      onselectorchange: (css: string) => canvas.setSelector(css),
-      onroutechange: (view: string) => {
-        canvas.active = view === "createAlert";
-      },
+      host,
+      shadow,
+      sidebarWidth: SIDEBAR_WIDTH,
       onclose: cleanup,
     },
   });
@@ -62,9 +46,8 @@ const HOST_ID = "klaxon-host";
   // --- Teardown ---
 
   function cleanup() {
-    canvas.destroy();
     document.body.style.marginRight = prevMarginRight;
-    unmount(sidebar);
+    unmount(app);
     host.remove();
     window._klaxonInject = false;
     console.debug("Closed Klaxon");
