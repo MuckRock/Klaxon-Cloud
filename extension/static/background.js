@@ -14,6 +14,10 @@ import {
   randomBase64Url,
 } from "./lib/oidc.js";
 
+// Log the OAuth redirect URI on every SW boot — register this exact string
+// with the Squarelet client. Remove once the URI is stable across environments.
+console.log("[klaxon] OAuth redirect URI:", chrome.identity.getRedirectURL());
+
 chrome.action.onClicked.addListener((tab) => {
   chrome.scripting.executeScript({
     target: { tabId: tab.id },

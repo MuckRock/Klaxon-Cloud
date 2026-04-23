@@ -43,8 +43,14 @@ function config() {
   const clientId = import.meta.env.MUCKROCK_CLIENT_ID;
   const scopes = import.meta.env.MUCKROCK_SCOPES ?? DEFAULT_SCOPES;
   if (!host || !clientId) {
+    const missing = [
+      !host && "MUCKROCK_ACCOUNTS_HOST",
+      !clientId && "MUCKROCK_CLIENT_ID",
+    ]
+      .filter(Boolean)
+      .join(", ");
     throw new Error(
-      "Missing MUCKROCK_ACCOUNTS_HOST or MUCKROCK_CLIENT_ID in extension/.env",
+      `Missing ${missing} — values are baked in at build time, so rebuild the extension (npm run build) and reload it in chrome://extensions after editing .env.`,
     );
   }
   return { host, clientId, scopes };

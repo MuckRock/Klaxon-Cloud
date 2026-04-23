@@ -220,7 +220,12 @@ Update [extension/README.md](../extension/README.md) with: required env vars, ho
 ## Open questions
 
 - **Which scopes beyond `openid profile email uuid organizations`** does Klaxon need for its DocumentCloud integrations? `preferences` / `bio` are available if useful.
-- **Firefox support priority.** `browser.identity.launchWebAuthFlow` works, but redirect URI format differs. Register both formats when we commit to shipping Firefox.
+- **Firefox redirect URI strategy.** `browser.identity.launchWebAuthFlow` works, but its redirect URI is `https://<UUID>.extensions.allizom.org/` where `<UUID>` is generated per Firefox profile on install — *not* derived from `gecko.id`. Consequences:
+  - Every dev machine has a different UUID. Workaround: pin it via `about:config` → `extensions.webextensions.uuids` before first install, then register that URI alongside the Chrome one on Squarelet.
+  - Every end-user has a different UUID too, so we can't simply register a fixed set for production. Options to evaluate before shipping Firefox:
+    1. Intermediate redirect: register one stable URL on Squarelet (e.g. a hosted `auth/extension-callback` page) that re-redirects to `browser.identity.getRedirectURL()`. Requires hosting a tiny static page and asking Squarelet's OIDC provider to accept it.
+    2. Relax redirect URI matching on Squarelet to a regex/prefix for `.extensions.allizom.org` hosts — `django-oidc-provider` does exact-string matching so this would be a small fork/patch.
+    3. Ship Chrome/Edge/Brave first, add Firefox when we pick an option.
 
 ## Rollout
 
