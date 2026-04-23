@@ -1,74 +1,47 @@
 <script lang="ts">
-  import { getContext } from "svelte";
+  import { getRouter } from "../components/Router.svelte";
 
   interface Props {
-    selector: string;
-    matchText: string;
+    selector: string | null;
+    matchText: string | null;
     url: string;
-    watchMode: "page" | "selection";
   }
 
-  let { selector, matchText, url, watchMode }: Props = $props();
+  let { selector, matchText, url }: Props = $props();
 
-  const nav = getContext<{
-    navigate: (v: string, opts?: { watchMode?: string }) => void;
-  }>("navigation");
+  const router = getRouter();
 
   let frequency = $state("weekly");
   let name = $state("");
   let slackWebhook = $state("");
 
-  function handleBack() {
-    nav.navigate("createAlert");
-  }
-
-  function handleCancel() {
-    nav.navigate("createAlert");
-  }
-
-  function handleChangeSelection() {
-    nav.navigate("createAlert");
-  }
-
-  function handleWatchEntirePage() {
-    nav.navigate("saveAlert", { watchMode: "page" });
-  }
-
   function handleSave() {
     console.log("TODO: save alert", {
       url,
-      selector: watchMode === "selection" ? selector : null,
-      matchText: watchMode === "selection" ? matchText : null,
+      selector,
+      matchText,
       frequency,
       name,
       slackWebhook,
     });
+    router.navigate('home');
   }
 </script>
 
-<div class="save-alert">
-  <button class="back-link" onclick={handleBack}>
-    &#8249; <span>Back</span>
-  </button>
-
-  <div class="content">
+<div class="container save-alert">
+  <header>
+    <button class="back-link" onclick={() => router.navigate("createAlert")}>
+      &#8249; <span>Back</span>
+    </button>
+  </header>
+  <main class="section content">
     <div class="intro">
       <h3>Save alert</h3>
       <p class="description">
         This alert will watch <strong
-          >{watchMode === "selection" ? "part of the page" : "the entire page"}</strong
+          >{selector ? "part of the page" : "the entire page"}</strong
         > for changes.
       </p>
-      {#if watchMode === "selection"}
-        <p class="description">
-          (If you'd like, you can <button
-            class="inline-link"
-            onclick={handleChangeSelection}>change the part of the page we'll watch</button
-          >, or <button class="inline-link" onclick={handleWatchEntirePage}
-            >tell Klaxon to monitor the entire page instead</button
-          >.)
-        </p>
-      {/if}
       <p class="description">
         We just need a bit more info to save your alert.
       </p>
@@ -124,21 +97,25 @@
         bind:value={slackWebhook}
       />
     </div>
-
-    <hr />
-
-    <div class="button-row">
-      <button class="btn-cancel" onclick={handleCancel}>Cancel</button>
-      <button class="btn-primary" onclick={handleSave}>Save alert</button>
-    </div>
-  </div>
+  </main>
+  <footer class="button-row">
+    <button class="btn-primary" onclick={handleSave}>Save alert</button>
+  </footer>
 </div>
 
 <style>
-  .save-alert {
+  .container {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    height: 100%;
+  }
+
+  header, main, footer {
+    padding: 1em;
+  }
+
+  main {
+    flex: 1 1 auto;
   }
 
   .back-link {
@@ -148,7 +125,6 @@
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    padding: 0;
     text-align: left;
   }
 
@@ -184,22 +160,6 @@
     font-size: 16px;
     line-height: 1.4;
     color: #0c1e27;
-  }
-
-  .inline-link {
-    background: none;
-    border: none;
-    padding: 0;
-    color: #c41a4d;
-    font-weight: 700;
-    font-size: inherit;
-    font-family: inherit;
-    text-decoration: underline;
-    cursor: pointer;
-  }
-
-  .inline-link:hover {
-    opacity: 0.8;
   }
 
   .field {
@@ -271,45 +231,35 @@
     color: #99a8b3;
   }
 
-  hr {
-    border: none;
-    border-top: 1px solid #ccc;
-    margin: 0;
-  }
-
   .button-row {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-
-  .btn-cancel {
-    background: #99a8b3;
-    color: #f5f6f7;
-    border: 1px solid #5c717c;
-    border-radius: 8px;
-    padding: 4px 10px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .btn-cancel:hover {
-    opacity: 0.9;
+    justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    margin-top: 1em;
+    padding: 1em;
+    border-top: 1px solid #ccc;
   }
 
   .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1em;
     background: #ec7b6b;
     color: #f5f6f7;
     border: 1px solid #69515c;
     border-radius: 8px;
     padding: 4px 10px;
-    font-size: 14px;
+    font-size: 1.125em;
     font-weight: 600;
     cursor: pointer;
+    line-height: 1.4;
+    width: 100%;
   }
 
-  .btn-primary:hover {
+  .btn-primary:hover:not(:disabled) {
     opacity: 0.9;
   }
 </style>

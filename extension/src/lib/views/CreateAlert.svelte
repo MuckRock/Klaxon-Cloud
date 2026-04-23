@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ArrowRight, ChevronRight } from "@lucide/svelte";
-  import { getContext } from "svelte";
+  import { getRouter } from "../components/Router.svelte";
 
   interface Props {
     locked: boolean;
@@ -40,29 +40,17 @@
     }
   }
 
-  const nav = getContext<{
-    navigate: (v: string, opts?: { watchMode?: string }) => void;
-  }>("navigation");
-
-  function handleAlertEntirePage() {
-    nav.navigate("saveAlert", { watchMode: "page" });
-  }
-
-  function handleAlertSelection() {
-    nav.navigate("saveAlert", { watchMode: "selection" });
-  }
-
-  function handleBack() {
-    console.log("TODO: navigate back");
-  }
+  const router = getRouter();
 </script>
 
-<div class="create-alert">
-  <button class="back-link" onclick={handleBack}>
-    &#8249; <span>Back</span>
-  </button>
+<div class="container create-alert">
+  <header>
+    <button class="back-link" onclick={() => router.navigate("home")}>
+      &#8249; <span>Back</span>
+    </button>
+  </header>
 
-  <section class="section">
+  <main class="section">
     <h3>Create an alert</h3>
     <p class="description">
       By default, Klaxon watches the entire page for changes. If that sounds
@@ -147,24 +135,31 @@
         </div>
       {/if}
     </div>
-  </section>
-  <div class="button-row">
+  </main>
+  <footer class="button-row">
     <button
       class="btn-primary"
-      onclick={locked ? handleAlertSelection : handleAlertEntirePage}
+      onclick={() => router.navigate("saveAlert")}
     >
       Add alert details
       <ArrowRight />
     </button>
-  </div>
+  </footer>
 </div>
 
 <style>
-  .create-alert {
+  .container {
     display: flex;
     flex-direction: column;
-    gap: 0;
     height: 100%;
+  }
+
+  header, main, footer {
+    padding: 1em;
+  }
+
+  main {
+    flex: 1 1 auto;
   }
 
   .back-link {
@@ -174,7 +169,6 @@
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    padding: 1em;
     text-align: left;
   }
 

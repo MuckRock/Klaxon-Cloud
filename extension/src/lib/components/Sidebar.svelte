@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { setContext } from "svelte";
-  import Debug from "./Debug.svelte";
-  import CreateAlert from "./CreateAlert.svelte";
-  import SaveAlert from "./SaveAlert.svelte";
-
-  export type View = "debug" | "createAlert" | "saveAlert";
-  export type WatchMode = "page" | "selection";
+  import Debug from "../views/Debug.svelte";
+  import CreateAlert from "../views/CreateAlert.svelte";
+  import SaveAlert from "../views/SaveAlert.svelte";
+  import Router from "./Router.svelte";
+  import { X } from "@lucide/svelte";
 
   interface Props {
     selector: string;
@@ -19,42 +17,30 @@
 
   let { selector, matchText, url, locked, onclearselection, onselectorchange, onclose }: Props =
     $props();
-
-  let currentView = $state<View>("createAlert");
-  let watchMode = $state<WatchMode>("page");
-
-  setContext("navigation", {
-    get view() {
-      return currentView;
-    },
-    navigate(v: View, opts?: { watchMode?: WatchMode }) {
-      currentView = v;
-      if (opts?.watchMode) {
-        watchMode = opts.watchMode;
-        if (opts.watchMode === "page") {
-          onclearselection();
-        }
-      }
-    },
-  });
 </script>
 
-<div class="sidebar">
-  <div class="header">
-    <h2>Klaxon</h2>
-    <button onclick={onclose} aria-label="Close">&times;</button>
-  </div>
+<Router initialView="home">
+  {#snippet children(router)}
+  <div class="sidebar">
+    <div class="header">
+      <h2>Klaxon</h2>
+      <button onclick={onclose} aria-label="Close">
+        <X />
+      </button>
+    </div>
 
-  <div class="body">
-    {#if currentView === "debug"}
-      <Debug {selector} {matchText} {url} />
-    {:else if currentView === "createAlert"}
-      <CreateAlert {locked} {selector} {matchText} {onselectorchange} {onclearselection} />
-    {:else if currentView === "saveAlert"}
-      <SaveAlert {selector} {matchText} {url} {watchMode} />
-    {/if}
+    <div class="body">
+      {#if router.view === "home"}
+        <Debug {selector} {matchText} {url} />
+      {:else if router.view === "createAlert"}
+        <CreateAlert {locked} {selector} {matchText} {onselectorchange} {onclearselection} />
+      {:else if router.view === "saveAlert"}
+        <SaveAlert {selector} {matchText} {url} />
+      {/if}
+    </div>
   </div>
-</div>
+  {/snippet}
+</Router>
 
 <style>
   .sidebar {
