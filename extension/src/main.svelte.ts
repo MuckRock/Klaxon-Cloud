@@ -1,5 +1,6 @@
 import { mount, unmount } from "svelte";
 import App from "./lib/components/App.svelte";
+import { login } from "./lib/auth.svelte.ts";
 
 declare global {
   interface Window {
@@ -31,7 +32,11 @@ const HOST_ID = "klaxon-host";
   const prevMarginRight = document.body.style.marginRight;
   document.body.style.marginRight = `${SIDEBAR_WIDTH}px`;
 
-  // --- Svelte mount ---
+  // --- auth ---
+
+  login();
+
+  // --- Canvas & Svelte mount ---
 
   const app = mount(App, {
     target: mountPoint,
