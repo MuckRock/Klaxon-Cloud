@@ -34,7 +34,7 @@
 
     <p class="hint">Click an element or drag to select a region.</p>
   </div>
-  <footer class="create-alert">
+  <footer class="button-row">
     <button
       class="btn-primary"
       onclick={() => router.navigate("createAlert")}
@@ -54,32 +54,6 @@
   .section {
     padding: 1em;
     flex: 1 1 auto;
-  }
-  .create-alert {
-    display: flex;
-    justify-content: flex-end;
-    position: sticky;
-    bottom: 0;
-    background: #fff;
-    margin-top: 1em;
-    padding: 1em;
-    border-top: 1px solid #ccc;
-  }
-  .btn-primary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1em;
-    background: #ec7b6b;
-    color: #f5f6f7;
-    border: 1px solid #69515c;
-    border-radius: 8px;
-    padding: 4px 10px;
-    font-size: 1.125em;
-    font-weight: 600;
-    cursor: pointer;
-    line-height: 1.4;
-    width: 100%;
   }
   label {
     display: block;
