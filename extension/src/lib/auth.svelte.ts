@@ -87,9 +87,15 @@ function applyStored(stored: StoredAuth | null) {
   authState.error = null;
 }
 
-export async function restore(): Promise<void> {
-  const stored = await send<StoredAuth | null>("auth/state");
-  applyStored(stored);
+export async function restore(retry = true): Promise<void> {
+  try {
+    const stored = await send<StoredAuth | null>("auth/state");
+    applyStored(stored);
+  } catch {
+    // SW may not be ready on first inject — retry once after a short delay.
+    // If still no SW, leave state as idle; user can sign in manually.
+    if (retry) setTimeout(() => restore(false), 200);
+  }
 }
 
 export async function login(): Promise<void> {
