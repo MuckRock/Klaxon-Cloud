@@ -12,7 +12,7 @@ import {
   endpoints,
   pkceChallenge,
   randomBase64Url,
-} from "./lib/oidc.js";
+} from "./lib/oidc.ts";
 
 // Log the OAuth redirect URI on every SW boot — register this exact string
 // with the Squarelet client. Remove once the URI is stable across environments.
@@ -20,27 +20,42 @@ console.log("[klaxon] OAuth redirect URI:", chrome.identity.getRedirectURL());
 
 chrome.action.onClicked.addListener((tab) => {
   chrome.scripting.executeScript({
-    target: { tabId: tab.id },
+    target: { tabId: tab.id! },
     files: ["content.js"],
   });
 });
 
 const STORAGE_KEY = "muckrock_auth";
 
-async function readStored() {
-  const r = await chrome.storage.local.get(STORAGE_KEY);
-  return r[STORAGE_KEY] ?? null;
+interface AuthConfig {
+  host: string;
+  clientId: string;
+  scopes: string;
 }
 
-async function writeStored(data) {
+interface StoredAuth {
+  access_token: string;
+  refresh_token: string;
+  id_token: string;
+  expires_in: number;
+  issued_at: number;
+  user: Record<string, unknown> | null;
+}
+
+async function readStored(): Promise<StoredAuth | null> {
+  const r = await chrome.storage.local.get(STORAGE_KEY);
+  return (r[STORAGE_KEY] as StoredAuth) ?? null;
+}
+
+async function writeStored(data: StoredAuth): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEY]: data });
 }
 
-async function clearStored() {
+async function clearStored(): Promise<void> {
   await chrome.storage.local.remove(STORAGE_KEY);
 }
 
-async function signIn({ host, clientId, scopes }) {
+async function signIn({ host, clientId, scopes }: AuthConfig): Promise<StoredAuth> {
   const ep = endpoints(host);
   const verifier = randomBase64Url(64);
   const challenge = await pkceChallenge(verifier);
@@ -103,7 +118,7 @@ async function signIn({ host, clientId, scopes }) {
     // userinfo is best-effort; the ID token already carries the sub.
   }
 
-  const stored = {
+  const stored: StoredAuth = {
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     id_token: tokens.id_token,
@@ -115,7 +130,7 @@ async function signIn({ host, clientId, scopes }) {
   return stored;
 }
 
-async function refreshTokens({ host, clientId }) {
+async function refreshTokens({ host, clientId }: Omit<AuthConfig, "scopes">): Promise<StoredAuth | null> {
   const ep = endpoints(host);
   const stored = await readStored();
   if (!stored?.refresh_token) return null;
@@ -134,7 +149,7 @@ async function refreshTokens({ host, clientId }) {
     return null;
   }
   const tokens = await resp.json();
-  const fresh = {
+  const fresh: StoredAuth = {
     ...stored,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token ?? stored.refresh_token,
@@ -147,8 +162,8 @@ async function refreshTokens({ host, clientId }) {
 }
 
 // Dedupe concurrent refresh calls so multiple callers share one network round-trip.
-let refreshPromise = null;
-function dedupedRefresh(args) {
+let refreshPromise: Promise<StoredAuth | null> | null = null;
+function dedupedRefresh(args: Omit<AuthConfig, "scopes">): Promise<StoredAuth | null> {
   if (!refreshPromise) {
     refreshPromise = refreshTokens(args).finally(() => {
       refreshPromise = null;
@@ -157,7 +172,7 @@ function dedupedRefresh(args) {
   return refreshPromise;
 }
 
-async function accessToken({ host, clientId }) {
+async function accessToken({ host, clientId }: Omit<AuthConfig, "scopes">): Promise<string | null> {
   const stored = await readStored();
   if (!stored) return null;
   const expiresAt = stored.issued_at + stored.expires_in * 1000 - 30_000;
@@ -166,7 +181,7 @@ async function accessToken({ host, clientId }) {
   return fresh?.access_token ?? null;
 }
 
-async function signOut({ host }) {
+async function signOut({ host }: Pick<AuthConfig, "host">): Promise<void> {
   const ep = endpoints(host);
   const stored = await readStored();
   await clearStored();
@@ -186,7 +201,12 @@ async function signOut({ host }) {
   }
 }
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+interface AuthMessage {
+  type: string;
+  config: AuthConfig;
+}
+
+chrome.runtime.onMessage.addListener((msg: AuthMessage, _sender, sendResponse) => {
   if (!msg?.type?.startsWith?.("auth/")) return false;
   (async () => {
     try {
@@ -208,7 +228,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           sendResponse({ ok: false, error: `unknown message: ${msg.type}` });
       }
     } catch (e) {
-      sendResponse({ ok: false, error: e?.message ?? String(e) });
+      sendResponse({ ok: false, error: e instanceof Error ? e.message : String(e) });
     }
   })();
   return true;
