@@ -32,7 +32,6 @@ const HOST_ID = "klaxon-host";
   const prevMarginRight = document.body.style.marginRight;
   document.body.style.marginRight = `${SIDEBAR_WIDTH}px`;
 
-  // --- Svelte mount ---
   // --- auth ---
   // Seed authState from whatever the SW has stored. Sidebar reacts when it
   // resolves.

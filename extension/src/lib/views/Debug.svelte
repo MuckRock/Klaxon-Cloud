@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { authState, login, logout } from "../lib/auth.svelte.ts";
+  import { authState, login, logout } from '../auth.svelte.ts'
+  import { ArrowRight } from "@lucide/svelte";
+  import { getRouter } from "../components/Router.svelte";
 
   interface Props {
     selector: string;
@@ -12,13 +14,8 @@
   const router = getRouter();
 </script>
 
-<div class="sidebar">
-  <div class="header">
-    <h2>Klaxon</h2>
-    <button onclick={onclose} aria-label="Close">&times;</button>
-  </div>
-
-  <div class="body">
+<div class="container">
+  <div class="section">
     <div class="auth">
       {#if authState.status === "authenticated"}
         <div class="user">
