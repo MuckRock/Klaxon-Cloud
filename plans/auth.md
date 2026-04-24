@@ -11,7 +11,7 @@ Sign the user into Squarelet from the Klaxon Cloud browser extension using OIDC 
 **Not yet done:**
 - Squarelet-side discovery-document patch (recommended, optional).
 - Production redirect URIs + CORS allowlist.
-- Firefox redirect URI strategy.
+- ~~Firefox redirect URI strategy.~~ Resolved — `getRedirectURL()` is derived from the add-on ID, not the per-profile UUID. See open questions.
 - JWKS signature verification of the `id_token` (punted — TLS trust is enough for v1).
 
 ## Research summary
@@ -38,7 +38,7 @@ A public client is already registered on `dev.squarelet.com` (client ID `402273`
 - `response_types = ["code"]`
 - `redirect_uris`: one per target
   - Chrome/Edge/Brave: `https://<CHROME_EXT_ID>.chromiumapp.org/` — trailing slash required; django-oidc-provider does exact-string matching
-  - Firefox: `https://<ADDON_UUID>.extensions.allizom.org/` — per-profile UUID, see open questions
+  - Firefox: `https://<HASH_OF_ADDON_ID>.extensions.allizom.org/` — deterministic hash of `gecko.id`, stable across all profiles/installs (see Redirect URI stability below)
   - Any dev/staging variants
 - `post_logout_redirect_uris`: same set
 - `scope = "openid profile email uuid organizations"` (+ `preferences`, `bio` if needed)
@@ -140,15 +140,60 @@ No well-known fetch — issuer is fixed per deployment.
 - **`chrome.storage` isn't universally available in content scripts** even with the `storage` permission — we guard the `onChanged` listener so a failure there doesn't break the sidebar.
 - **Redirect URI matching is exact-string.** Trailing slash, whitespace, case, and the current extension ID all have to match what's on the Squarelet client.
 
+## Redirect URI stability
+
+Both Chrome and Firefox redirect URIs are **stable and deterministic** given our current manifest configuration. No special workarounds are needed for either browser.
+
+### Chrome
+
+The redirect URL format is `https://<extension-id>.chromiumapp.org/`. The extension ID is derived from a public key:
+
+- **With `"key"` in manifest.json (our setup):** The ID is pinned to the key and is *"the unique ID of an extension … when it is loaded during development"* ([Chrome Developers: Manifest — key](https://developer.chrome.com/docs/extensions/reference/manifest/key)). Stable across machines, paths, and reloads.
+- **Published on CWS:** The Chrome Web Store assigns a permanent key at first upload. The ID never changes.
+- **Without `"key"` (not us):** ID is derived from the absolute filesystem path — changes if you move the directory.
+
+### Firefox
+
+The redirect URL format is `https://<hash>.extensions.allizom.org/`. The subdomain is a deterministic hash of the **add-on ID**, not the per-profile internal UUID:
+
+> *"`identity.getRedirectURL()` returns a URL at a fixed domain name and a subdomain derived from the add-on's ID."*
+> — [MDN: identity API — Getting the redirect URL](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity#getting_the_redirect_url)
+
+> *"The URL is derived from your extension's ID … if you use this function you should probably set your extension's ID explicitly using the `browser_specific_settings` key (otherwise, each time you temporarily install the extension, you'll get a different redirect URL)."*
+> — [MDN: identity.getRedirectURL()](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity/getRedirectURL)
+
+We set `browser_specific_settings.gecko.id` in our manifest, so the add-on ID is fixed and the redirect URL is stable across all profiles, machines, and installs.
+
+The per-profile random UUID that caused concern only applies to `moz-extension://` internal URLs (used for fingerprinting protection). It is **not** what `getRedirectURL()` uses.
+
+Without an explicit `gecko.id`, temporary installs get a random add-on ID each session:
+
+> *"If your manifest.json does not contain an ID, the extension is assigned a randomly-generated temporary ID … If you restart Firefox and load the add-on again, it gets a new ID."*
+> — [Firefox Extension Workshop: Extensions and the add-on ID](https://extensionworkshop.com/documentation/develop/extensions-and-the-add-on-id/)
+
+Firefox 86+ also accepts a loopback alternative: `http://127.0.0.1/mozoauth2/<subdomain>` ([MDN: identity API](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity#getting_the_redirect_url)), though the `allizom.org` URL is preferred.
+
+### Summary
+
+| | Chrome | Firefox |
+|---|---|---|
+| Redirect URL format | `https://<ext-id>.chromiumapp.org/` | `https://<hash-of-addon-id>.extensions.allizom.org/` |
+| ID source | `"key"` in manifest.json | `browser_specific_settings.gecko.id` |
+| Configured in our manifest? | Yes | Yes |
+| Stable across installs? | Yes | Yes |
+| Action needed | Register one URI on Squarelet | Register one URI on Squarelet |
+
 ## Open questions
 
 - **Which scopes beyond `openid profile email uuid organizations`** does Klaxon need for its DocumentCloud integrations? `preferences` / `bio` are available if useful.
-- **Firefox redirect URI strategy.** `browser.identity.launchWebAuthFlow` works, but its redirect URI is `https://<UUID>.extensions.allizom.org/` where `<UUID>` is generated per Firefox profile on install — *not* derived from `gecko.id`. Consequences:
-  - Every dev machine has a different UUID. Workaround: pin it via `about:config` → `extensions.webextensions.uuids` before first install, then register that URI alongside the Chrome one on Squarelet.
-  - Every end-user has a different UUID too, so we can't simply register a fixed set for production. Options to evaluate before shipping Firefox:
-    1. Intermediate redirect: register one stable URL on Squarelet (e.g. a hosted `auth/extension-callback` page) that re-redirects to `browser.identity.getRedirectURL()`. Requires hosting a tiny static page and asking Squarelet's OIDC provider to accept it.
-    2. Relax redirect URI matching on Squarelet to a regex/prefix for `.extensions.allizom.org` hosts — `django-oidc-provider` does exact-string matching so this would be a small fork/patch.
-    3. Ship Chrome/Edge/Brave first, add Firefox when we pick an option.
+- **~~Firefox redirect URI strategy.~~ Resolved — no special strategy needed.** The original concern confused Firefox's per-profile internal UUID (`moz-extension://<random-uuid>/`) with the redirect URL returned by `browser.identity.getRedirectURL()`. These are two different things:
+
+  - The **internal UUID** (`moz-extension://` origin) is random per profile and is used for fingerprinting protection. This is *not* what `getRedirectURL()` returns.
+  - **`getRedirectURL()` returns a URL at a fixed domain name and a subdomain derived from the add-on's ID** ([MDN: identity API — "Getting the redirect URL"](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity#getting_the_redirect_url)). The format is `https://<hash-of-addon-id>.extensions.allizom.org/`. Since we set `browser_specific_settings.gecko.id` in our manifest, the add-on ID is fixed, and the redirect URL is **deterministic and stable across all profiles, machines, and installs.**
+
+  MDN confirms: *"`identity.getRedirectURL()` derives a redirect URL from the add-on's ID"* ([MDN: identity.getRedirectURL()](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity/getRedirectURL)). It also warns: *"if you use this function you should probably set your extension's ID explicitly using the `browser_specific_settings` key (otherwise, each time you temporarily install the extension, you'll get a different redirect URL)"* — which we already do.
+
+  **Action:** Register the single stable Firefox redirect URI on Squarelet alongside the Chrome one. No intermediate redirect page, no regex matching, no Squarelet patches needed.
 - **Refresh-before-expiry timer.** Current implementation refreshes lazily on the next `getAccessToken()` after the 30s-before-expiry threshold. A background timer that refreshes proactively could avoid a first-request delay, but adds complexity (timers in MV3 SWs need `chrome.alarms`). Defer unless a UX issue appears.
 - **Linter config is broken.** `eslint.config.js` imports a missing `svelte.config.js`; separate fix, not touched here.
 
@@ -158,6 +203,6 @@ No well-known fetch — issuer is fixed per deployment.
 2. **Squarelet:** patch `ProviderInfoView` for discovery-doc fixes. Low-risk, ships independently.
 3. **Squarelet:** register a production `muckrock-extension` public client; add extension origin to `CORS_ORIGIN_WHITELIST` in production env.
 4. **Klaxon:** update `.env` / build against production Squarelet; verify flow.
-5. **Firefox:** pick a redirect-URI strategy from the open questions, implement, register URIs.
+5. **Firefox:** register the stable `getRedirectURL()` URI on Squarelet's OIDC client (no special strategy needed — see resolved open question).
 6. Manual QA on Chrome + Firefox builds against production Squarelet.
 7. Submit to Chrome Web Store + Firefox AMO.
