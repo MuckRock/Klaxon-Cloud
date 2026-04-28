@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { authState, login, logout } from '../auth.svelte.ts'
   import { ArrowRight } from "@lucide/svelte";
   import { getRouter } from "../components/Router.svelte";
 
@@ -15,6 +16,34 @@
 
 <div class="container">
   <div class="section">
+    <div class="auth">
+      {#if authState.status === "authenticated"}
+        <div class="user">
+          Signed in as
+          <strong>
+            {authState.user?.preferred_username ??
+              authState.user?.name ??
+              authState.user?.email ??
+              "Squarelet user"}
+          </strong>
+        </div>
+        <button class="link" onclick={() => logout()}>Sign out</button>
+      {:else}
+        <button
+          class="primary"
+          disabled={authState.status === "authenticating"}
+          onclick={() => login()}
+        >
+          {authState.status === "authenticating"
+            ? "Signing in…"
+            : "Sign in with MuckRock"}
+        </button>
+        {#if authState.error}
+          <p class="error">{authState.error}</p>
+        {/if}
+      {/if}
+    </div>
+
     <label>
       Page URL
       <input type="text" readonly value={url} />
@@ -97,5 +126,49 @@
     color: #999;
     font-size: 12px;
     font-style: italic;
+  }
+
+  .auth {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .auth .user {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 6px;
+  }
+
+  .auth button.primary {
+    width: 100%;
+    padding: 8px 12px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .auth button.primary:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+  }
+
+  .auth button.link {
+    background: none;
+    border: none;
+    color: #2563eb;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .auth .error {
+    color: #b91c1c;
+    font-size: 12px;
+    margin: 6px 0 0;
   }
 </style>

@@ -3,6 +3,7 @@
     "rewriteRelativeImportExtensions": true,
     "allowJs": true,
     "checkJs": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
@@ -11,7 +12,8 @@
     "strict": true,
     "moduleResolution": "bundler",
     "module": "ESNext",
-    "target": "ESNext"
+    "target": "ESNext",
+    "types": ["vite/client", "chrome"]
   },
   "include": ["src/**/*"]
 }

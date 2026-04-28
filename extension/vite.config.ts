@@ -27,4 +27,5 @@ export default defineConfig({
     // No asset hashing — Chrome extension files need stable names
     cssCodeSplit: false,
   },
+  envPrefix: "MUCKROCK_",
 });

@@ -1,5 +1,9 @@
 {
-  "background": { "service_worker": "background.js" },
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"],
+    "type": "module"
+  },
   "action": {
     "default_icon": "icon-128.png",
     "default_title": "Klaxon Cloud"
@@ -12,8 +16,14 @@
     "48": "icon-48.png",
     "128": "icon-128.png"
   },
-  "permissions": ["scripting", "activeTab"],
+  "permissions": ["scripting", "activeTab", "identity", "storage"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "version": "0.1",
-  "manifest_version": 3
+  "manifest_version": 3,
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "klaxon-cloud@muckrock.com"
+    }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5v2Q2vb4gLjA4b+SlJECGixL4szDsAcG6VELwSf/y0rrdhCW2R0v5sWww4nwzXDlQJRzzIcVAOq+naR+lbTIe3ghOL5h0pDzjZDMD0bDgaqIPPISp7sSySy2mxANKGfytoozOKsrp+8ZdZzNXSWo4xGdNggF+5mjSKuypXyR0YUJC1u8+5FhTT3lh4G+hyI7OzQ5FUAi9wZLHHsiX+mVDrAf4/yHll70Nzsz1cU1HgV4eoWBN5ukMrt94XaPjBBI+F0Hs0BjcDkY76mDrii0C4t81u50jWmuES1ktfeV7zNtD2YNL0+1G7ik+vLJUTDwKAlu9QiA9ZRWoWIVcDHRCwIDAQAB"
 }
