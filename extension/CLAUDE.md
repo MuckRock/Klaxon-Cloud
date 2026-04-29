@@ -14,7 +14,7 @@ The repo lives at `Klaxon-Cloud/extension/`. The parent repo also contains `plan
 npm run dev          # vite build --watch — no dev server; loads unpacked from build/
 npm run build        # one-shot production build into build/
 npm run check        # svelte-check (type-check .svelte + .svelte.ts)
-npm run lint         # prettier --check . && eslint .
+npm run lint         # prettier --check .
 npm run format       # prettier --write .
 npm test             # vitest run (happy-dom)
 npm run test:watch
