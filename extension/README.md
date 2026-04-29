@@ -49,7 +49,7 @@ To get the URI:
    or run `chrome.identity.getRedirectURL()` — same result.
 4. Copy the full URL (e.g. `https://<extension-id>.chromiumapp.org/`,
    **including the trailing slash**) into the Squarelet client's `Redirect
-   URIs` field, one per line.
+URIs` field, one per line.
 
 The extension ID is stable across reloads thanks to the `"key"` in
 `manifest.json`, so you only need to register once per client.

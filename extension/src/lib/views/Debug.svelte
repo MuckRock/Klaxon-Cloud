@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { authState, login, logout } from '../auth.svelte.ts'
+  import { authState, login, logout } from "../auth.svelte.ts";
   import { ArrowRight } from "@lucide/svelte";
   import { getRouter } from "../components/Router.svelte";
 
