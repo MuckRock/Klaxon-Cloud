@@ -1,23 +1,18 @@
 // Pure OIDC/PKCE helpers. No chrome.* or fetch — just crypto + string math.
-// Shipped as an ES module so the service worker can import it and so tests in
-// src/ can exercise the same functions.
 
-/** @param {Uint8Array} bytes */
-export function base64UrlEncode(bytes) {
+export function base64UrlEncode(bytes: Uint8Array): string {
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
-/** @param {number} length */
-export function randomBase64Url(length) {
+export function randomBase64Url(length: number): string {
   const buf = new Uint8Array(length);
   crypto.getRandomValues(buf);
   return base64UrlEncode(buf);
 }
 
-/** @param {string} input */
-export async function sha256(input) {
+export async function sha256(input: string): Promise<Uint8Array> {
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(input),
@@ -25,21 +20,25 @@ export async function sha256(input) {
   return new Uint8Array(digest);
 }
 
-/** @param {string} verifier */
-export async function pkceChallenge(verifier) {
+export async function pkceChallenge(verifier: string): Promise<string> {
   return base64UrlEncode(await sha256(verifier));
 }
 
-/** @param {string} jwt */
-export function decodeJwtPayload(jwt) {
+export function decodeJwtPayload(jwt: string): Record<string, unknown> {
   const [, payload] = jwt.split(".");
   const b64 = payload.replaceAll("-", "+").replaceAll("_", "/");
   const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
   return JSON.parse(atob(padded));
 }
 
-/** @param {string} host */
-export function endpoints(host) {
+export interface OidcEndpoints {
+  authorize: string;
+  token: string;
+  userinfo: string;
+  endSession: string;
+}
+
+export function endpoints(host: string): OidcEndpoints {
   const base = host.replace(/\/$/, "");
   return {
     authorize: `${base}/openid/authorize`,
@@ -49,17 +48,16 @@ export function endpoints(host) {
   };
 }
 
-/**
- * @param {{
- *   host: string,
- *   clientId: string,
- *   scopes: string,
- *   redirectUri: string,
- *   state: string,
- *   nonce: string,
- *   codeChallenge: string,
- * }} params
- */
+interface AuthorizeUrlParams {
+  host: string;
+  clientId: string;
+  scopes: string;
+  redirectUri: string;
+  state: string;
+  nonce: string;
+  codeChallenge: string;
+}
+
 export function buildAuthorizeUrl({
   host,
   clientId,
@@ -68,7 +66,7 @@ export function buildAuthorizeUrl({
   state,
   nonce,
   codeChallenge,
-}) {
+}: AuthorizeUrlParams): string {
   const url = new URL(endpoints(host).authorize);
   url.search = new URLSearchParams({
     response_type: "code",

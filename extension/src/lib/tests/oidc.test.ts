@@ -7,7 +7,7 @@ import {
   pkceChallenge,
   randomBase64Url,
   sha256,
-} from "../../../static/lib/oidc.js";
+} from "../oidc.ts";
 
 describe("base64UrlEncode", () => {
   it("encodes bytes using the URL-safe alphabet without padding", () => {
