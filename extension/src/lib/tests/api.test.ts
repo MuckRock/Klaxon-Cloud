@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import { dispatch, eventValues, history, scheduled, update } from "../api";
+import { getAccessToken } from "../auth.svelte";
 import {
   event as eventFixture,
   scheduled as scheduledFixture,
@@ -10,6 +11,8 @@ import { runs } from "../../test/fixtures/runs";
 vi.mock("../auth.svelte", () => ({
   getAccessToken: vi.fn(async () => "test-token"),
 }));
+
+const mockGetAccessToken = vi.mocked(getAccessToken);
 
 const API_URL = import.meta.env.MUCKROCK_DOCUMENTCLOUD_API;
 const KLAXON_ID = import.meta.env.MUCKROCK_KLAXON_ID;
@@ -39,13 +42,15 @@ describe("history", () => {
   });
 
   it("requests addon_runs filtered by addon and site, with bearer token", async () => {
-    const result = await history("https://github.com/muckrock/klaxon");
+    const site = "https://github.com/muckrock/klaxon";
+
+    const result = await history(site);
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const { url, init } = lastFetchCall(fetchMock);
-    expect(url.toString()).toBe(
-      `${API_URL}addon_runs/?addon=${KLAXON_ID}&site=${encodeURI("https://github.com/muckrock/klaxon")}`,
-    );
+    expect(url.pathname).toBe(new URL(`${API_URL}addon_runs/`).pathname);
+    expect(url.searchParams.get("addon")).toBe(String(KLAXON_ID));
+    expect(url.searchParams.get("site")).toBe(site);
     expect(init.credentials).toBe("omit");
     expect(init.headers).toMatchObject({
       Accept: "application/json",
@@ -94,6 +99,16 @@ describe("history", () => {
     expect(result.error?.status).toBe(401);
     expect(result.error?.message).toBe("Unauthorized");
     expect(result.error?.errors).toEqual({ detail: "nope" });
+  });
+
+  it("preserves site URLs that contain their own query string", async () => {
+    const site = "https://example.com/?x=1&y=2";
+
+    await history(site);
+
+    const { url } = lastFetchCall(fetchMock);
+    expect(url.searchParams.get("site")).toBe(site);
+    expect(url.searchParams.has("y")).toBe(false);
   });
 });
 
@@ -144,6 +159,16 @@ describe("scheduled", () => {
     const result = await scheduled("https://example.com");
 
     expect(result.error?.status).toBe(500);
+  });
+
+  it("preserves site URLs that contain their own query string", async () => {
+    const site = "https://example.com/?x=1&y=2";
+
+    await scheduled(site);
+
+    const { url } = lastFetchCall(fetchMock);
+    expect(url.searchParams.get("site")).toBe(site);
+    expect(url.searchParams.has("y")).toBe(false);
   });
 });
 
@@ -294,5 +319,89 @@ describe("update", () => {
 
     expect(result.data).toBeUndefined();
     expect(result.error).toBeUndefined();
+  });
+});
+
+describe("when the access token is missing", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    mockGetAccessToken.mockResolvedValueOnce(null);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function expectAuthError(result: { data?: unknown; error?: unknown }) {
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.data).toBeUndefined();
+    expect(result.error).toEqual({ status: 401, message: "Not authenticated" });
+  }
+
+  it("history returns a 401 error without calling fetch", async () => {
+    expectAuthError(await history("https://example.com"));
+  });
+
+  it("scheduled returns a 401 error without calling fetch", async () => {
+    expectAuthError(await scheduled("https://example.com"));
+  });
+
+  it("dispatch returns a 401 error without calling fetch", async () => {
+    expectAuthError(
+      await dispatch("daily", {
+        site: "https://example.com",
+        selector: "#main",
+      }),
+    );
+  });
+
+  it("update returns a 401 error without calling fetch", async () => {
+    expectAuthError(await update(533, "disabled", {}));
+  });
+});
+
+describe("when getAccessToken throws", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    mockGetAccessToken.mockRejectedValueOnce(
+      new Error("no reply from service worker"),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function expectAuthError(result: { data?: unknown; error?: unknown }) {
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.data).toBeUndefined();
+    expect(result.error).toEqual({ status: 401, message: "Not authenticated" });
+  }
+
+  it("history returns a 401 error without calling fetch", async () => {
+    expectAuthError(await history("https://example.com"));
+  });
+
+  it("scheduled returns a 401 error without calling fetch", async () => {
+    expectAuthError(await scheduled("https://example.com"));
+  });
+
+  it("dispatch returns a 401 error without calling fetch", async () => {
+    expectAuthError(
+      await dispatch("daily", {
+        site: "https://example.com",
+        selector: "#main",
+      }),
+    );
+  });
+
+  it("update returns a 401 error without calling fetch", async () => {
+    expectAuthError(await update(533, "disabled", {}));
   });
 });
