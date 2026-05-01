@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { dispatch, eventValues, history, scheduled, update } from "../api";
 import {
   event as eventFixture,
-  eventsList,
   scheduled as scheduledFixture,
 } from "../../test/fixtures/events";
 import { runs } from "../../test/fixtures/runs";
@@ -110,14 +109,17 @@ describe("scheduled", () => {
     vi.unstubAllGlobals();
   });
 
-  it("requests addon_events with the expanded addon and bearer token", async () => {
-    const result = await scheduled();
+  it("requests addon_events filtered by addon and site, with bearer token", async () => {
+    const site = "https://example.com";
+
+    const result = await scheduled(site);
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const { url, init } = lastFetchCall(fetchMock);
-    expect(url.toString()).toBe(
-      `${API_URL}addon_events/?expand=addon&addon=${KLAXON_ID}`,
-    );
+    expect(url.pathname).toBe(new URL(`${API_URL}addon_events/`).pathname);
+    expect(url.searchParams.get("expand")).toBe("addon");
+    expect(url.searchParams.get("addon")).toBe(String(KLAXON_ID));
+    expect(url.searchParams.get("site")).toBe(site);
     expect(init.headers).toMatchObject({
       Accept: "application/json",
       Authorization: "Bearer test-token",
@@ -126,27 +128,20 @@ describe("scheduled", () => {
   });
 
   it("appends cursor and per_page when supplied", async () => {
-    await scheduled({ cursor: "next-page", per_page: 10 });
+    await scheduled("https://example.com", {
+      cursor: "next-page",
+      per_page: 10,
+    });
 
     const { url } = lastFetchCall(fetchMock);
     expect(url.searchParams.get("cursor")).toBe("next-page");
     expect(url.searchParams.get("per_page")).toBe("10");
   });
 
-  it("uses an injected fetch over the global one", async () => {
-    const injected = vi.fn(async () => jsonResponse(eventsList));
-
-    const result = await scheduled({}, injected);
-
-    expect(injected).toHaveBeenCalledOnce();
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(result.data).toEqual(eventsList);
-  });
-
   it("returns a 500 when fetch rejects", async () => {
     fetchMock.mockRejectedValueOnce(new Error("boom"));
 
-    const result = await scheduled();
+    const result = await scheduled("https://example.com");
 
     expect(result.error?.status).toBe(500);
   });

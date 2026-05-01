@@ -4,7 +4,7 @@
  * Key operations:
  * Listing scheduled jobs for a specific URL
  * Listing recent alerts for a specific URL
- * Modifying scheduled jobs in bulk (delete, dis-/enable)
+ * Modifying scheduled jobs (delete, dis-/enable)
  * Modifying a specific job (edit)
  */
 
@@ -76,13 +76,13 @@ export async function history(
  * List scheduled add-on events
  */
 export async function scheduled(
+  site: string,
   params: { cursor?: string; per_page?: number } = {},
-  fetch = globalThis.fetch,
 ): Promise<APIResponse<Page<Event>, unknown>> {
   // todo: fail early if token is missing
   const token = await getAccessToken();
   const endpoint = new URL(
-    `addon_events/?expand=addon&addon=${KLAXON_ID}`,
+    `addon_events/?expand=addon&addon=${KLAXON_ID}&site=${encodeURI(site)}`,
     API_URL,
   );
   if (params.cursor) {
