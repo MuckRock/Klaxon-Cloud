@@ -23,6 +23,15 @@ export interface APIError<E> {
   errors?: E;
 }
 
+// copied from SvelteKit
+type NumericRange<TStart extends number, TEnd extends number> = Exclude<
+  TEnd | LessThan<TEnd>,
+  LessThan<TStart>
+>;
+
+// known errors
+export interface ValidationError extends Record<string, string[]> {}
+
 /**
  * Wrap an API response so we can pass errors along
  */
@@ -59,6 +68,8 @@ export interface Org {
 /** Addons */
 
 type AddOnCategory = "premium" | string;
+
+type AddOnSchedule = "disabled" | "hourly" | "daily" | "weekly" | "upload";
 
 export interface AddOnParams extends PageParams {
   query?: string;
@@ -159,6 +170,14 @@ export interface Event {
   scratch: any;
   created_at: string;
   updated_at: string;
+}
+
+// specific parameters required for Klaxon
+// https://github.com/MuckRock/Klaxon/blob/main/config.yaml
+export interface KlaxonParams {
+  site: string;
+  selector: string;
+  filter_selector?: string;
 }
 
 // payload for creating or scheduling an add-on run
