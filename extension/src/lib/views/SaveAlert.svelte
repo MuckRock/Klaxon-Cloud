@@ -34,7 +34,7 @@
       title: fd.get("title") as string,
       slack_webhook: fd.get("slack_webhook") as string,
       site: url,
-      selector: selector ?? "",
+      selector,
     };
 
     const result: APIResponse<Event, ValidationError> = await dispatch(

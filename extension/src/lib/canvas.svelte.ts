@@ -371,7 +371,7 @@ export function initCanvas(
   window.addEventListener("scroll", onScrollOrResize, true);
   window.addEventListener("resize", onScrollOrResize);
 
-  const canvas: Canvas = {
+  return {
     get state() {
       return {
         get mouse() {
@@ -443,8 +443,6 @@ export function initCanvas(
       apertureMountPoint.remove();
     },
   };
-
-  return canvas;
 }
 
 export const [getCanvas, setCanvas] = createContext<Canvas>();
