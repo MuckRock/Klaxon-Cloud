@@ -235,19 +235,27 @@ export function initCanvas(
 
   function onClick(evt: MouseEvent) {
     if (host.contains(evt.target as Node)) return;
+    // Read-only with nothing selected: let the page receive clicks normally.
+    if (!editable && !locked) return;
     evt.preventDefault();
     evt.stopPropagation();
   }
 
   function onMouseDown(evt: MouseEvent) {
     if (host.contains(evt.target as Node)) return;
+    // Read-only with nothing selected: don't intercept the page at all.
+    if (!editable && !locked) return;
     evt.preventDefault();
-    if (locked) return;
+    // Can't start a new selection while read-only or already locked.
+    if (!editable || locked) return;
     mouseDownPos = { x: evt.clientX, y: evt.clientY };
   }
 
   function onMouseMove(evt: MouseEvent) {
     mouse = { x: evt.clientX, y: evt.clientY };
+
+    // No hover or drag-to-select picking when read-only.
+    if (!editable) return;
 
     // If mouse is down, check for drag
     if (mouseDownPos && !locked) {
