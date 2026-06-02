@@ -6,7 +6,7 @@
   import BackLink from "../components/BackLink.svelte";
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
-  import { getRouter } from "../components/Router.svelte";
+  import { getRouter } from "../router.svelte";
   import { getToaster } from "../components/Toaster.svelte";
   import { schedules, update } from "../api";
   import { getSiteLabel } from "../utils";

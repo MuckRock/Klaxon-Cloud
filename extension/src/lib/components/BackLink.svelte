@@ -1,12 +1,16 @@
 <script lang="ts">
-  import { type View, getRouter } from "./Router.svelte";
+  import { type View, getRouter } from "../router.svelte";
 
   const router = getRouter();
 
-  const { view }: { view: View } = $props();
+  const { view, ...rest }: { view: View; [key: string]: any } = $props();
 </script>
 
-<button class="back-link" type="button" onclick={() => router.navigate(view)}>
+<button
+  class="back-link"
+  type="button"
+  onclick={() => router.navigate(view, rest)}
+>
   &#8249; <span>Back</span>
 </button>
 

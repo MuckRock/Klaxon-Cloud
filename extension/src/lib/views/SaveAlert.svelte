@@ -8,7 +8,7 @@
   } from "../types";
 
   import BackLink from "../components/BackLink.svelte";
-  import { getRouter } from "../components/Router.svelte";
+  import { getRouter } from "../router.svelte";
   import { getToaster } from "../components/Toaster.svelte";
   import { dispatch } from "../api";
 

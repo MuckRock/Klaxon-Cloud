@@ -2,7 +2,7 @@
   import { ArrowRight, ChevronRight } from "@lucide/svelte";
 
   import BackLink from "../components/BackLink.svelte";
-  import { getRouter } from "../components/Router.svelte";
+  import { getRouter } from "../router.svelte";
 
   interface Props {
     locked: boolean;

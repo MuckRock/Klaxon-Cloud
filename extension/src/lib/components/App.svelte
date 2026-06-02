@@ -8,11 +8,11 @@
   import Header from "./Header.svelte";
   import ListAlerts from "../views/ListAlerts.svelte";
   import ListChanges from "../views/ListChanges.svelte";
-  import Router from "./Router.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
   import Toaster from "./Toaster.svelte";
   import ToastList from "./ToastList.svelte";
 
+  import { router, setRouter } from "../router.svelte.ts";
   import { initCanvas, type Canvas } from "../canvas.svelte.ts";
   import { getCanonicalURL } from "../url";
   import { authState } from "../auth.svelte.ts";
@@ -24,6 +24,18 @@
     sidebarWidth: number;
     onclose: () => void;
   }
+
+  router.views = {
+    createAlert: CreateAlert,
+    editAlert: EditAlert,
+    listAlerts: ListAlerts,
+    listChanges: ListChanges,
+    saveAlert: SaveAlert,
+  };
+
+  router.onchange = handleRouteChange;
+
+  setRouter(router);
 
   let { host, shadow, sidebarWidth, onclose }: Props = $props();
 
@@ -70,46 +82,42 @@
 </script>
 
 <Toaster>
-  <Router currentView="listChanges" onchange={handleRouteChange}>
-    {#snippet children(router)}
-      <div class="sidebar">
-        <Header {onclose} />
+  <div class="sidebar">
+    <Header {onclose} />
 
-        <div class="body">
-          <ToastList />
-          {#if router.view === "listChanges"}
-            <ListChanges {events} {runs} {...router.props} />
-          {:else if router.view === "listAlerts"}
-            <ListAlerts {events} />
-          {:else if router.view === "createAlert"}
-            <CreateAlert
-              locked={canvas.state.locked}
-              selector={canvas.state.selector}
-              matchText={canvas.state.matchText}
-              onselectorchange={(css) => canvas.setSelector(css)}
-              onclearselection={() => canvas.clearSelection()}
-              {...router.props}
-            />
-          {:else if router.view === "saveAlert"}
-            <SaveAlert
-              selector={canvas.state.selector}
-              matchText={canvas.state.matchText}
-              {url}
-              onsave={() => canvas.clearSelection()}
-              {...router.props}
-            />
-          {:else if router.view === "editAlert"}
-            <EditAlert
-              onselectorchange={(css) => canvas.setSelector(css)}
-              onclearselection={() => canvas.clearSelection()}
-              onsave={() => canvas.clearSelection()}
-              {...router.props}
-            />
-          {/if}
-        </div>
-      </div>
-    {/snippet}
-  </Router>
+    <div class="body">
+      <ToastList />
+      {#if router.current === "listChanges"}
+        <ListChanges {events} {runs} {...router.props} />
+      {:else if router.current === "listAlerts"}
+        <ListAlerts {events} />
+      {:else if router.current === "createAlert"}
+        <CreateAlert
+          locked={canvas.state.locked}
+          selector={canvas.state.selector}
+          matchText={canvas.state.matchText}
+          onselectorchange={(css) => canvas.setSelector(css)}
+          onclearselection={() => canvas.clearSelection()}
+          {...router.props}
+        />
+      {:else if router.current === "saveAlert"}
+        <SaveAlert
+          selector={canvas.state.selector}
+          matchText={canvas.state.matchText}
+          {url}
+          onsave={() => canvas.clearSelection()}
+          {...router.props}
+        />
+      {:else if router.current === "editAlert"}
+        <EditAlert
+          onselectorchange={(css) => canvas.setSelector(css)}
+          onclearselection={() => canvas.clearSelection()}
+          onsave={() => canvas.clearSelection()}
+          {...router.props}
+        />
+      {/if}
+    </div>
+  </div>
 </Toaster>
 
 <style>

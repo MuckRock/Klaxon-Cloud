@@ -7,8 +7,7 @@
   import RelativeTime from "../components/RelativeTime.svelte";
   import Welcome from "../components/Welcome.svelte";
 
-  import { getRouter } from "../components/Router.svelte";
-
+  import { getRouter } from "../router.svelte";
   import { isEvent, getSiteLabel } from "../utils";
 
   interface Props {

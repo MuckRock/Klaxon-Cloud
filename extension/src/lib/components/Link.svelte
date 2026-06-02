@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { type View, getRouter } from "./Router.svelte";
+  import { type View, getRouter } from "../router.svelte";
 
   const router = getRouter();
 
