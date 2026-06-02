@@ -1,4 +1,4 @@
-import { mount, unmount } from "svelte";
+import { createContext, mount, unmount } from "svelte";
 import {
   resolveTarget,
   resolveEnclosingElement,
@@ -371,7 +371,7 @@ export function initCanvas(
   window.addEventListener("scroll", onScrollOrResize, true);
   window.addEventListener("resize", onScrollOrResize);
 
-  return {
+  const canvas: Canvas = {
     get state() {
       return {
         get mouse() {
@@ -443,4 +443,8 @@ export function initCanvas(
       apertureMountPoint.remove();
     },
   };
+
+  return canvas;
 }
+
+export const [getCanvas, setCanvas] = createContext<Canvas>();

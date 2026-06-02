@@ -1,21 +1,33 @@
-<script lang="ts">
+<script module lang="ts">
   import type { Event, Page } from "../types";
 
+  import { scheduled } from "../api";
+  import { getCanonicalURL } from "../url";
+  import { emptyPage } from "../utils";
+
+  export interface Props {
+    events: Page<Event>;
+  }
+
+  // Runs via router.navigate()/reload() before the view renders.
+  export async function load(): Promise<Props> {
+    const res = await scheduled(getCanonicalURL());
+    return { events: res.data ?? emptyPage<Event>() };
+  }
+</script>
+
+<script lang="ts">
   import { ArrowRight } from "@lucide/svelte";
 
   import BackLink from "../components/BackLink.svelte";
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
   import { getRouter } from "../router.svelte";
-  import { getToaster } from "../components/Toaster.svelte";
+  import { getToaster } from "../toaster.svelte";
   import { schedules, update } from "../api";
   import { getSiteLabel } from "../utils";
 
-  interface Props {
-    events: Page<Event>;
-  }
-
-  let { events }: Props = $props();
+  let { events = emptyPage<Event>() }: Props = $props();
 
   const router = getRouter();
   const toaster = getToaster();

@@ -13,7 +13,12 @@
   const { view, children, ...rest }: Props = $props();
 </script>
 
-<button class="link" type="button" onclick={() => router.navigate(view, rest)}>
+<button
+  class="link"
+  type="button"
+  data-view={view}
+  onclick={() => router.navigate(view, rest)}
+>
   {@render children()}
 </button>
 

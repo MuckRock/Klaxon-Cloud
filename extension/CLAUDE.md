@@ -46,7 +46,7 @@ Creates `<div id="klaxon-host">` on `document.body`, attaches an open shadow roo
 
 ### Canvas (`src/lib/canvas.svelte.ts`)
 
-The interactive picker. Owns the page-level overlay DOM (dimming, hover outline, locked-selection outline, drag rectangle, dismiss button) and an `<ApertureBar>` that walks ancestors. Listeners on `window` (mousedown/move/up + capturing click) are added/removed via `canvas.active`. The router toggles `canvas.active = (view === "createAlert")`, so picking is only live in the create-alert view. State is exposed as `$state` getters via `canvas.state` so Svelte components can react.
+The interactive picker. Owns the page-level overlay DOM (dimming, hover outline, locked-selection outline, drag rectangle, dismiss button) and an `<ApertureBar>` that walks ancestors. Listeners on `window` (mousedown/move/up + capturing click) are added/removed via `canvas.active`. `App.svelte`'s `router.onchange` toggles `canvas.active`/`canvas.editable` for the picker views (`createAlert`, `editAlert`), so picking is only live there. State is exposed as `$state` getters via `canvas.state` so Svelte components can react. Created once by `initCanvas()` in `App.svelte` and shared via the `getCanvas`/`setCanvas` context — the picker views (`CreateAlert`, `SaveAlert`, `EditAlert`) read `canvas.state.*` and call `canvas.setSelector()`/`clearSelection()` directly rather than receiving them as props.
 
 ### Selector engine (`src/lib/selector.ts`)
 
@@ -57,16 +57,24 @@ Pure DOM → structured-selector logic, no Svelte. Builds `StructuredSelector` (
 - **API types** live in `src/lib/types.d.ts` — `User`, `Org`, `AddOn`, `Run`, `Event`, `Page<T>`, `APIResponse<T, E>`, etc. Most list endpoints return `Page<T>`; `Run` and `Event` reference `AddOn` as either an id or expanded object depending on `?expand=` params.
 - **Fixtures** for tests live in `src/test/fixtures/` (`addons.ts`, `events.ts`, `runs.ts`) — typed sample payloads from the DocumentCloud API. Import from tests as `../../test/fixtures/...` (or `../fixtures/...` for tests in `src/test/`).
 
+### Routing & views
+
+The router is a class singleton in **`src/lib/router.svelte.ts`** (`export const router`), shared via the `getRouter`/`setRouter` context. There is no `Router.svelte` component.
+
+- `router.views` is a `Partial<Record<View, ViewEntry>>` where `ViewEntry = { component, load? }`. `View` is the literal union of view names — **adding a view means extending that union and registering an entry in `App.svelte`**.
+- `router.navigate(view, props?)` sets `current`/`props`, fires `onchange`, then calls `reload()`. `reload()` runs the current view's `load()` (if any), merges its result into `router.props`, and toggles `router.loading`; failures go to `router.onerror`.
+- **Views load their own data.** A view that needs async data exports `load()` from a `<script module>` block (e.g. `ListChanges`, `ListAlerts`). It MUST be in `<script module>`, not the instance `<script>` — Svelte compiles module exports to **named module exports**, so `App.svelte` imports them by name (`import View, { load }`) and wires them into the `ViewEntry`. A `load()` exported from the instance script is not reachable as a static and silently never runs.
+- `App.svelte` renders the current view dynamically. It binds `const View = $derived(router.view)` and renders `<View {...router.props} />` — using a `$derived` variable (not `<router.view ... />`) is required for the component to actually re-mount on navigation.
+
 ### UI shell (`src/lib/components/`)
 
-- `App.svelte` — initializes the canvas with `untrack`'d host/shadow refs (one-shot init, not reactive on prop change), renders `Header` + the current view, destroys canvas on unmount. The `{#if router.view === ...}` ladder lives here — add new views to both this ladder and the `View` literal union in `Router.svelte`.
+- `App.svelte` — the root. Registers `router.views`, wires `router.onchange`/`router.onerror`, provides the router/toaster/canvas contexts (`setRouter`/`setToaster`/`setCanvas`), inits the canvas with `untrack`'d host/shadow refs (one-shot init), and renders `Header` + `ToastList` + the current view + a loading bar. An `$effect` calls `router.reload()` when auth flips to `authenticated` (boot + re-login); the call is wrapped in `untrack()` because `reload()` both reads and writes `router.props` and would otherwise retrigger the effect.
 - `Header.svelte` — top bar with the Sign in/Sign out button and (when authenticated) the navigation between alert views. Reads `authState` directly.
 - `Welcome.svelte` — wraps authenticated views, showing a sign-in CTA when `authState.status !== "authenticated"` and the view's content otherwise.
-- `Router.svelte` — tiny context-based router. `setRouter(router)` exposes `{ view, navigate }`; consumer code calls `getRouter()`. View names are a literal union (`View`).
-- `Toaster.svelte` / `ToastList.svelte` — same context pattern, `getToaster()` returns `{ success, error, dismiss }`. Errors are sticky; successes auto-dismiss after 5s.
+- `ToastList.svelte` — renders the toasts. The toaster itself is a class singleton in **`src/lib/toaster.svelte.ts`** (`export const toaster`), shared via `getToaster`/`setToaster`; `getToaster()` returns `{ toasts, success, error, dismiss }`. Errors are sticky; successes auto-dismiss after 5s. There is no `Toaster.svelte` component.
 - `ApertureBar.svelte` — ancestor-walker UI for the picker (driven by `canvas.state`).
 - `RelativeTime.svelte` — small helper for human-readable timestamps.
-- Views in `src/lib/views/` (`listChanges`, `CreateAlert`, `SaveAlert`).
+- Views in `src/lib/views/` (`ListChanges`, `ListAlerts`, `CreateAlert`, `SaveAlert`, `EditAlert`).
 
 ### Auth (split between SW and sidebar)
 
@@ -84,6 +92,6 @@ OIDC + PKCE against Squarelet, public client (no secret).
 ## Conventions
 
 - **Svelte 5 runes** throughout (`$state`, `$derived`, `$effect`, `$props`). Reactive non-component state lives in `*.svelte.ts` files (e.g. `auth.svelte.ts`, `canvas.svelte.ts`) — the `.svelte.ts` extension is what enables runes outside `.svelte` files.
-- **Context-based singletons** (router, toaster) instead of stores. Use `getRouter()` / `getToaster()` from descendants.
+- **Reactive state in `*.svelte.ts`, shared via context**, not stores. `router` (`router.svelte.ts`) and `toaster` (`toaster.svelte.ts`) export a module singleton plus a `getX`/`setX` context pair; `canvas` (`canvas.svelte.ts`) is instead built per-mount by `initCanvas()` (it needs the host/shadow refs) and shared via `getCanvas`/`setCanvas`. In all three, `App.svelte` calls `setX` once so descendants resolve `getX()`; App itself (and non-component code) holds the instance directly rather than via context.
 - TS is strict throughout. The service worker and OIDC helpers are TypeScript (`src/background.ts`, `src/lib/oidc.ts`); nothing relevant lives in `static/` anymore beyond `manifest.json` and icons.
 - Tests use `happy-dom`, not `jsdom`.

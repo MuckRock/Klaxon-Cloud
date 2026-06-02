@@ -1,6 +1,30 @@
-<script lang="ts">
+<script module lang="ts">
   import type { Event, Page, Run } from "../types";
 
+  import { scheduled, history } from "../api";
+  import { getCanonicalURL } from "../url";
+  import { emptyPage } from "../utils";
+
+  export interface Props {
+    events: Page<Event>;
+    runs: Page<Run>;
+  }
+
+  // Runs via router.navigate()/reload() before the view renders.
+  export async function load(): Promise<Props> {
+    const url = getCanonicalURL();
+    const [eventsRes, runsRes] = await Promise.all([
+      scheduled(url),
+      history(url),
+    ]);
+    return {
+      events: eventsRes.data ?? emptyPage<Event>(),
+      runs: runsRes.data ?? emptyPage<Run>(),
+    };
+  }
+</script>
+
+<script lang="ts">
   import { ArrowRight } from "@lucide/svelte";
 
   import Link from "../components/Link.svelte";
@@ -10,12 +34,8 @@
   import { getRouter } from "../router.svelte";
   import { isEvent, getSiteLabel } from "../utils";
 
-  interface Props {
-    events: Page<Event>;
-    runs: Page<Run>;
-  }
-
-  let { events, runs }: Props = $props();
+  let { events = emptyPage<Event>(), runs = emptyPage<Run>() }: Props =
+    $props();
 
   const router = getRouter();
 

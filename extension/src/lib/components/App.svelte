@@ -1,22 +1,22 @@
 <script lang="ts">
-  import type { Page, Event, Run } from "../types";
-
   import { onDestroy, untrack } from "svelte";
 
   import CreateAlert from "../views/CreateAlert.svelte";
   import EditAlert from "../views/EditAlert.svelte";
   import Header from "./Header.svelte";
-  import ListAlerts from "../views/ListAlerts.svelte";
-  import ListChanges from "../views/ListChanges.svelte";
+  import ListAlerts, {
+    load as loadListAlerts,
+  } from "../views/ListAlerts.svelte";
+  import ListChanges, {
+    load as loadListChanges,
+  } from "../views/ListChanges.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
-  import Toaster from "./Toaster.svelte";
   import ToastList from "./ToastList.svelte";
 
-  import { router, setRouter } from "../router.svelte.ts";
-  import { initCanvas, type Canvas } from "../canvas.svelte.ts";
-  import { getCanonicalURL } from "../url";
   import { authState } from "../auth.svelte.ts";
-  import { scheduled, history } from "../api";
+  import { initCanvas, setCanvas, type Canvas } from "../canvas.svelte.ts";
+  import { type View, router, setRouter } from "../router.svelte.ts";
+  import { toaster, setToaster } from "../toaster.svelte.ts";
 
   interface Props {
     host: HTMLElement;
@@ -25,100 +25,74 @@
     onclose: () => void;
   }
 
+  let { host, shadow, sidebarWidth, onclose }: Props = $props();
+
   router.views = {
-    createAlert: CreateAlert,
-    editAlert: EditAlert,
-    listAlerts: ListAlerts,
-    listChanges: ListChanges,
-    saveAlert: SaveAlert,
+    createAlert: { component: CreateAlert },
+    editAlert: { component: EditAlert },
+    listAlerts: { component: ListAlerts, load: loadListAlerts },
+    listChanges: { component: ListChanges, load: loadListChanges },
+    saveAlert: { component: SaveAlert },
   };
 
   router.onchange = handleRouteChange;
 
-  setRouter(router);
+  // Surface load() failures from navigate()/reload() to the user.
+  router.onerror = (error) => {
+    console.error("Failed to load view:", error);
+    toaster.error("Something went wrong loading this view.");
+  };
 
-  let { host, shadow, sidebarWidth, onclose }: Props = $props();
+  setRouter(router);
+  setToaster(toaster);
 
   const canvas: Canvas = initCanvas(
     untrack(() => host),
     untrack(() => shadow),
     untrack(() => sidebarWidth),
   );
-  const url = getCanonicalURL();
+  setCanvas(canvas);
 
-  function emptyPage<T>(): Page<T> {
-    return {
-      next: null,
-      previous: null,
-      results: [],
-    };
+  function handleRouteChange(view: View) {
+    canvas.active = ["createAlert", "editAlert"].includes(view);
+    canvas.editable = view !== "editAlert";
   }
 
-  let events: Page<Event> = $state(emptyPage());
-  let runs: Page<Run> = $state(emptyPage());
+  // Bind to a reactive variable so the view re-mounts on navigation.
+  const CurrentView = $derived(router.view);
 
-  async function loadData() {
-    const [eventsRes, runsRes] = await Promise.all([
-      scheduled(url),
-      history(url),
-    ]);
-    if (eventsRes.data) events = eventsRes.data;
-    if (runsRes.data) runs = runsRes.data;
-  }
-
+  // Boot the initial view's data once authenticated, and reload whenever
+  // auth flips to authenticated again (e.g. after sign-in). Navigation
+  // between views loads on its own via router.navigate() → reload().
+  // reload() is untracked: it both reads and writes router.props, so
+  // tracking it here would make the effect retrigger on its own writes.
   $effect(() => {
     if (authState.status === "authenticated") {
-      loadData();
+      untrack(() => router.reload());
     }
   });
 
-  function handleRouteChange(view: string) {
-    canvas.active = ["createAlert", "editAlert"].includes(view);
-    canvas.editable = view !== "editAlert";
-    loadData();
-  }
-
-  onDestroy(() => canvas.destroy());
+  onDestroy(() => {
+    canvas.destroy();
+    toaster.destroy();
+  });
 </script>
 
-<Toaster>
-  <div class="sidebar">
-    <Header {onclose} />
+<div class="sidebar">
+  <Header {onclose} />
 
-    <div class="body">
-      <ToastList />
-      {#if router.current === "listChanges"}
-        <ListChanges {events} {runs} {...router.props} />
-      {:else if router.current === "listAlerts"}
-        <ListAlerts {events} />
-      {:else if router.current === "createAlert"}
-        <CreateAlert
-          locked={canvas.state.locked}
-          selector={canvas.state.selector}
-          matchText={canvas.state.matchText}
-          onselectorchange={(css) => canvas.setSelector(css)}
-          onclearselection={() => canvas.clearSelection()}
-          {...router.props}
-        />
-      {:else if router.current === "saveAlert"}
-        <SaveAlert
-          selector={canvas.state.selector}
-          matchText={canvas.state.matchText}
-          {url}
-          onsave={() => canvas.clearSelection()}
-          {...router.props}
-        />
-      {:else if router.current === "editAlert"}
-        <EditAlert
-          onselectorchange={(css) => canvas.setSelector(css)}
-          onclearselection={() => canvas.clearSelection()}
-          onsave={() => canvas.clearSelection()}
-          {...router.props}
-        />
-      {/if}
-    </div>
+  <div class="body">
+    <ToastList />
+
+    {#if router.loading}
+      <div class="loading-bar" role="status" aria-label="Loading"></div>
+    {/if}
+
+    {#if CurrentView}
+      <CurrentView {...router.props} />
+    {/if}
   </div>
-</Toaster>
+</div>
 
 <style>
   :host {
@@ -161,6 +135,23 @@
   .body {
     overflow-y: auto;
     flex: 1;
+  }
+
+  .loading-bar {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #ec7b6b, transparent);
+    background-size: 40% 100%;
+    background-repeat: no-repeat;
+    animation: loading-slide 1s infinite ease-in-out;
+  }
+
+  @keyframes loading-slide {
+    0% {
+      background-position: -40% 0;
+    }
+    100% {
+      background-position: 140% 0;
+    }
   }
 
   :global(.btn-primary) {
