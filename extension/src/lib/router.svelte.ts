@@ -11,11 +11,13 @@ export type View =
   | "saveAlert"
   | "viewAlert";
 
+type Props = Record<string, any>;
+
 class Router {
   views: Partial<Record<View, Component<any>>> = $state({}); // set this up in App.svelte
   props: any = $state({}); // navigation params spread into views; `any` so required view props are satisfied
   current: View = $state("listChanges");
-  #history: View[] = $state([]);
+  #history: [View, Props | undefined][] = $state([]);
 
   constructor() {
     this.navigate = this.navigate.bind(this);
@@ -23,10 +25,10 @@ class Router {
 
   // Views load their own data via an internal $effect, so navigation only
   // selects the component and carries any navigation params through props.
-  navigate(view: View, props?: Record<string, any>) {
+  navigate(view: View, props?: Props) {
+    this.#history.push([this.current, this.props]);
     this.current = view;
     this.props = props ?? {};
-    this.#history.push(view);
     this.onchange(view);
   }
 
@@ -36,11 +38,17 @@ class Router {
     return this.views[this.current];
   }
 
+  get history(): readonly [View, Props | undefined][] {
+    return this.#history;
+  }
+
   back() {
     const previous = this.#history.pop();
     if (previous) {
-      this.current = previous;
-      this.onchange(previous);
+      const [previousView, previousProps] = previous;
+      this.current = previousView;
+      this.props = previousProps ?? {};
+      this.onchange(previousView);
     }
   }
 }

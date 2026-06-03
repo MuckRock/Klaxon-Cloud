@@ -1,57 +1,58 @@
 <script lang="ts">
-  import { authState, login, logout } from "../auth.svelte.ts";
-  import { X } from "@lucide/svelte";
+  import { authState, logout } from "../auth.svelte.ts";
+  import { getRouter } from '../router.svelte';
+  import X from "@lucide/svelte/icons/x";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import Logotype from "./Logotype.svelte";
+  import UserInfo from "./UserInfo.svelte";
 
   interface Props {
     onclose: () => void;
   }
 
   const { onclose }: Props = $props();
+
+  const router = getRouter();
+  const history = $derived(router.history);
 </script>
 
-<div class="container">
+<header class="container">
   <div class="header">
-    <h2>Klaxon</h2>
+    {#if history.length === 0}
+      <div title="Klaxon" class="logo">
+        <Logotype />
+      </div>
+    {:else}
+      <button
+        class="back-link"
+        type="button"
+        onclick={() => router.back()}
+      >
+        <ArrowLeft size={16} />
+        <span class="label">Back</span>
+      </button>
+    {/if}
     <button onclick={onclose} aria-label="Close">
       <X />
     </button>
   </div>
-  <div class="auth">
-    {#if authState.status === "authenticated"}
-      <div class="user">
-        <strong>
-          {authState.user?.preferred_username ??
-            authState.user?.name ??
-            authState.user?.email ??
-            "Squarelet user"}
-        </strong>
-      </div>
-      <button class="link" onclick={() => logout()}>Sign out</button>
-    {:else}
-      <button
-        class="primary"
-        disabled={authState.status === "authenticating"}
-        onclick={() => login()}
-      >
-        {authState.status === "authenticating"
-          ? "Signing in…"
-          : "Sign in with MuckRock"}
-      </button>
-      {#if authState.error}
-        <p class="error">{authState.error}</p>
-      {/if}
-    {/if}
-  </div>
-</div>
+  {#if authState.status === "authenticated"}
+    <div class="auth">
+      <UserInfo />
+      <button class="signOut link" onclick={() => logout()}>Sign out</button>
+    </div>
+  {/if}
+</header>
 
 <style>
   .container {
     display: flex;
     flex-direction: column;
+    height: 3.25rem;
     gap: 0.25em;
     padding: 0.75em 1em;
-    border-bottom: 1px solid #eee;
-    background: #f8f8f8;
+    border-top: 2px solid var(--red-3);
+    background: var(--klaxon-bg-dark);
   }
   .header,
   .auth {
@@ -59,10 +60,13 @@
     justify-content: space-between;
     align-items: center;
   }
-  h2 {
+
+  .header .logo {
     margin: 0;
-    font-size: var(--font-md, 16px);
-    font-weight: 600;
+    flex: 1 1 auto;
+    max-width: 8em;
+    display: flex;
+    align-items: center;
   }
 
   .header button {
@@ -73,16 +77,27 @@
     color: #666;
     padding: 0 4px;
     line-height: 1;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+
+  button.back-link {
+    color: var(--red-3);
+    font-feature-settings:
+      "liga" off,
+      "clig" off;
+    font-family: inherit;
+    font-size: var(--font-sm, 14px);
+    font-style: normal;
+    font-weight: 700;
+
+    text-decoration: none;
   }
 
   .header button:hover {
     color: #000;
-  }
-
-  .auth .user {
-    font-size: 13px;
-    color: #333;
-    margin-bottom: 0;
   }
 
   .auth button.primary {
@@ -102,11 +117,13 @@
     cursor: not-allowed;
   }
 
-  .auth button.link {
+  .signOut.link {
     background: none;
     border: none;
-    color: #2563eb;
-    font-size: 12px;
+    text-decoration: underline;
+    color: var(--klaxon-color-link);
+    font-weight: 700;
+    font-size: var(--font-sm);
     cursor: pointer;
     padding: 0;
   }

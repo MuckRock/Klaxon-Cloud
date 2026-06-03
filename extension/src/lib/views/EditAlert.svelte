@@ -7,7 +7,6 @@
     ValidationError,
   } from "../types";
 
-  import BackLink from "../components/BackLink.svelte";
   import { getCanvas } from "../canvas.svelte";
   import { getToaster } from "../toaster.svelte";
   import { getRouter } from "../router.svelte";
@@ -96,7 +95,6 @@
     handleSave();
   }}
 >
-  <BackLink view="listChanges" />
 
   <main class="section content">
     <div class="intro">

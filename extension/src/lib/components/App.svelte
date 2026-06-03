@@ -92,9 +92,14 @@
     --klaxon-color-link: #c41a4d;
     --gray-1: #f5f6f7;
     --gray-2: #d8dee2;
+    --gray-3: #99A8B3;
     --orange-2: #ffc2ba;
     --orange-3: #ec7b6b;
     --orange-4: #69515c;
+    --red-3: #e1275f;
+
+    --klaxon-bg: #FFFDF3;
+    --klaxon-bg-dark: #FFF5E3;
 
     --klaxon-border-radius: 0.5rem;
   }
