@@ -4,6 +4,7 @@
   import ViewAlert from "../views/ViewAlert.svelte";
   import CreateAlert from "../views/CreateAlert.svelte";
   import EditAlert from "../views/EditAlert.svelte";
+  import EditSelection from "../views/EditSelection.svelte";
   import Header from "./Header.svelte";
   import ListAlerts from "../views/ListAlerts.svelte";
   import ListChanges from "../views/ListChanges.svelte";
@@ -29,7 +30,8 @@
     listAlerts: ListAlerts,
     listChanges: ListChanges,
     saveAlert: SaveAlert,
-    viewAlert: ViewAlert
+    viewAlert: ViewAlert,
+    editSelection: EditSelection
   };
 
   router.onchange = handleRouteChange;
@@ -45,7 +47,12 @@
   setCanvas(canvas);
 
   function handleRouteChange(view: View) {
-    canvas.active = ["createAlert", "editAlert", "viewAlert"].includes(view);
+    canvas.active = [
+      "createAlert",
+      "editAlert",
+      "editSelection",
+      "viewAlert",
+    ].includes(view);
     canvas.editable = !["editAlert", "viewAlert"].includes(view);
   }
 

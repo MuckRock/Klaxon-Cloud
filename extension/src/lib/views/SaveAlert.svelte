@@ -21,6 +21,7 @@
   const canvas = getCanvas();
 
   const url = getCanonicalURL();
+  let locked = $derived(canvas.state.locked);
   let selector = $derived(canvas.state.selector);
 
   let frequency: AddOnSchedule = $state("weekly");
@@ -34,7 +35,10 @@
       title: fd.get("title") as string,
       slack_webhook: fd.get("slack_webhook") as string,
       site: url,
-      selector,
+      // Only a *locked* selection is a real choice. An unlocked canvas means
+      // "watch the whole page" — without this guard the canvas's live hover
+      // preview would leak in as an arbitrary selector.
+      selector: locked ? (selector ?? "") : "",
     };
 
     const result: APIResponse<Event, ValidationError> = await dispatch(
@@ -71,7 +75,7 @@
       <h3>Save alert</h3>
       <p class="description">
         This alert will watch <strong>
-          {selector ? "part of the page" : "the entire page"}
+          {locked ? "part of the page" : "the entire page"}
         </strong> for changes.
       </p>
       <p class="description">

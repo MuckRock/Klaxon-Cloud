@@ -5,10 +5,11 @@ import { type Component, createContext } from "svelte";
 export type View =
   | "createAlert"
   | "editAlert"
+  | "editSelection"
   | "listChanges"
   | "listAlerts"
   | "saveAlert"
-  | "viewAlert"; // unused for now
+  | "viewAlert";
 
 class Router {
   views: Partial<Record<View, Component<any>>> = $state({}); // set this up in App.svelte

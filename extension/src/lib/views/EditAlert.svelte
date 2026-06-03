@@ -106,6 +106,14 @@
           {selector ? "part of the page" : "the entire page"}
         </strong> for changes.
       </p>
+      <button
+        type="button"
+        class="edit-selection-link"
+        onclick={() =>
+          router.navigate("editSelection", { event, origin: "editAlert" })}
+      >
+        Edit selection
+      </button>
     </div>
 
     <!-- schedule -->
@@ -222,6 +230,18 @@
     font-size: var(--font-md, 16px);
     line-height: 1.4;
     color: #0c1e27;
+  }
+
+  .edit-selection-link {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--klaxon-color-link, #c41a4d);
+    font-size: var(--font-sm, 14px);
+    font-weight: 700;
+    text-decoration: underline;
   }
 
   .field {
