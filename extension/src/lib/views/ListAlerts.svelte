@@ -150,7 +150,6 @@
     flex-direction: column;
     gap: var(--font-lg, 20px);
     border-bottom: 1px solid var(--orange-2, #ffc2ba);
-    background: #fffdf3;
   }
 
   main,

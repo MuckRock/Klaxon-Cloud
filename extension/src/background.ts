@@ -103,6 +103,7 @@ async function signIn({
   const oidc = await getAuthToken(
     ep.token,
     new URLSearchParams({
+      intent: "klaxon-cloud",
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,

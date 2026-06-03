@@ -110,8 +110,7 @@
     right: 0;
     width: 300px;
     height: 100vh;
-    background: #fff;
-    border-left: 2px solid #ccc;
+    background: var(--klaxon-bg);
     font-family:
       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: var(--font-sm, 14px);
@@ -125,6 +124,7 @@
   .body {
     overflow-y: auto;
     flex: 1;
+    border-left: 1px solid var(--klaxon-bg-dark);
   }
 
   :global(.btn-primary) {
