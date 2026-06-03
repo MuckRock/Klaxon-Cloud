@@ -2,31 +2,19 @@
   import { ArrowRight, ChevronRight } from "@lucide/svelte";
 
   import BackLink from "../components/BackLink.svelte";
-  import { getRouter } from "../components/Router.svelte";
+  import { getCanvas } from "../canvas.svelte";
+  import { getRouter } from "../router.svelte";
 
-  interface Props {
-    locked: boolean;
-    selector: string;
-    matchText: string;
-    onselectorchange: (css: string) => Element | null;
-    onclearselection: () => void;
-  }
-
-  let {
-    locked,
-    selector,
-    matchText,
-    onselectorchange,
-    onclearselection,
-  }: Props = $props();
+  const router = getRouter();
+  const canvas = getCanvas();
 
   let editedSelector = $state("");
   let selectorError = $state("");
   let selectorPanelOpen = $state(false);
 
-  // Sync edited selector when the external selector changes (e.g. from clicking)
+  // Sync edited selector when the canvas selector changes (e.g. from clicking)
   $effect(() => {
-    editedSelector = selector;
+    editedSelector = canvas.state.selector;
     selectorError = "";
   });
 
@@ -36,19 +24,17 @@
 
     if (!value.trim()) {
       selectorError = "";
-      onclearselection();
+      canvas.clearSelection();
       return;
     }
 
     try {
-      const el = onselectorchange(value);
+      const el = canvas.setSelector(value);
       selectorError = el ? "" : "No element found for this selector.";
     } catch {
       selectorError = "Invalid CSS selector.";
     }
   }
-
-  const router = getRouter();
 </script>
 
 <div class="container create-alert">
@@ -66,7 +52,7 @@
     <p class="description">
       Once the selection looks right, you can proceed to the next step.
     </p>
-    {#if locked}
+    {#if canvas.state.locked}
       <div class="message-card green">
         <svg
           class="message-card-graphic"

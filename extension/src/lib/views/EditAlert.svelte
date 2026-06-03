@@ -8,18 +8,16 @@
   } from "../types";
 
   import BackLink from "../components/BackLink.svelte";
-  import { getToaster } from "../components/Toaster.svelte";
-  import { getRouter } from "../components/Router.svelte";
+  import { getCanvas } from "../canvas.svelte";
+  import { getToaster } from "../toaster.svelte";
+  import { getRouter } from "../router.svelte";
   import { eventValues, schedules, update } from "../api";
 
   interface Props {
     event: Event;
-    onselectorchange: (css: string) => Element | null;
-    onclearselection: () => void;
-    onsave: () => void;
   }
 
-  let { event, onselectorchange, onclearselection, onsave }: Props = $props();
+  let { event }: Props = $props();
 
   let form: HTMLFormElement | undefined = $state();
 
@@ -27,14 +25,15 @@
 
   const router = getRouter();
   const toaster = getToaster();
+  const canvas = getCanvas();
 
   let frequency: AddOnSchedule = $derived(schedules[event.event] ?? "weekly");
   let saving = $state(false);
 
   $effect(() => {
-    if (selector) onselectorchange(selector);
+    if (selector) canvas.setSelector(selector);
     return () => {
-      onclearselection();
+      canvas.clearSelection();
     };
   });
 
@@ -62,7 +61,7 @@
       return;
     }
 
-    onsave();
+    canvas.clearSelection();
     toaster.success("Alert saved successfully!");
     router.navigate("listChanges");
   }

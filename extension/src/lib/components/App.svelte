@@ -1,6 +1,4 @@
 <script lang="ts">
-  import type { Page, Event, Run } from "../types";
-
   import { onDestroy, untrack } from "svelte";
 
   import CreateAlert from "../views/CreateAlert.svelte";
@@ -8,15 +6,12 @@
   import Header from "./Header.svelte";
   import ListAlerts from "../views/ListAlerts.svelte";
   import ListChanges from "../views/ListChanges.svelte";
-  import Router from "./Router.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
-  import Toaster from "./Toaster.svelte";
   import ToastList from "./ToastList.svelte";
 
-  import { initCanvas, type Canvas } from "../canvas.svelte.ts";
-  import { getCanonicalURL } from "../url";
-  import { authState } from "../auth.svelte.ts";
-  import { scheduled, history } from "../api";
+  import { initCanvas, setCanvas, type Canvas } from "../canvas.svelte.ts";
+  import { type View, router, setRouter } from "../router.svelte.ts";
+  import { toaster, setToaster } from "../toaster.svelte.ts";
 
   interface Props {
     host: HTMLElement;
@@ -27,90 +22,53 @@
 
   let { host, shadow, sidebarWidth, onclose }: Props = $props();
 
+  router.views = {
+    createAlert: CreateAlert,
+    editAlert: EditAlert,
+    listAlerts: ListAlerts,
+    listChanges: ListChanges,
+    saveAlert: SaveAlert,
+  };
+
+  router.onchange = handleRouteChange;
+
+  setRouter(router);
+  setToaster(toaster);
+
   const canvas: Canvas = initCanvas(
     untrack(() => host),
     untrack(() => shadow),
     untrack(() => sidebarWidth),
   );
-  const url = getCanonicalURL();
+  setCanvas(canvas);
 
-  function emptyPage<T>(): Page<T> {
-    return {
-      next: null,
-      previous: null,
-      results: [],
-    };
-  }
-
-  let events: Page<Event> = $state(emptyPage());
-  let runs: Page<Run> = $state(emptyPage());
-
-  async function loadData() {
-    const [eventsRes, runsRes] = await Promise.all([
-      scheduled(url),
-      history(url),
-    ]);
-    if (eventsRes.data) events = eventsRes.data;
-    if (runsRes.data) runs = runsRes.data;
-  }
-
-  $effect(() => {
-    if (authState.status === "authenticated") {
-      loadData();
-    }
-  });
-
-  function handleRouteChange(view: string) {
+  function handleRouteChange(view: View) {
     canvas.active = ["createAlert", "editAlert"].includes(view);
     canvas.editable = view !== "editAlert";
-    loadData();
   }
 
-  onDestroy(() => canvas.destroy());
+  // Bind to a reactive variable so the view re-mounts on navigation.
+  // Each view loads its own data via an internal $effect (keyed on auth),
+  // so there's no boot/reload wiring here.
+  const CurrentView = $derived(router.view);
+
+  onDestroy(() => {
+    canvas.destroy();
+    toaster.destroy();
+  });
 </script>
 
-<Toaster>
-  <Router currentView="listChanges" onchange={handleRouteChange}>
-    {#snippet children(router)}
-      <div class="sidebar">
-        <Header {onclose} />
+<div class="sidebar">
+  <Header {onclose} />
 
-        <div class="body">
-          <ToastList />
-          {#if router.view === "listChanges"}
-            <ListChanges {events} {runs} {...router.props} />
-          {:else if router.view === "listAlerts"}
-            <ListAlerts {events} />
-          {:else if router.view === "createAlert"}
-            <CreateAlert
-              locked={canvas.state.locked}
-              selector={canvas.state.selector}
-              matchText={canvas.state.matchText}
-              onselectorchange={(css) => canvas.setSelector(css)}
-              onclearselection={() => canvas.clearSelection()}
-              {...router.props}
-            />
-          {:else if router.view === "saveAlert"}
-            <SaveAlert
-              selector={canvas.state.selector}
-              matchText={canvas.state.matchText}
-              {url}
-              onsave={() => canvas.clearSelection()}
-              {...router.props}
-            />
-          {:else if router.view === "editAlert"}
-            <EditAlert
-              onselectorchange={(css) => canvas.setSelector(css)}
-              onclearselection={() => canvas.clearSelection()}
-              onsave={() => canvas.clearSelection()}
-              {...router.props}
-            />
-          {/if}
-        </div>
-      </div>
-    {/snippet}
-  </Router>
-</Toaster>
+  <div class="body">
+    <ToastList />
+
+    {#if CurrentView}
+      <CurrentView {...router.props} />
+    {/if}
+  </div>
+</div>
 
 <style>
   :host {

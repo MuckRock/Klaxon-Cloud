@@ -8,23 +8,20 @@
   } from "../types";
 
   import BackLink from "../components/BackLink.svelte";
-  import { getRouter } from "../components/Router.svelte";
-  import { getToaster } from "../components/Toaster.svelte";
+  import { getCanvas } from "../canvas.svelte";
+  import { getRouter } from "../router.svelte";
+  import { getToaster } from "../toaster.svelte";
   import { dispatch } from "../api";
-
-  interface Props {
-    selector: string | null;
-    matchText: string | null;
-    url: string;
-    onsave: () => void;
-  }
-
-  let { selector, url, onsave }: Props = $props();
+  import { getCanonicalURL } from "../url";
 
   let form: HTMLFormElement | undefined = $state();
 
   const router = getRouter();
   const toaster = getToaster();
+  const canvas = getCanvas();
+
+  const url = getCanonicalURL();
+  let selector = $derived(canvas.state.selector);
 
   let frequency: AddOnSchedule = $state("weekly");
   let saving = $state(false);
@@ -37,7 +34,7 @@
       title: fd.get("title") as string,
       slack_webhook: fd.get("slack_webhook") as string,
       site: url,
-      selector: selector ?? "",
+      selector,
     };
 
     const result: APIResponse<Event, ValidationError> = await dispatch(
@@ -53,7 +50,7 @@
       return;
     }
 
-    onsave();
+    canvas.clearSelection();
     toaster.success("Alert saved successfully!");
     router.navigate("listChanges");
   }

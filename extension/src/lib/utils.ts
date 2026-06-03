@@ -1,4 +1,4 @@
-import type { APIResponse, NumericRange, Event } from "./types";
+import type { APIResponse, Event, NumericRange, Page } from "./types";
 
 /**
  * Handle what comes back from the API and return either data or errors.
@@ -71,6 +71,14 @@ export async function getApiResponse<T, E = unknown>(
     }
   }
   return response;
+}
+
+export function emptyPage<T>(): Page<T> {
+  return {
+    next: null,
+    previous: null,
+    results: [],
+  };
 }
 
 export function getSiteLabel(event: Event): string {
