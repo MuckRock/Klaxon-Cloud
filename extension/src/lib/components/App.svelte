@@ -4,16 +4,11 @@
   import CreateAlert from "../views/CreateAlert.svelte";
   import EditAlert from "../views/EditAlert.svelte";
   import Header from "./Header.svelte";
-  import ListAlerts, {
-    load as loadListAlerts,
-  } from "../views/ListAlerts.svelte";
-  import ListChanges, {
-    load as loadListChanges,
-  } from "../views/ListChanges.svelte";
+  import ListAlerts from "../views/ListAlerts.svelte";
+  import ListChanges from "../views/ListChanges.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
   import ToastList from "./ToastList.svelte";
 
-  import { authState } from "../auth.svelte.ts";
   import { initCanvas, setCanvas, type Canvas } from "../canvas.svelte.ts";
   import { type View, router, setRouter } from "../router.svelte.ts";
   import { toaster, setToaster } from "../toaster.svelte.ts";
@@ -28,20 +23,14 @@
   let { host, shadow, sidebarWidth, onclose }: Props = $props();
 
   router.views = {
-    createAlert: { component: CreateAlert },
-    editAlert: { component: EditAlert },
-    listAlerts: { component: ListAlerts, load: loadListAlerts },
-    listChanges: { component: ListChanges, load: loadListChanges },
-    saveAlert: { component: SaveAlert },
+    createAlert: CreateAlert,
+    editAlert: EditAlert,
+    listAlerts: ListAlerts,
+    listChanges: ListChanges,
+    saveAlert: SaveAlert,
   };
 
   router.onchange = handleRouteChange;
-
-  // Surface load() failures from navigate()/reload() to the user.
-  router.onerror = (error) => {
-    console.error("Failed to load view:", error);
-    toaster.error("Something went wrong loading this view.");
-  };
 
   setRouter(router);
   setToaster(toaster);
@@ -59,18 +48,9 @@
   }
 
   // Bind to a reactive variable so the view re-mounts on navigation.
+  // Each view loads its own data via an internal $effect (keyed on auth),
+  // so there's no boot/reload wiring here.
   const CurrentView = $derived(router.view);
-
-  // Boot the initial view's data once authenticated, and reload whenever
-  // auth flips to authenticated again (e.g. after sign-in). Navigation
-  // between views loads on its own via router.navigate() → reload().
-  // reload() is untracked: it both reads and writes router.props, so
-  // tracking it here would make the effect retrigger on its own writes.
-  $effect(() => {
-    if (authState.status === "authenticated") {
-      untrack(() => router.reload());
-    }
-  });
 
   onDestroy(() => {
     canvas.destroy();
@@ -83,10 +63,6 @@
 
   <div class="body">
     <ToastList />
-
-    {#if router.loading}
-      <div class="loading-bar" role="status" aria-label="Loading"></div>
-    {/if}
 
     {#if CurrentView}
       <CurrentView {...router.props} />
@@ -135,23 +111,6 @@
   .body {
     overflow-y: auto;
     flex: 1;
-  }
-
-  .loading-bar {
-    height: 3px;
-    background: linear-gradient(90deg, transparent, #ec7b6b, transparent);
-    background-size: 40% 100%;
-    background-repeat: no-repeat;
-    animation: loading-slide 1s infinite ease-in-out;
-  }
-
-  @keyframes loading-slide {
-    0% {
-      background-position: -40% 0;
-    }
-    100% {
-      background-position: 140% 0;
-    }
   }
 
   :global(.btn-primary) {

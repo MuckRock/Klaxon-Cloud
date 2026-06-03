@@ -1,36 +1,49 @@
-<script module lang="ts">
-  import type { Event, Page } from "../types";
-
-  import { scheduled } from "../api";
-  import { getCanonicalURL } from "../url";
-  import { emptyPage } from "../utils";
-
-  export interface Props {
-    events: Page<Event>;
-  }
-
-  // Runs via router.navigate()/reload() before the view renders.
-  export async function load(): Promise<Props> {
-    const res = await scheduled(getCanonicalURL());
-    return { events: res.data ?? emptyPage<Event>() };
-  }
-</script>
-
 <script lang="ts">
   import { ArrowRight } from "@lucide/svelte";
+
+  import type { Event, Page } from "../types";
 
   import BackLink from "../components/BackLink.svelte";
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
+  import { scheduled, schedules, update } from "../api";
+  import { authState } from "../auth.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
-  import { schedules, update } from "../api";
-  import { getSiteLabel } from "../utils";
-
-  let { events = emptyPage<Event>() }: Props = $props();
+  import { getCanonicalURL } from "../url";
+  import { emptyPage, getSiteLabel } from "../utils";
 
   const router = getRouter();
   const toaster = getToaster();
+
+  // This view owns its own data instead of receiving it via router props.
+  // The effect fetches on mount and re-runs whenever auth flips to
+  // authenticated (boot + re-login), with cancellation on unmount/re-run.
+  let events = $state<Page<Event>>(emptyPage<Event>());
+
+  $effect(() => {
+    if (authState.status !== "authenticated") return;
+
+    let cancelled = false;
+
+    scheduled(getCanonicalURL()).then((res) => {
+      if (cancelled) return;
+
+      // The API surfaces failures as a `.error` field rather than throwing.
+      // Leave any already-loaded data in place rather than blanking it out.
+      if (res.error) {
+        console.error("Failed to load alerts:", res.error);
+        toaster.error("Something went wrong loading your alerts.");
+        return;
+      }
+
+      events = res.data ?? emptyPage<Event>();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  });
 
   let loading: boolean = $state(false);
   let selected: Event[] = $state([]);
