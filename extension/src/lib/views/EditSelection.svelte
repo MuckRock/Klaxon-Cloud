@@ -1,14 +1,12 @@
 <script lang="ts">
-  import type { APIResponse, Event, ValidationError } from "../types";
-  import type { View } from "../components/Router.svelte";
-
   import { onMount } from "svelte";
 
   import BackLink from "../components/BackLink.svelte";
   import SelectionPicker from "../components/SelectionPicker.svelte";
-  import { getRouter } from "../components/Router.svelte";
-  import { getToaster } from "../components/Toaster.svelte";
+  import { getRouter, type View } from "../router.svelte";
+  import { getToaster } from "../toaster.svelte";
   import { schedules, update } from "../api";
+  import type { APIResponse, Event, ValidationError } from "../types";
 
   interface Props {
     event: Event;
