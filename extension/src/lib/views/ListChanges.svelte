@@ -33,12 +33,14 @@
       if (cancelled) return;
 
       // The API surfaces failures as a `.error` field rather than throwing.
+      // Leave any already-loaded data in place rather than blanking it out.
       if (eventsRes.error || runsRes.error) {
         console.error(
           "Failed to load changes:",
           eventsRes.error ?? runsRes.error,
         );
         toaster.error("Something went wrong loading this page.");
+        return;
       }
 
       events = eventsRes.data ?? emptyPage<Event>();

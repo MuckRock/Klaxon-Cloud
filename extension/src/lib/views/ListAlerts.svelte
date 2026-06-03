@@ -30,9 +30,11 @@
       if (cancelled) return;
 
       // The API surfaces failures as a `.error` field rather than throwing.
+      // Leave any already-loaded data in place rather than blanking it out.
       if (res.error) {
         console.error("Failed to load alerts:", res.error);
         toaster.error("Something went wrong loading your alerts.");
+        return;
       }
 
       events = res.data ?? emptyPage<Event>();
