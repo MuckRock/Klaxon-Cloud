@@ -1,43 +1,54 @@
-<script module lang="ts">
-  import type { Event, Page, Run } from "../types";
-
-  import { scheduled, history } from "../api";
-  import { getCanonicalURL } from "../url";
-  import { emptyPage } from "../utils";
-
-  export interface Props {
-    events: Page<Event>;
-    runs: Page<Run>;
-  }
-
-  // Runs via router.navigate()/reload() before the view renders.
-  export async function load(): Promise<Props> {
-    const url = getCanonicalURL();
-    const [eventsRes, runsRes] = await Promise.all([
-      scheduled(url),
-      history(url),
-    ]);
-    return {
-      events: eventsRes.data ?? emptyPage<Event>(),
-      runs: runsRes.data ?? emptyPage<Run>(),
-    };
-  }
-</script>
-
 <script lang="ts">
   import { ArrowRight } from "@lucide/svelte";
+
+  import type { Event, Page, Run } from "../types";
 
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
   import Welcome from "../components/Welcome.svelte";
 
+  import { scheduled, history } from "../api";
+  import { authState } from "../auth.svelte";
   import { getRouter } from "../router.svelte";
-  import { isEvent, getSiteLabel } from "../utils";
-
-  let { events = emptyPage<Event>(), runs = emptyPage<Run>() }: Props =
-    $props();
+  import { getToaster } from "../toaster.svelte";
+  import { getCanonicalURL } from "../url";
+  import { emptyPage, isEvent, getSiteLabel } from "../utils";
 
   const router = getRouter();
+  const toaster = getToaster();
+
+  // This view owns its own data instead of receiving it via router props.
+  // The effect fetches on mount and re-runs whenever auth flips to
+  // authenticated (boot + re-login), with cancellation on unmount/re-run.
+  let events = $state<Page<Event>>(emptyPage<Event>());
+  let runs = $state<Page<Run>>(emptyPage<Run>());
+
+  $effect(() => {
+    if (authState.status !== "authenticated") return;
+
+    const url = getCanonicalURL();
+    let cancelled = false;
+
+    Promise.all([scheduled(url), history(url)]).then(([eventsRes, runsRes]) => {
+      if (cancelled) return;
+
+      // The API surfaces failures as a `.error` field rather than throwing.
+      if (eventsRes.error || runsRes.error) {
+        console.error(
+          "Failed to load changes:",
+          eventsRes.error ?? runsRes.error,
+        );
+        toaster.error("Something went wrong loading this page.");
+      }
+
+      events = eventsRes.data ?? emptyPage<Event>();
+      runs = runsRes.data ?? emptyPage<Run>();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  });
 
   let hasEvents = $derived(events.results.length > 0);
   let hasRuns = $derived(runs.results.length > 0);
