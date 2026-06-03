@@ -39,7 +39,7 @@ describe("fixtures", () => {
     const page: Page<Run> = runs;
     expect(page.results.length).toBeGreaterThan(0);
     const run = page.results[0];
-    expect(run.uuid).toBe("f9637f19-9ef9-4466-810c-96a0c4e761f7");
+    expect(run.uuid).toBe("8a961a35-054e-4959-a428-9476ddde046b");
     expect(run.addon.id).toBe(436);
   });
 });
