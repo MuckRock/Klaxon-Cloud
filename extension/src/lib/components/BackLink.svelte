@@ -1,15 +1,20 @@
 <script lang="ts">
   import { type View, getRouter } from "../router.svelte";
 
+  interface Props {
+    fallback: View;
+    [key: string]: any;
+  }
+
   const router = getRouter();
 
-  const { view, ...rest }: { view: View; [key: string]: any } = $props();
+  const { fallback: fallback, ...rest }: Props = $props();
 </script>
 
 <button
   class="back-link"
   type="button"
-  onclick={() => router.navigate(view, rest)}
+  onclick={() => router.back(fallback, rest)}
 >
   &#8249; <span>Back</span>
 </button>

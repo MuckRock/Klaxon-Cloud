@@ -102,7 +102,7 @@
 </script>
 
 <div class="container list-alerts">
-  <BackLink view="listChanges" />
+  <BackLink fallback="listChanges" />
 
   <main class="section">
     <h3>Your alerts</h3>

@@ -38,7 +38,7 @@
 </script>
 
 <div class="container create-alert">
-  <BackLink view="listChanges" />
+  <BackLink fallback="listChanges" />
 
   <main class="section">
     <h3>Create an alert</h3>

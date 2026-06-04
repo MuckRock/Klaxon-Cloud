@@ -96,7 +96,7 @@
     handleSave();
   }}
 >
-  <BackLink view="listChanges" />
+  <BackLink fallback="listChanges" />
 
   <main class="section content">
     <div class="intro">

@@ -5,6 +5,9 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
   },
+  // Use Svelte's browser entry points under Vitest so runes in `.svelte.ts`
+  // modules compile when imported from tests (per Svelte testing docs).
+  resolve: process.env.VITEST ? { conditions: ["browser"] } : undefined,
   plugins: [
     svelte({
       compilerOptions: {

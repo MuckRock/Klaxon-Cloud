@@ -64,7 +64,7 @@
     handleSave();
   }}
 >
-  <BackLink view="createAlert" />
+  <BackLink fallback="createAlert" />
 
   <main class="section content">
     <div class="intro">
