@@ -81,12 +81,7 @@
       Clear the selection to watch the entire page.
     </p>
 
-    <SelectionPicker
-      {locked}
-      {selector}
-      {onselectorchange}
-      {onclearselection}
-    />
+    <SelectionPicker />
   </main>
 
   <footer class="button-row">
