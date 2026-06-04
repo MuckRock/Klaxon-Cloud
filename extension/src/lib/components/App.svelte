@@ -173,10 +173,9 @@
     justify-content: flex-end;
     position: sticky;
     bottom: 0;
-    background: #fff;
+    background: var(--klaxon-bg);
     margin-top: 1em;
     padding: 1em;
-    border-top: 1px solid #ccc;
   }
 
   :global(.back-link) {
