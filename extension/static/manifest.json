@@ -18,6 +18,12 @@
   },
   "permissions": ["scripting", "activeTab", "identity", "storage"],
   "host_permissions": ["http://*/*", "https://*/*"],
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
+  ],
   "version": "0.1",
   "manifest_version": 3,
   "browser_specific_settings": {

@@ -85,14 +85,19 @@
        sidebar inherits them and host-page custom properties of the same
        name can't leak in through the shadow boundary. */
     --font-sans: "Source Sans Pro", sans-serif;
+    --font-xs: 12px;
     --font-sm: 14px;
     --font-md: 16px;
     --font-lg: 20px;
+    --font-xl: 24px;
 
     --klaxon-color-link: #c41a4d;
+    --white: #ffffff;
     --gray-1: #f5f6f7;
     --gray-2: #d8dee2;
     --gray-3: #99A8B3;
+    --blue-3: #4294F0;
+    --blue-4: #1367D0;
     --orange-2: #ffc2ba;
     --orange-3: #ec7b6b;
     --orange-4: #69515c;
@@ -111,9 +116,18 @@
     width: 300px;
     height: 100vh;
     background: var(--klaxon-bg);
-    font-family:
-      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: var(
+      --font-sans,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif
+    );
     font-size: var(--font-sm, 14px);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     color: #333;
     z-index: 2147483647;
     display: flex;
@@ -132,6 +146,7 @@
     align-items: center;
     justify-content: center;
     gap: 1em;
+    font-family: var(--font-sans);
     background: #ec7b6b;
     color: #f5f6f7;
     border: 1px solid #69515c;
