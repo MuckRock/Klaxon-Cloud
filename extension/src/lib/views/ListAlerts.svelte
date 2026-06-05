@@ -8,13 +8,14 @@
   import RelativeTime from "../components/RelativeTime.svelte";
   import { scheduled, schedules, update } from "../api";
   import { authState } from "../auth.svelte";
+  import { getCanvas } from "../pickerClient.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
-  import { getCanonicalURL } from "../url";
   import { emptyPage, getSiteLabel } from "../utils";
 
   const router = getRouter();
   const toaster = getToaster();
+  const canvas = getCanvas();
 
   // This view owns its own data instead of receiving it via router props.
   // The effect fetches on mount and re-runs whenever auth flips to
@@ -24,9 +25,12 @@
   $effect(() => {
     if (authState.status !== "authenticated") return;
 
+    const url = canvas.url;
+    if (!url) return;
+
     let cancelled = false;
 
-    scheduled(getCanonicalURL()).then((res) => {
+    scheduled(url).then((res) => {
       if (cancelled) return;
 
       // The API surfaces failures as a `.error` field rather than throwing.

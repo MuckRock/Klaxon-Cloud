@@ -8,7 +8,7 @@
   } from "../types";
 
   import BackLink from "../components/BackLink.svelte";
-  import { getCanvas } from "../canvas.svelte";
+  import { getCanvas } from "../pickerClient.svelte";
   import { getToaster } from "../toaster.svelte";
   import { getRouter } from "../router.svelte";
   import { eventValues, schedules, update } from "../api";
@@ -31,7 +31,8 @@
   let saving = $state(false);
 
   $effect(() => {
-    if (selector) canvas.setSelector(selector);
+    // Stored selectors are already validated; ignore any round-trip rejection.
+    if (selector) void canvas.setSelector(selector).catch(() => {});
     return () => {
       canvas.clearSelection();
     };

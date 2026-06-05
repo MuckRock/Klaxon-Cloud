@@ -75,6 +75,12 @@ export interface FetchMessage {
   options: RequestInit;
 }
 
+// Side panel → service worker: inject the picker content script into a tab.
+export interface PickerEnsureMessage {
+  type: "picker/ensure";
+  tabId: number;
+}
+
 export interface UserInfoResponse {
   sub: string; // This is the internal system identifier for the user, or “the subject”. You should use the UUID as the user’s identifier in your application.
   uuid: string; // A unique identifier for the user.

@@ -1,4 +1,4 @@
-import { createContext, mount, unmount } from "svelte";
+import { mount, unmount } from "svelte";
 import {
   resolveTarget,
   resolveEnclosingElement,
@@ -444,5 +444,3 @@ export function initCanvas(
     },
   };
 }
-
-export const [getCanvas, setCanvas] = createContext<Canvas>();

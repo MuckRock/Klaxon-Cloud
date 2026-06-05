@@ -8,6 +8,14 @@
     "default_icon": "icon-128.png",
     "default_title": "Klaxon Cloud"
   },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "sidebar_action": {
+    "default_panel": "sidepanel.html",
+    "default_title": "Klaxon Cloud",
+    "default_icon": "icon-128.png"
+  },
   "name": "Klaxon Cloud",
   "description": "Klaxon sends you alerts when webpages you're watching change.",
   "homepage_url": "https://www.documentcloud.org/add-ons/MuckRock/Klaxon/",
@@ -16,7 +24,14 @@
     "48": "icon-48.png",
     "128": "icon-128.png"
   },
-  "permissions": ["scripting", "activeTab", "identity", "storage"],
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "identity",
+    "storage",
+    "sidePanel",
+    "tabs"
+  ],
   "host_permissions": ["http://*/*", "https://*/*"],
   "version": "0.1",
   "manifest_version": 3,

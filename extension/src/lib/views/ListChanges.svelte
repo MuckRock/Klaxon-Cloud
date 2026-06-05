@@ -9,13 +9,14 @@
 
   import { scheduled, history } from "../api";
   import { authState } from "../auth.svelte";
+  import { getCanvas } from "../pickerClient.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
-  import { getCanonicalURL } from "../url";
   import { emptyPage, isEvent, getSiteLabel } from "../utils";
 
   const router = getRouter();
   const toaster = getToaster();
+  const canvas = getCanvas();
 
   // This view owns its own data instead of receiving it via router props.
   // The effect fetches on mount and re-runs whenever auth flips to
@@ -26,7 +27,11 @@
   $effect(() => {
     if (authState.status !== "authenticated") return;
 
-    const url = getCanonicalURL();
+    // canvas.url resolves asynchronously once the active page is known; the
+    // effect re-runs when it lands. Don't query until we have it.
+    const url = canvas.url;
+    if (!url) return;
+
     let cancelled = false;
 
     Promise.all([scheduled(url), history(url)]).then(([eventsRes, runsRes]) => {

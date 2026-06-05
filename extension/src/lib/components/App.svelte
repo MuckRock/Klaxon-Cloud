@@ -9,18 +9,18 @@
   import SaveAlert from "../views/SaveAlert.svelte";
   import ToastList from "./ToastList.svelte";
 
-  import { initCanvas, setCanvas, type Canvas } from "../canvas.svelte.ts";
+  import { setCanvas, type PickerClient } from "../pickerClient.svelte.ts";
   import { type View, router, setRouter } from "../router.svelte.ts";
   import { toaster, setToaster } from "../toaster.svelte.ts";
 
   interface Props {
-    host: HTMLElement;
-    shadow: ShadowRoot;
-    sidebarWidth: number;
-    onclose: () => void;
+    /** Proxy to the on-page picker, created by the side-panel entry. */
+    canvas: PickerClient;
+    /** Defaults to closing the side panel window. */
+    onclose?: () => void;
   }
 
-  let { host, shadow, sidebarWidth, onclose }: Props = $props();
+  let { canvas, onclose = () => window.close() }: Props = $props();
 
   router.views = {
     createAlert: CreateAlert,
@@ -34,13 +34,8 @@
 
   setRouter(router);
   setToaster(toaster);
-
-  const canvas: Canvas = initCanvas(
-    untrack(() => host),
-    untrack(() => shadow),
-    untrack(() => sidebarWidth),
-  );
-  setCanvas(canvas);
+  // canvas is a stable instance for the panel's lifetime; capture it once.
+  setCanvas(untrack(() => canvas));
 
   function handleRouteChange(view: View) {
     canvas.active = ["createAlert", "editAlert"].includes(view);
@@ -53,6 +48,7 @@
   const CurrentView = $derived(router.view);
 
   onDestroy(() => {
+    // The picker tears itself down when this page unloads (port disconnect).
     canvas.destroy();
     toaster.destroy();
   });
@@ -71,10 +67,10 @@
 </div>
 
 <style>
-  :host {
-    /* Klaxon design tokens. Defined on the shadow host so the whole
-       sidebar inherits them and host-page custom properties of the same
-       name can't leak in through the shadow boundary. */
+  /* Klaxon design tokens. The sidebar now renders in its own extension
+     document (the native side panel), so tokens live on :root and there's
+     no host page to leak custom properties in. */
+  :global(:root) {
     --font-sans: "Source Sans Pro", sans-serif;
     --font-sm: 14px;
     --font-md: 16px;
@@ -90,22 +86,21 @@
     --klaxon-border-radius: 0.5rem;
   }
 
+  :global(html, body) {
+    margin: 0;
+    padding: 0;
+  }
+
   .sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 300px;
+    width: 100%;
     height: 100vh;
     background: #fff;
-    border-left: 2px solid #ccc;
     font-family:
       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: var(--font-sm, 14px);
     color: #333;
-    z-index: 2147483647;
     display: flex;
     flex-direction: column;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
   }
 
   .body {

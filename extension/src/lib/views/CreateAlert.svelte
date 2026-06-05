@@ -2,7 +2,7 @@
   import { ArrowRight, ChevronRight } from "@lucide/svelte";
 
   import BackLink from "../components/BackLink.svelte";
-  import { getCanvas } from "../canvas.svelte";
+  import { getCanvas } from "../pickerClient.svelte";
   import { getRouter } from "../router.svelte";
 
   const router = getRouter();
@@ -18,7 +18,7 @@
     selectorError = "";
   });
 
-  function handleSelectorInput(e: Event) {
+  async function handleSelectorInput(e: Event) {
     const value = (e.target as HTMLTextAreaElement).value;
     editedSelector = value;
 
@@ -29,8 +29,8 @@
     }
 
     try {
-      const el = canvas.setSelector(value);
-      selectorError = el ? "" : "No element found for this selector.";
+      const found = await canvas.setSelector(value);
+      selectorError = found ? "" : "No element found for this selector.";
     } catch {
       selectorError = "Invalid CSS selector.";
     }

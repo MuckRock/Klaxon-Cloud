@@ -8,11 +8,10 @@
   } from "../types";
 
   import BackLink from "../components/BackLink.svelte";
-  import { getCanvas } from "../canvas.svelte";
+  import { getCanvas } from "../pickerClient.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { dispatch } from "../api";
-  import { getCanonicalURL } from "../url";
 
   let form: HTMLFormElement | undefined = $state();
 
@@ -20,7 +19,7 @@
   const toaster = getToaster();
   const canvas = getCanvas();
 
-  const url = getCanonicalURL();
+  let url = $derived(canvas.url);
   let selector = $derived(canvas.state.selector);
 
   let frequency: AddOnSchedule = $state("weekly");

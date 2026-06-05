@@ -1,14 +1,17 @@
 // Klaxon Cloud service worker.
 //
-// Two responsibilities:
-//   1. Inject the content script when the action button is clicked.
-//   2. Handle OIDC auth messages from the content script (PKCE flow against
+// Responsibilities:
+//   1. Open the native side panel when the action button is clicked, and
+//      inject the picker content script on demand when the panel asks.
+//   2. Handle OIDC auth messages from the side panel (PKCE flow against
 //      Squarelet). All network + storage work lives here because
-//      chrome.identity.launchWebAuthFlow is not available to content scripts.
+//      chrome.identity.launchWebAuthFlow is not available to non-extension
+//      pages, and proxying fetch here sidesteps page CORS.
 import type {
   AuthConfig,
   AuthMessage,
   FetchMessage,
+  PickerEnsureMessage,
   StoredAuth,
 } from "./lib/types";
 import {
@@ -29,13 +32,24 @@ import {
 // with the Squarelet client. Remove once the URI is stable across environments.
 console.log("[klaxon] OAuth redirect URI:", chrome.identity.getRedirectURL());
 
-// Inject the content script when the extension is activated
-chrome.action.onClicked.addListener((tab) => {
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id! },
+// Chrome: clicking the action opens the native side panel. The picker content
+// script is injected lazily (see "picker/ensure" below) — not on click — so we
+// only touch the page when the user actually starts picking.
+chrome.sidePanel
+  ?.setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((err) => console.debug("[klaxon] setPanelBehavior:", err));
+
+// Firefox opens its sidebar (sidebar_action) from the browser's own sidebar
+// button, so no action handler is needed there.
+
+// Inject the picker into a tab on request from the side panel. Re-injection is
+// harmless: the content script guards against double-mounting.
+async function ensurePicker(tabId: number): Promise<void> {
+  await chrome.scripting.executeScript({
+    target: { tabId },
     files: ["content.js"],
   });
-});
+}
 
 // Save auth data to local storage
 const STORAGE_KEY = "muckrock_auth";
@@ -221,17 +235,38 @@ async function signOut({ host }: Pick<AuthConfig, "host">): Promise<void> {
   }
 }
 
-function isAuthMessage(t: AuthMessage | FetchMessage): t is AuthMessage {
+type SwMessage = AuthMessage | FetchMessage | PickerEnsureMessage;
+
+function isAuthMessage(t: SwMessage): t is AuthMessage {
   return t.type.startsWith("auth/");
 }
 
-function isFetchMessage(t: AuthMessage | FetchMessage): t is FetchMessage {
+function isFetchMessage(t: SwMessage): t is FetchMessage {
   return t.type === "api/fetch";
 }
 
+function isPickerEnsure(t: SwMessage): t is PickerEnsureMessage {
+  return t.type === "picker/ensure";
+}
+
 chrome.runtime.onMessage.addListener(
-  (msg: AuthMessage | FetchMessage, _sender, sendResponse) => {
+  (msg: SwMessage, _sender, sendResponse) => {
     if (!msg?.type) return false;
+
+    if (isPickerEnsure(msg)) {
+      (async () => {
+        try {
+          await ensurePicker(msg.tabId);
+          sendResponse({ ok: true });
+        } catch (e) {
+          sendResponse({
+            ok: false,
+            error: (e as Error)?.message ?? String(e),
+          });
+        }
+      })();
+      return true;
+    }
 
     if (isFetchMessage(msg)) {
       (async () => {
