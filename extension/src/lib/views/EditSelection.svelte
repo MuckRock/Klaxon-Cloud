@@ -7,37 +7,33 @@
   import { getToaster } from "../toaster.svelte";
   import { schedules, update } from "../api";
   import type { APIResponse, Event, ValidationError } from "../types";
+  import { getCanvas } from "../canvas.svelte";
 
   interface Props {
     event: Event;
     /** Which view to return to after saving or going back (defaults to editAlert). */
     origin?: View;
-    locked: boolean;
-    selector: string;
     matchText: string;
-    onselectorchange: (css: string) => Element | null;
-    onclearselection: () => void;
   }
 
   let {
     event,
     origin = "editAlert",
-    locked,
-    selector,
-    onselectorchange,
-    onclearselection,
   }: Props = $props();
 
   const router = getRouter();
+  const canvas = getCanvas();
   const toaster = getToaster();
 
   let saving = $state(false);
+  let locked = $derived(canvas.state.locked);
+  let selector = $derived(canvas.state.selector);
 
   // Pre-load this alert's existing selection into the canvas once, so the user
   // sees and tweaks it rather than starting from scratch. Cleared on unmount.
   onMount(() => {
-    if (event.parameters.selector) onselectorchange(event.parameters.selector);
-    return () => onclearselection();
+    if (event.parameters.selector) canvas.setSelector(event.parameters.selector);
+    return () => canvas.clearSelection();
   });
 
   async function handleSave() {

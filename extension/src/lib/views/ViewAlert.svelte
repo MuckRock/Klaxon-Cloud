@@ -6,16 +6,16 @@
   import { getRouter } from "../router.svelte";
   import { history, schedules } from "../api";
   import { getSiteLabel, isEvent } from "../utils";
+  import { getCanvas } from "../canvas.svelte";
 
   interface Props {
     event: Event;
-    onselectorchange: (css: string) => Element | null;
-    onclearselection: () => void;
   }
 
-  let { event, onselectorchange, onclearselection }: Props = $props();
+  let { event }: Props = $props();
 
   const router = getRouter();
+  const canvas = getCanvas();
 
   let selector = $derived(event.parameters.selector);
   let frequency: AddOnSchedule = $derived(schedules[event.event] ?? "weekly");
@@ -24,9 +24,9 @@
   let loading = $state(true);
 
   $effect(() => {
-    if (selector) onselectorchange(selector);
+    if (selector) canvas.setSelector(selector);
     return () => {
-      onclearselection();
+      canvas.clearSelection();
     };
   });
 
