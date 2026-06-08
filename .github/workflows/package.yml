@@ -45,18 +45,20 @@ jobs:
           short_sha=$(git rev-parse --short HEAD)
           echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
 
-          # The loadable extension goes in klaxon-cloud/; INSTALL.md sits
-          # beside it. Exclude dev-only artifacts (mockups/, robots.txt) that
-          # vite copies from static/ but the extension doesn't use.
-          dest=package/klaxon-cloud
+          # Everything sits at the package root: the loadable extension files
+          # (manifest.json, content.js, background.js, icons) alongside the
+          # instructions, so the unzipped folder is what you load directly.
+          # Exclude dev-only artifacts (mockups/, robots.txt) that vite copies
+          # from static/ but the extension doesn't use.
+          dest=package
           mkdir -p "$dest"
           cp -R build/. "$dest"/
           rm -rf "$dest/mockups" "$dest/robots.txt"
 
-          cp packaging/INSTALL.md package/INSTALL.md
+          cp packaging/INSTALL.md "$dest/INSTALL.md"
           printf 'Klaxon Cloud test build\ncommit: %s\nbuilt:  %s\n' \
             "${{ github.sha }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            > package/BUILD-INFO.txt
+            > "$dest/BUILD-INFO.txt"
 
       - name: Upload package
         uses: actions/upload-artifact@v7

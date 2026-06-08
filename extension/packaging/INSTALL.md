@@ -4,11 +4,10 @@ This zip contains an **unsigned, pre-release** build of the Klaxon Cloud browser
 extension for internal testing. It is not from the Chrome Web Store or Firefox
 Add-ons, so you load it manually as an unpacked / temporary extension.
 
-Inside this zip:
-
-- `klaxon-cloud/` — the extension itself (this is the folder you point the
-  browser at). `manifest.json` lives at its root.
-- `INSTALL.md` — this file.
+Inside this zip (everything is at the top level): `manifest.json` and the
+extension's files, this `INSTALL.md`, and a `BUILD-INFO.txt` noting which commit
+it was built from. **The unzipped folder itself is what you point the browser
+at.**
 
 Unzip it somewhere you'll remember (e.g. your Desktop) before starting.
 
@@ -17,8 +16,8 @@ Unzip it somewhere you'll remember (e.g. your Desktop) before starting.
 1. Go to `chrome://extensions` (or `edge://extensions`, `brave://extensions`).
 2. Turn on **Developer mode** (toggle, top-right).
 3. Click **Load unpacked**.
-4. Select the unzipped **`klaxon-cloud/`** folder (the one containing
-   `manifest.json`) and click **Select**.
+4. Select the unzipped folder (the one containing `manifest.json`) and click
+   **Select**.
 5. The Klaxon Cloud icon appears in the toolbar. Pin it if you like.
 6. Open any web page and click the icon — the sidebar slides in from the right.
    Hover elements to highlight, click to lock a selection.
@@ -34,7 +33,7 @@ removed when you quit Firefox. You'll re-load it each session.
 
 1. Go to `about:debugging#/runtime/this-firefox`.
 2. Click **Load Temporary Add-on…**.
-3. Open the unzipped **`klaxon-cloud/`** folder and select **`manifest.json`**.
+3. Open the unzipped folder and select **`manifest.json`**.
 4. The extension loads and its icon appears in the toolbar. Click it on any page
    to open the sidebar.
 

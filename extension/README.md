@@ -50,7 +50,7 @@ This produces a `build/` directory containing the extension files.
 
 Sign-in uses the browser's `identity.launchWebAuthFlow`, which returns to a
 browser-generated URL that must be registered exactly on the Squarelet OIDC
-client (django-oidc-provider does exact-string matching).
+client (`django-oidc-provider` does exact-string matching).
 
 Both browsers derive the URL from the (pinned) extension ID, so both are
 stable across reloads, profiles, and machines — register **both** of these on
