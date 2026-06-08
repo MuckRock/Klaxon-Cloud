@@ -1,0 +1,68 @@
+name: Package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: extension
+
+# Build-time config baked into the bundle (envPrefix: "MUCKROCK_").
+# CLIENT_ID and KLAXON_ID come from repo variables so testers can sign in;
+# the rest fall back to the dev-environment defaults from .env.example.
+# Set these under Settings → Secrets and variables → Actions → Variables:
+#   MUCKROCK_CLIENT_ID   — Squarelet OIDC public client id (PKCE, no secret)
+#   MUCKROCK_KLAXON_ID   — Klaxon add-on's numeric id in DocumentCloud
+env:
+  MUCKROCK_ACCOUNTS_HOST: ${{ vars.MUCKROCK_ACCOUNTS_HOST || 'https://accounts.muckrock.com/' }}
+  MUCKROCK_CLIENT_ID: ${{ vars.MUCKROCK_CLIENT_ID }}
+  MUCKROCK_SCOPES: ${{ vars.MUCKROCK_SCOPES || 'openid profile email uuid organizations' }}
+  MUCKROCK_DOCUMENTCLOUD_API: ${{ vars.MUCKROCK_DOCUMENTCLOUD_API || 'https://api.www.documentcloud.org/api/' }}
+  MUCKROCK_KLAXON_ID: ${{ vars.MUCKROCK_KLAXON_ID || 436 }}
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Stage package
+        run: |
+          short_sha=$(git rev-parse --short HEAD)
+          echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
+
+          # Everything sits at the package root: the loadable extension files
+          # (manifest.json, content.js, background.js, icons) alongside the
+          # instructions, so the unzipped folder is what you load directly.
+          # Exclude dev-only artifacts (mockups/, robots.txt) that vite copies
+          # from static/ but the extension doesn't use.
+          dest=package
+          mkdir -p "$dest"
+          cp -R build/. "$dest"/
+          rm -rf "$dest/mockups" "$dest/robots.txt"
+
+          cp packaging/INSTALL.md "$dest/INSTALL.md"
+          printf 'Klaxon Cloud test build\ncommit: %s\nbuilt:  %s\n' \
+            "${{ github.sha }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            > "$dest/BUILD-INFO.txt"
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: klaxon-cloud-extension-${{ env.SHORT_SHA }}
+          path: extension/package/
+          if-no-files-found: error
