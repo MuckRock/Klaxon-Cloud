@@ -95,16 +95,16 @@
     --white: #ffffff;
     --gray-1: #f5f6f7;
     --gray-2: #d8dee2;
-    --gray-3: #99A8B3;
-    --blue-3: #4294F0;
-    --blue-4: #1367D0;
+    --gray-3: #99a8b3;
+    --blue-3: #4294f0;
+    --blue-4: #1367d0;
     --orange-2: #ffc2ba;
     --orange-3: #ec7b6b;
     --orange-4: #69515c;
     --red-3: #e1275f;
 
-    --klaxon-bg: #FFFDF3;
-    --klaxon-bg-dark: #FFF5E3;
+    --klaxon-bg: #fffdf3;
+    --klaxon-bg-dark: #fff5e3;
 
     --klaxon-border-radius: 0.5rem;
   }

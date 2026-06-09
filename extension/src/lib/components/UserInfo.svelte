@@ -1,23 +1,30 @@
 <script lang="ts">
-  import { CircleUserRound } from '@lucide/svelte';
-  import { authState } from '../auth.svelte'
+  import { CircleUserRound } from "@lucide/svelte";
+  import { authState } from "../auth.svelte";
 
   const ACCOUNTS_HOST = import.meta.env.MUCKROCK_ACCOUNTS_HOST;
 
   const user = $derived(authState.user);
-  const name = $derived(user ?
-    user?.preferred_username ??
-    user?.name ??
-    user?.email ??
-    "Squarelet user"
-    : "Anonymous"
-  )
+  const name = $derived(
+    user
+      ? (user?.preferred_username ??
+          user?.name ??
+          user?.email ??
+          "Squarelet user")
+      : "Anonymous",
+  );
   const profileUrl = $derived(`${ACCOUNTS_HOST}users/${user?.nickname}`);
 </script>
 
 <a class="user" href={profileUrl} target="_blank" rel="noopener noreferrer">
   {#if user?.picture}
-    <img height="24" width="24" class="userAvatar" src={user.picture} alt={user.name} />
+    <img
+      height="24"
+      width="24"
+      class="userAvatar"
+      src={user.picture}
+      alt={user.name}
+    />
   {:else}
     <CircleUserRound size="24" />
   {/if}

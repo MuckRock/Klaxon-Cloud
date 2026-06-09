@@ -24,7 +24,9 @@
     <div class="introduction">
       <Siren />
       <h3 class="head">Welcome to Klaxon!</h3>
-      <p class="lede">Klaxon monitors web pages for you and alerts you when they’ve changed.</p>
+      <p class="lede">
+        Klaxon monitors web pages for you and alerts you when they’ve changed.
+      </p>
     </div>
     <div class="account">
       <p>Your alerts will be saved with your MuckRock account.</p>
@@ -38,10 +40,16 @@
       {#if authState.status === "idle" && authState.error}
         <p class="error">{authState.error}</p>
       {/if}
-      <p>If you don't have a MuckRock account, you can create one for free when signing in.</p>
+      <p>
+        If you don't have a MuckRock account, you can create one for free when
+        signing in.
+      </p>
     </div>
     <div class="get-started">
-      <p>Want to dive in and monitor this page for changes? We can set up your account later.</p>
+      <p>
+        Want to dive in and monitor this page for changes? We can set up your
+        account later.
+      </p>
       <p><strong>Let's get started.</strong></p>
     </div>
   </div>

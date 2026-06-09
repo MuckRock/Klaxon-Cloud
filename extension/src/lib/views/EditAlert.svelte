@@ -95,7 +95,6 @@
     handleSave();
   }}
 >
-
   <main class="section content">
     <div class="intro">
       <h3>Edit alert</h3>

@@ -17,11 +17,15 @@ export async function loadFonts(): Promise<void> {
   await Promise.all(
     FACES.map(async ({ file, weight }) => {
       const url = chrome.runtime.getURL(file);
-      const face = new FontFace("Source Sans Pro", `url(${url}) format("woff2")`, {
-        weight,
-        style: "normal",
-        display: "swap",
-      });
+      const face = new FontFace(
+        "Source Sans Pro",
+        `url(${url}) format("woff2")`,
+        {
+          weight,
+          style: "normal",
+          display: "swap",
+        },
+      );
       try {
         await face.load();
         document.fonts.add(face);

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ArrowRight } from "@lucide/svelte";
-  
+
   import SelectionPicker from "../components/SelectionPicker.svelte";
 
   import { getRouter } from "../router.svelte";

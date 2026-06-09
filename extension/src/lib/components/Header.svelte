@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getRouter } from '../router.svelte';
+  import { getRouter } from "../router.svelte";
   import X from "@lucide/svelte/icons/x";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import Logotype from "./Logotype.svelte";
@@ -21,11 +21,7 @@
         <Logotype />
       </div>
     {:else}
-      <button
-        class="back-link"
-        type="button"
-        onclick={() => router.back()}
-      >
+      <button class="back-link" type="button" onclick={() => router.back()}>
         <ArrowLeft size={16} />
         <span class="label">Back</span>
       </button>
