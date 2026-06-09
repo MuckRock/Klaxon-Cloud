@@ -1,6 +1,14 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig } from "vitest/config";
 
+// The content build owns build/ and empties it on a one-shot prod build (it runs
+// before the service-worker build, which appends with emptyOutDir:false). But in
+// `dev:content` (vite build --watch) emptying would delete the service worker's
+// build/background.js on every rebuild — and dev:content never regenerates it —
+// breaking the loaded extension. So only empty when NOT watching.
+const watching =
+  process.argv.includes("--watch") || process.argv.includes("-w");
+
 export default defineConfig({
   test: {
     environment: "happy-dom",
@@ -26,6 +34,7 @@ export default defineConfig({
     },
     // No asset hashing — Chrome extension files need stable names
     cssCodeSplit: false,
+    emptyOutDir: !watching,
   },
   envPrefix: "MUCKROCK_",
 });
