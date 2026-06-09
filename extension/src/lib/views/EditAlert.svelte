@@ -62,7 +62,8 @@
 
     canvas.clearSelection();
     toaster.success("Alert saved successfully!");
-    router.navigate("listChanges");
+    // Edit complete — dump history so Back can't return to the edit form.
+    router.navigate("listChanges", undefined, { reset: true });
   }
 
   /**
