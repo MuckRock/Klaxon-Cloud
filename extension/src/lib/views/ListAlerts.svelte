@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { ArrowRight } from "@lucide/svelte";
-
   import type { Event, Page } from "../types";
+
+  import { ArrowRight } from "@lucide/svelte";
 
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
@@ -9,15 +9,11 @@
   import { authState } from "../auth.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
-  import { getCanonicalURL } from "../url";
   import { emptyPage, getSiteLabel } from "../utils";
 
   const router = getRouter();
   const toaster = getToaster();
 
-  // This view owns its own data instead of receiving it via router props.
-  // The effect fetches on mount and re-runs whenever auth flips to
-  // authenticated (boot + re-login), with cancellation on unmount/re-run.
   let events = $state<Page<Event>>(emptyPage<Event>());
 
   $effect(() => {
@@ -25,7 +21,7 @@
 
     let cancelled = false;
 
-    scheduled({ site: getCanonicalURL() }).then((res) => {
+    scheduled({ domain: window.location.origin }).then((res) => {
       if (cancelled) return;
 
       // The API surfaces failures as a `.error` field rather than throwing.

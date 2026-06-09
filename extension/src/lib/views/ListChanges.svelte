@@ -11,7 +11,6 @@
   import { authState } from "../auth.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
-  import { getCanonicalURL } from "../url";
   import { emptyPage, isEvent, getSiteLabel } from "../utils";
 
   const router = getRouter();
@@ -26,10 +25,10 @@
   $effect(() => {
     if (authState.status !== "authenticated") return;
 
-    const url = getCanonicalURL();
+    const domain = window.location.origin;
     let cancelled = false;
 
-    Promise.all([scheduled({ site: url }), history({ site: url })]).then(
+    Promise.all([scheduled({ domain }), history({ domain })]).then(
       ([eventsRes, runsRes]) => {
         if (cancelled) return;
 
@@ -75,7 +74,7 @@
     <Welcome>
       {#if !hasEvents}
         <div class="empty-state">
-          <p class="empty-message">You don't have any alerts for this page.</p>
+          <p class="empty-message">You don't have any alerts for this site.</p>
         </div>
       {:else}
         <div class="alerts-body">
@@ -85,7 +84,7 @@
                 ? ""
                 : "s"}
             </Link>
-            for this page.
+            for this site.
           </p>
           {#if hasRuns}
             <p>Here are the most recent changes:</p>
@@ -125,7 +124,7 @@
           </div>
 
           <Link view="listAlerts">
-            View all your alerts for this page &#187;
+            View all your alerts for this site &#187;
           </Link>
         </div>
       {/if}

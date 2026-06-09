@@ -84,7 +84,7 @@ export const eventValues: Record<AddOnSchedule, number> = {
 // for history and scheduled
 interface SearchParams {
   site?: string;
-  origin?: string;
+  domain?: string;
   cursor?: string;
   per_page?: number;
   event?: number;
@@ -98,7 +98,7 @@ export async function history({
   per_page,
   event,
   site,
-  origin,
+  domain,
 }: SearchParams): Promise<APIResponse<Page<Run>, unknown>> {
   const token = await getAccessToken().catch(console.warn);
   if (!token) {
@@ -112,8 +112,8 @@ export async function history({
   if (site) {
     endpoint.searchParams.set("site", site);
   }
-  if (origin) {
-    endpoint.searchParams.set("origin", origin);
+  if (domain) {
+    endpoint.searchParams.set("domain", domain);
   }
   if (event) {
     endpoint.searchParams.set("event", event.toString());
@@ -140,7 +140,7 @@ export async function history({
  */
 export async function scheduled({
   site,
-  origin,
+  domain: domain,
   cursor,
   per_page,
   event,
@@ -156,8 +156,8 @@ export async function scheduled({
   if (site) {
     endpoint.searchParams.set("site", site); // so it's encoded
   }
-  if (origin) {
-    endpoint.searchParams.set("origin", origin);
+  if (domain) {
+    endpoint.searchParams.set("domain", domain);
   }
   if (event) {
     endpoint.searchParams.set("event", event.toString());
