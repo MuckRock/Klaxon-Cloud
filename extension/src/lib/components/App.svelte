@@ -31,7 +31,7 @@
     listChanges: ListChanges,
     saveAlert: SaveAlert,
     viewAlert: ViewAlert,
-    editSelection: EditSelection
+    editSelection: EditSelection,
   };
 
   router.onchange = handleRouteChange;

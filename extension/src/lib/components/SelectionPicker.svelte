@@ -1,7 +1,7 @@
 <script lang="ts">
   import { ChevronRight } from "@lucide/svelte";
   import { getCanvas } from "../canvas.svelte";
-  
+
   const canvas = getCanvas();
 
   const locked = $derived(canvas.state.locked);

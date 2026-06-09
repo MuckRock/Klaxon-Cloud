@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { ArrowRight } from "@lucide/svelte";
-
   import type { Event, Page, Run } from "../types";
+
+  import { ArrowRight } from "@lucide/svelte";
 
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";

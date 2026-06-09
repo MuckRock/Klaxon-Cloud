@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { APIResponse, Event, ValidationError } from "../types";
   import { onMount } from "svelte";
 
   import BackLink from "../components/BackLink.svelte";
@@ -6,7 +7,6 @@
   import { getRouter, type View } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { schedules, update } from "../api";
-  import type { APIResponse, Event, ValidationError } from "../types";
   import { getCanvas } from "../canvas.svelte";
 
   interface Props {
@@ -16,10 +16,7 @@
     matchText: string;
   }
 
-  let {
-    event,
-    origin = "editAlert",
-  }: Props = $props();
+  let { event, origin = "editAlert" }: Props = $props();
 
   const router = getRouter();
   const canvas = getCanvas();
@@ -32,7 +29,8 @@
   // Pre-load this alert's existing selection into the canvas once, so the user
   // sees and tweaks it rather than starting from scratch. Cleared on unmount.
   onMount(() => {
-    if (event.parameters.selector) canvas.setSelector(event.parameters.selector);
+    if (event.parameters.selector)
+      canvas.setSelector(event.parameters.selector);
     return () => canvas.clearSelection();
   });
 

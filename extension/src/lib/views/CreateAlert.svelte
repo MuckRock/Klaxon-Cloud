@@ -2,9 +2,9 @@
   import { ArrowRight } from "@lucide/svelte";
 
   import BackLink from "../components/BackLink.svelte";
-  
-  import { getRouter } from "../router.svelte";
   import SelectionPicker from "../components/SelectionPicker.svelte";
+
+  import { getRouter } from "../router.svelte";
 
   const router = getRouter();
 </script>
