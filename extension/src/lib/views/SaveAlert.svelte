@@ -14,7 +14,7 @@
   import { getToaster } from "../toaster.svelte";
   import { dispatch } from "../api";
   import { completeSave, reportSaveError } from "../save";
-  import { getCanonicalURL } from "../url";
+  import { getCanonicalURL, getCanonicalTitle } from "../url";
 
   interface Props {
     // Carried back from the sign-in interstitial so the form re-populates the
@@ -35,6 +35,7 @@
   const canvas = getCanvas();
 
   const url = getCanonicalURL();
+  const defaultTitle = getCanonicalTitle();
   let locked = $derived(canvas.state.locked);
   let selector = $derived(canvas.state.selector);
 
@@ -48,7 +49,9 @@
 
   async function handleSave() {
     const params: KlaxonParams = {
-      title,
+      // Fall back to the page title when the user leaves the field blank, so the
+      // saved alert matches the placeholder shown in the form.
+      title: title.trim() || defaultTitle,
       slack_webhook: slackWebhook,
       site: url,
       // Only a *locked* selection is a real choice. An unlocked canvas means
@@ -135,7 +138,7 @@
       <input
         id="alert-name"
         type="text"
-        placeholder="Title"
+        placeholder={defaultTitle || "Title"}
         name="title"
         bind:value={title}
       />

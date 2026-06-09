@@ -82,7 +82,13 @@ export function emptyPage<T>(): Page<T> {
 }
 
 export function getSiteLabel(event: Event): string {
-  return event.parameters.title || event.parameters.site;
+  if (event.parameters.title) return event.parameters.title;
+  try {
+    const { pathname, search, hash } = new URL(event.parameters.site);
+    return `${pathname}${search}${hash}`;
+  } catch {
+    return event.parameters.site;
+  }
 }
 
 export function isErrorCode(status: number): status is NumericRange<400, 599> {
