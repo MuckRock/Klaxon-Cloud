@@ -25,7 +25,7 @@
 
     let cancelled = false;
 
-    scheduled(getCanonicalURL()).then((res) => {
+    scheduled({ site: getCanonicalURL() }).then((res) => {
       if (cancelled) return;
 
       // The API surfaces failures as a `.error` field rather than throwing.

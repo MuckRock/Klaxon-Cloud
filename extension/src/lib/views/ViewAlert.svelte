@@ -35,7 +35,7 @@
 
   async function loadRuns(eventId: number, site: string) {
     loading = true;
-    const { data } = await history(site, { event: eventId, per_page: 10 });
+    const { data } = await history({ site, event: eventId, per_page: 10 });
     if (data) {
       runs = data.results.filter(
         (r) => isEvent(r.event) && r.event.id === eventId,

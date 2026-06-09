@@ -63,7 +63,7 @@ describe("history", () => {
   it("requests addon_runs filtered by addon and site, with bearer token", async () => {
     const site = "https://github.com/muckrock/klaxon";
 
-    const result = await history(site);
+    const result = await history({ site });
 
     expect(sendMessage).toHaveBeenCalledOnce();
     const { url, init, message } = lastFetchCall(sendMessage);
@@ -81,7 +81,11 @@ describe("history", () => {
   });
 
   it("appends cursor and per_page when supplied", async () => {
-    await history("https://example.com", { cursor: "abc123", per_page: 25 });
+    await history({
+      site: "https://example.com",
+      cursor: "abc123",
+      per_page: 25,
+    });
 
     const { url } = lastFetchCall(sendMessage);
     expect(url.searchParams.get("cursor")).toBe("abc123");
@@ -89,7 +93,7 @@ describe("history", () => {
   });
 
   it("omits cursor and per_page when not supplied", async () => {
-    await history("https://example.com");
+    await history({ site: "https://example.com" });
 
     const { url } = lastFetchCall(sendMessage);
     expect(url.searchParams.has("cursor")).toBe(false);
@@ -99,7 +103,7 @@ describe("history", () => {
   it("returns a 500 error when the worker fetch fails", async () => {
     sendMessage.mockResolvedValueOnce({ ok: false, error: "network down" });
 
-    const result = await history("https://example.com");
+    const result = await history({ site: "https://example.com" });
 
     expect(result.data).toBeUndefined();
     expect(result.error).toEqual({ status: 500, message: "API error" });
@@ -110,7 +114,7 @@ describe("history", () => {
       swReply({ detail: "nope" }, { status: 401, statusText: "Unauthorized" }),
     );
 
-    const result = await history("https://example.com");
+    const result = await history({ site: "https://example.com" });
 
     expect(result.data).toBeUndefined();
     expect(result.error?.status).toBe(401);
@@ -121,7 +125,7 @@ describe("history", () => {
   it("preserves site URLs that contain their own query string", async () => {
     const site = "https://example.com/?x=1&y=2";
 
-    await history(site);
+    await history({ site });
 
     const { url } = lastFetchCall(sendMessage);
     expect(url.searchParams.get("site")).toBe(site);
@@ -144,7 +148,7 @@ describe("scheduled", () => {
   it("requests addon_events filtered by addon and site, with bearer token", async () => {
     const site = "https://example.com";
 
-    const result = await scheduled(site);
+    const result = await scheduled({ site });
 
     expect(sendMessage).toHaveBeenCalledOnce();
     const { url, init } = lastFetchCall(sendMessage);
@@ -160,7 +164,8 @@ describe("scheduled", () => {
   });
 
   it("appends cursor and per_page when supplied", async () => {
-    await scheduled("https://example.com", {
+    await scheduled({
+      site: "https://example.com",
       cursor: "next-page",
       per_page: 10,
     });
@@ -173,7 +178,7 @@ describe("scheduled", () => {
   it("returns a 500 when the worker fetch fails", async () => {
     sendMessage.mockResolvedValueOnce({ ok: false, error: "boom" });
 
-    const result = await scheduled("https://example.com");
+    const result = await scheduled({ site: "https://example.com" });
 
     expect(result.error?.status).toBe(500);
   });
@@ -181,7 +186,7 @@ describe("scheduled", () => {
   it("preserves site URLs that contain their own query string", async () => {
     const site = "https://example.com/?x=1&y=2";
 
-    await scheduled(site);
+    await scheduled({ site });
 
     const { url } = lastFetchCall(sendMessage);
     expect(url.searchParams.get("site")).toBe(site);
@@ -359,11 +364,11 @@ describe("when the access token is missing", () => {
   }
 
   it("history returns a 401 error without calling the worker", async () => {
-    expectAuthError(await history("https://example.com"));
+    expectAuthError(await history({ site: "https://example.com" }));
   });
 
   it("scheduled returns a 401 error without calling the worker", async () => {
-    expectAuthError(await scheduled("https://example.com"));
+    expectAuthError(await scheduled({ site: "https://example.com" }));
   });
 
   it("dispatch returns a 401 error without calling the worker", async () => {
@@ -402,11 +407,11 @@ describe("when getAccessToken throws", () => {
   }
 
   it("history returns a 401 error without calling the worker", async () => {
-    expectAuthError(await history("https://example.com"));
+    expectAuthError(await history({ site: "https://example.com" }));
   });
 
   it("scheduled returns a 401 error without calling the worker", async () => {
-    expectAuthError(await scheduled("https://example.com"));
+    expectAuthError(await scheduled({ site: "https://example.com" }));
   });
 
   it("dispatch returns a 401 error without calling the worker", async () => {

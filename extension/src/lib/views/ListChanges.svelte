@@ -29,23 +29,25 @@
     const url = getCanonicalURL();
     let cancelled = false;
 
-    Promise.all([scheduled(url), history(url)]).then(([eventsRes, runsRes]) => {
-      if (cancelled) return;
+    Promise.all([scheduled({ site: url }), history({ site: url })]).then(
+      ([eventsRes, runsRes]) => {
+        if (cancelled) return;
 
-      // The API surfaces failures as a `.error` field rather than throwing.
-      // Leave any already-loaded data in place rather than blanking it out.
-      if (eventsRes.error || runsRes.error) {
-        console.error(
-          "Failed to load changes:",
-          eventsRes.error ?? runsRes.error,
-        );
-        toaster.error("Something went wrong loading this page.");
-        return;
-      }
+        // The API surfaces failures as a `.error` field rather than throwing.
+        // Leave any already-loaded data in place rather than blanking it out.
+        if (eventsRes.error || runsRes.error) {
+          console.error(
+            "Failed to load changes:",
+            eventsRes.error ?? runsRes.error,
+          );
+          toaster.error("Something went wrong loading this page.");
+          return;
+        }
 
-      events = eventsRes.data ?? emptyPage<Event>();
-      runs = runsRes.data ?? emptyPage<Run>();
-    });
+        events = eventsRes.data ?? emptyPage<Event>();
+        runs = runsRes.data ?? emptyPage<Run>();
+      },
+    );
 
     return () => {
       cancelled = true;
