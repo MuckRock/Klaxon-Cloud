@@ -109,12 +109,19 @@
     --gray-1: #f5f6f7;
     --gray-2: #d8dee2;
     --gray-3: #99a8b3;
+    --gray-4: #5C717C;
+    --blue-1: #EAA4BB;
+    --blue-2: #B5CEED;
     --blue-3: #4294f0;
     --blue-4: #1367d0;
+    --orange-1: #FFF0EE;
     --orange-2: #ffc2ba;
     --orange-3: #ec7b6b;
     --orange-4: #69515c;
+    --red-1: #EAA4BB;
+    --red-2: #EAA4BB;
     --red-3: #e1275f;
+    --red-4: #5D275F;
 
     --klaxon-bg: #fffdf3;
     --klaxon-bg-dark: #fff5e3;
