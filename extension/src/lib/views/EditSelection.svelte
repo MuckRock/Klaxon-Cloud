@@ -59,8 +59,10 @@
     }
 
     toaster.success("Selection saved.");
-    // Return to where we came from, showing the saved alert.
-    router.navigate(origin, {
+    // Return to where we came from, showing the saved alert. Use replace so the
+    // editor isn't left on the back stack — Back from the origin should go to
+    // wherever the origin came from, not back into the editor.
+    router.replace(origin, {
       event: result.data ?? { ...event, parameters: params },
     });
   }
