@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onDestroy, untrack } from "svelte";
 
-  import ViewAlert from "../views/ViewAlert.svelte";
   import CreateAlert from "../views/CreateAlert.svelte";
   import EditAlert from "../views/EditAlert.svelte";
   import EditSelection from "../views/EditSelection.svelte";
@@ -10,6 +9,7 @@
   import ListChanges from "../views/ListChanges.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
   import ToastList from "./ToastList.svelte";
+  import ViewAlert from "../views/ViewAlert.svelte";
 
   import { initCanvas, setCanvas, type Canvas } from "../canvas.svelte.ts";
   import { type View, router, setRouter } from "../router.svelte.ts";
