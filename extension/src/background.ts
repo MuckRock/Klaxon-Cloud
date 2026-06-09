@@ -25,10 +25,6 @@ import {
   refreshJwt,
 } from "./lib/oidc.ts";
 
-// Log the OAuth redirect URI on every SW boot — register this exact string
-// with the Squarelet client. Remove once the URI is stable across environments.
-console.log("[klaxon] OAuth redirect URI:", chrome.identity.getRedirectURL());
-
 // Inject the content script when the extension is activated
 chrome.action.onClicked.addListener((tab) => {
   chrome.scripting.executeScript({
@@ -103,6 +99,7 @@ async function signIn({
   const oidc = await getAuthToken(
     ep.token,
     new URLSearchParams({
+      intent: "klaxon-cloud",
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,

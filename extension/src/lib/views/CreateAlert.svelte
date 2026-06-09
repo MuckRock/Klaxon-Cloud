@@ -1,7 +1,6 @@
 <script lang="ts">
   import { ArrowRight } from "@lucide/svelte";
 
-  import BackLink from "../components/BackLink.svelte";
   import SelectionPicker from "../components/SelectionPicker.svelte";
 
   import { getRouter } from "../router.svelte";
@@ -10,8 +9,6 @@
 </script>
 
 <div class="container create-alert">
-  <BackLink view="listChanges" />
-
   <main class="section">
     <h3>Create an alert</h3>
     <p class="description">

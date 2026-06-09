@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { AddOnSchedule, Event, Run } from "../types";
 
-  import BackLink from "../components/BackLink.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
   import { getRouter } from "../router.svelte";
   import { history, schedules } from "../api";
@@ -47,8 +46,6 @@
 </script>
 
 <div class="container alert-detail">
-  <BackLink view="listAlerts" />
-
   <main class="section content">
     <div class="intro">
       <h3>{getSiteLabel(event)}</h3>

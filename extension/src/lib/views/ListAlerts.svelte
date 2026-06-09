@@ -3,7 +3,6 @@
 
   import type { Event, Page } from "../types";
 
-  import BackLink from "../components/BackLink.svelte";
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
   import { scheduled, schedules, update } from "../api";
@@ -102,8 +101,6 @@
 </script>
 
 <div class="container list-alerts">
-  <BackLink view="listChanges" />
-
   <main class="section">
     <h3>Your alerts</h3>
 
@@ -153,7 +150,6 @@
     flex-direction: column;
     gap: var(--font-lg, 20px);
     border-bottom: 1px solid var(--orange-2, #ffc2ba);
-    background: #fffdf3;
   }
 
   main,

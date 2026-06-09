@@ -75,7 +75,7 @@
   }
 
   .toast-error .toast-icon {
-    color: #e1275f;
+    color: var(--red-3);
   }
 
   .toast-message {

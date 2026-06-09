@@ -85,16 +85,26 @@
        sidebar inherits them and host-page custom properties of the same
        name can't leak in through the shadow boundary. */
     --font-sans: "Source Sans Pro", sans-serif;
+    --font-xs: 12px;
     --font-sm: 14px;
     --font-md: 16px;
     --font-lg: 20px;
+    --font-xl: 24px;
 
     --klaxon-color-link: #c41a4d;
+    --white: #ffffff;
     --gray-1: #f5f6f7;
     --gray-2: #d8dee2;
+    --gray-3: #99a8b3;
+    --blue-3: #4294f0;
+    --blue-4: #1367d0;
     --orange-2: #ffc2ba;
     --orange-3: #ec7b6b;
     --orange-4: #69515c;
+    --red-3: #e1275f;
+
+    --klaxon-bg: #fffdf3;
+    --klaxon-bg-dark: #fff5e3;
 
     --klaxon-border-radius: 0.5rem;
   }
@@ -105,11 +115,19 @@
     right: 0;
     width: 300px;
     height: 100vh;
-    background: #fff;
-    border-left: 2px solid #ccc;
-    font-family:
-      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--klaxon-bg);
+    font-family: var(
+      --font-sans,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif
+    );
     font-size: var(--font-sm, 14px);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     color: #333;
     z-index: 2147483647;
     display: flex;
@@ -120,6 +138,7 @@
   .body {
     overflow-y: auto;
     flex: 1;
+    border-left: 1px solid var(--klaxon-bg-dark);
   }
 
   :global(.btn-primary) {
@@ -127,6 +146,7 @@
     align-items: center;
     justify-content: center;
     gap: 1em;
+    font-family: var(--font-sans);
     background: #ec7b6b;
     color: #f5f6f7;
     border: 1px solid #69515c;
@@ -153,10 +173,9 @@
     justify-content: flex-end;
     position: sticky;
     bottom: 0;
-    background: #fff;
+    background: var(--klaxon-bg);
     margin-top: 1em;
     padding: 1em;
-    border-top: 1px solid #ccc;
   }
 
   :global(.back-link) {

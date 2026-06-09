@@ -7,7 +7,6 @@
     ValidationError,
   } from "../types";
 
-  import BackLink from "../components/BackLink.svelte";
   import { getCanvas } from "../canvas.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
@@ -68,8 +67,6 @@
     handleSave();
   }}
 >
-  <BackLink view="createAlert" />
-
   <main class="section content">
     <div class="intro">
       <h3>Save alert</h3>

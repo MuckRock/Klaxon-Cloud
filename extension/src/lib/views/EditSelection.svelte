@@ -2,7 +2,6 @@
   import type { APIResponse, Event, ValidationError } from "../types";
   import { onMount } from "svelte";
 
-  import BackLink from "../components/BackLink.svelte";
   import SelectionPicker from "../components/SelectionPicker.svelte";
   import { getRouter, type View } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
@@ -66,8 +65,6 @@
 </script>
 
 <div class="container edit-selection">
-  <BackLink view={origin} {event} />
-
   <main class="section">
     <h3>Edit selection</h3>
     <p class="description">

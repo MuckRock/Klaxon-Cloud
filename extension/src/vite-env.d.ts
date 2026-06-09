@@ -7,7 +7,9 @@ interface ViteTypeOptions {
 interface ImportMetaEnv {
   readonly MUCKROCK_DOCUMENTCLOUD_API: string;
   readonly MUCKROCK_KLAXON_ID: string;
-  // more env variables...
+  readonly MUCKROCK_ACCOUNTS_HOST: string;
+  readonly MUCKROCK_CLIENT_ID: string;
+  readonly MUCKROCK_SCOPES: string;
 }
 
 interface ImportMeta {

@@ -1,5 +1,7 @@
 import { mount, unmount } from "svelte";
+
 import App from "./lib/components/App.svelte";
+import { loadFonts } from "./lib/fonts.ts";
 import { restore } from "./lib/auth.svelte.ts";
 
 declare global {
@@ -33,9 +35,12 @@ const HOST_ID = "klaxon-host";
   document.body.style.marginRight = `${SIDEBAR_WIDTH}px`;
 
   // --- auth ---
-  // Seed authState from whatever the SW has stored. Sidebar reacts when it
-  // resolves.
+  // Seed authState from whatever the SW has stored. Sidebar reacts when it resolves.
   restore().catch((err) => console.debug("[klaxon auth/restore]", err));
+
+  // --- Fonts ---
+  // Register Source Sans Pro on the host document so the shadow DOM can use it.
+  loadFonts().catch((err) => console.debug("[klaxon fonts]", err));
 
   // --- Canvas & Svelte mount ---
 
