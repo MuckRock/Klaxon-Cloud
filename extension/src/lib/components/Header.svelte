@@ -1,8 +1,8 @@
 <script lang="ts">
   import { getRouter } from "../router.svelte";
-  import X from "@lucide/svelte/icons/x";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import Logotype from "./Logotype.svelte";
+  import X from "@lucide/svelte/icons/x";
 
   interface Props {
     onclose: () => void;

@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { authState, login, logout } from "../auth.svelte.ts";
   import Siren from "./Siren.svelte";
   import UserInfo from "./UserInfo.svelte";
+  import { authState, login, logout } from "../auth.svelte.ts";
 
   interface Props {
     children: Snippet;
