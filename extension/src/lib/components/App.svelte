@@ -3,11 +3,13 @@
 
   import CreateAlert from "../views/CreateAlert.svelte";
   import EditAlert from "../views/EditAlert.svelte";
+  import EditSelection from "../views/EditSelection.svelte";
   import Header from "./Header.svelte";
   import ListAlerts from "../views/ListAlerts.svelte";
   import ListChanges from "../views/ListChanges.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
   import ToastList from "./ToastList.svelte";
+  import ViewAlert from "../views/ViewAlert.svelte";
 
   import { initCanvas, setCanvas, type Canvas } from "../canvas.svelte.ts";
   import { type View, router, setRouter } from "../router.svelte.ts";
@@ -28,6 +30,8 @@
     listAlerts: ListAlerts,
     listChanges: ListChanges,
     saveAlert: SaveAlert,
+    viewAlert: ViewAlert,
+    editSelection: EditSelection,
   };
 
   router.onchange = handleRouteChange;
@@ -43,8 +47,13 @@
   setCanvas(canvas);
 
   function handleRouteChange(view: View) {
-    canvas.active = ["createAlert", "editAlert"].includes(view);
-    canvas.editable = view !== "editAlert";
+    canvas.active = [
+      "createAlert",
+      "editAlert",
+      "editSelection",
+      "viewAlert",
+    ].includes(view);
+    canvas.editable = !["editAlert", "viewAlert"].includes(view);
   }
 
   // Bind to a reactive variable so the view re-mounts on navigation.

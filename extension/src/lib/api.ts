@@ -86,7 +86,7 @@ export const eventValues: Record<AddOnSchedule, number> = {
  */
 export async function history(
   site: string,
-  params: { cursor?: string; per_page?: number } = {},
+  params: { cursor?: string; per_page?: number; event?: number } = {},
 ): Promise<APIResponse<Page<Run>, unknown>> {
   const token = await getAccessToken().catch(console.warn);
   if (!token) {
@@ -98,6 +98,9 @@ export async function history(
   );
   endpoint.searchParams.set("message", CHANGED); // filter out noop runs
   endpoint.searchParams.set("site", site);
+  if (params.event) {
+    endpoint.searchParams.set("event", params.event.toString());
+  }
   if (params.cursor) {
     endpoint.searchParams.set("cursor", params.cursor);
   }

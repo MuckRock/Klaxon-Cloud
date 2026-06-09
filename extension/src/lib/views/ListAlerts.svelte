@@ -121,7 +121,7 @@
         <div class="event">
           <div class="header">
             <input type="checkbox" value={event} bind:group={selected} />
-            <h4><Link view="editAlert" {event}>{getSiteLabel(event)}</Link></h4>
+            <h4><Link view="viewAlert" {event}>{getSiteLabel(event)}</Link></h4>
           </div>
           <div class="body">
             <dl>

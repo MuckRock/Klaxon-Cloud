@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { ArrowRight } from "@lucide/svelte";
-
   import type { Event, Page, Run } from "../types";
+
+  import { ArrowRight } from "@lucide/svelte";
 
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
@@ -95,15 +95,10 @@
             {#each recentRuns as run (run.uuid)}
               <div class="table-row">
                 <p class="row-title">
-                  {#if run.data?.snapshot}
-                    <a
-                      href={run.data.snapshot}
-                      class="link"
-                      target="_blank"
-                      rel="nooopener noreferer"
-                    >
+                  {#if isEvent(run.event)}
+                    <Link view="viewAlert" event={run.event}>
                       {getLabel(run)}
-                    </a>
+                    </Link>
                   {:else}
                     <strong>{getLabel(run)}</strong>
                   {/if}
@@ -196,7 +191,6 @@
     color: #0c1e27;
   }
 
-  .row-title a,
   .row-title strong {
     color: var(--klaxon-color-link, #c41a4d);
   }

@@ -3,7 +3,12 @@
 
   const router = getRouter();
 
-  const { view, ...rest }: { view: View; [key: string]: any } = $props();
+  interface Props {
+    view: View;
+    [key: string]: any;
+  }
+
+  const { view, ...rest }: Props = $props();
 </script>
 
 <button
