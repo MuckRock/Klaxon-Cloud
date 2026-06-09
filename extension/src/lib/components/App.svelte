@@ -193,7 +193,14 @@
     justify-content: flex-end;
     position: sticky;
     bottom: 0;
-    background: var(--klaxon-bg);
+    /* Fade overflow out beneath the row: transparent at the top edge,
+       reaching the full background before the button so content scrolling
+       underneath appears to dissolve rather than meet a hard line. */
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--klaxon-bg) 20%
+    );
     margin-top: 1em;
     padding: 1em;
   }

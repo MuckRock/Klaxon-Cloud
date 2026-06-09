@@ -86,15 +86,20 @@
   let loading: boolean = $state(false);
   let selected: Event[] = $state([]);
 
-  let message: string = $derived.by(() => {
-    if (selected.length === 0) {
-      return "Select alerts to disable";
-    } else if (selected.length === 1) {
-      return "Disable 1 alert";
-    } else {
-      return `Disable ${selected.length} alerts`;
-    }
-  });
+  let allSelected = $derived(
+    rows.length > 0 && selected.length === rows.length,
+  );
+  // Drives the header checkbox's indeterminate state (some but not all).
+  let someSelected = $derived(selected.length > 0 && !allSelected);
+
+  function toggleAll() {
+    selected = allSelected ? [] : rows.map((r) => r.event);
+  }
+
+  // Label for the select-all control: reflects the current selection count.
+  let selectionLabel = $derived(
+    selected.length === 0 ? "Select all" : `${selected.length} selected`,
+  );
 
   async function disable(toDisable: Event[]) {
     loading = true;
@@ -148,18 +153,31 @@
         </div>
       {:else}
         <h3 class="alert-count">
-          You have <span class="alert-count-value">{rows.length} alerts</span> for this page.
+          You have <span class="alert-count-value">{rows.length} alerts</span> for
+          this page.
         </h3>
 
-        <button
-          type="button"
-          class="disable table-action"
-          disabled={selected.length === 0 || loading}
-          onclick={() => disable(selected)}
-        >
-          <BellOff size={14} />
-          {message}
-        </button>
+        <div class="toolbar">
+          <label class="select-all">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              indeterminate={someSelected}
+              onchange={toggleAll}
+            />
+            {selectionLabel}
+          </label>
+
+          <button
+            type="button"
+            class="disable"
+            disabled={selected.length === 0 || loading}
+            onclick={() => disable(selected)}
+          >
+            <BellOff size={14} />
+            Disable
+          </button>
+        </div>
 
         <div class="table">
           {#each rows as { event, run } (event.id)}
@@ -188,7 +206,9 @@
                   {/if}
                 </p>
                 <p class="row-meta">
-                  Checks <span class="schedule {schedules[event.event]}">{schedules[event.event]}</span> 
+                  Checks <span class="schedule {schedules[event.event]}"
+                    >{schedules[event.event]}</span
+                  >
                 </p>
               </div>
             </div>
@@ -243,7 +263,7 @@
 
   .schedule {
     &.disabled {
-      opacity: .7;
+      opacity: 0.7;
     }
   }
 
@@ -264,16 +284,18 @@
   }
 
   button.disable {
-    display: flex;
-    padding: 0.25rem 0.625rem;
+    display: inline-flex;
+    padding: 0.1875rem 0.5rem;
     justify-content: center;
     align-items: center;
-    gap: 0.375rem;
+    gap: 0.25rem;
     border-radius: 0.5rem;
-    border: 1px solid var(--orange-4, #69515c);
-    background: var(--orange-3, #ec7b6b);
+    border: 1px solid var(--orange-3, #ec7b6b);
+    background: transparent;
 
-    color: var(--gray-1, #f5f6f7);
+    /* Ghost button: no fill, accent-colored text + icon (the lucide icon
+       inherits color via currentColor). */
+    color: var(--orange-3, #ec7b6b);
     text-align: center;
     cursor: pointer;
 
@@ -296,8 +318,21 @@
     overflow: hidden;
   }
 
-  .table-action {
-    display: inline-block;
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: var(--font-sm, 14px);
+    font-weight: 600;
+    color: var(--gray-4);
+    cursor: pointer;
   }
 
   .row {
@@ -338,6 +373,7 @@
     text-align: left;
 
     font-size: var(--font-sm, 14px);
+    font-weight: 600;
     line-height: 1.3;
   }
 
