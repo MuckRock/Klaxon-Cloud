@@ -1,9 +1,20 @@
+import type { APIError } from "./types";
 import type { Canvas } from "./canvas.svelte";
 import { getRouter } from "./router.svelte";
 import { getToaster } from "./toaster.svelte";
 
 type Router = ReturnType<typeof getRouter>;
 type Toaster = ReturnType<typeof getToaster>;
+
+/**
+ * Shared error tail for saving an alert: log the raw error and surface its
+ * message as a toast. The caller decides what to do next (stay on the form,
+ * navigate back, etc.) — only the logging + toast are shared.
+ */
+export function reportSaveError(toaster: Toaster, error: APIError<unknown>) {
+  console.error("Save alert failed:", error);
+  toaster.error(error.message ?? "Failed to save alert.");
+}
 
 /**
  * Shared success tail for saving an alert: clear the picker selection, show a

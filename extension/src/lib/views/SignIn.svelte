@@ -6,7 +6,7 @@
   import { getCanvas } from "../canvas.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
-  import { completeSave } from "../save";
+  import { completeSave, reportSaveError } from "../save";
   import SignInPrompt from "../components/SignInPrompt.svelte";
 
   interface Props {
@@ -37,8 +37,7 @@
   async function save() {
     const result = await dispatch(schedule, params);
     if (result.error) {
-      console.error("Save alert failed:", result.error);
-      toaster.error(result.error.message ?? "Failed to save alert.");
+      reportSaveError(toaster, result.error);
       // Return to the form with the user's entries re-populated.
       router.back();
       return;
