@@ -32,5 +32,5 @@ export function completeSave(ctx: {
   ctx.toaster.success("Alert saved successfully!");
   // The save is done — dump history so Back can't return to the form and
   // resubmit it.
-  ctx.router.navigate("listChanges", undefined, { reset: true });
+  ctx.router.navigate("listAlerts", undefined, { reset: true });
 }

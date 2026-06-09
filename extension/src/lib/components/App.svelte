@@ -6,7 +6,6 @@
   import EditSelection from "../views/EditSelection.svelte";
   import Header from "./Header.svelte";
   import ListAlerts from "../views/ListAlerts.svelte";
-  import ListChanges from "../views/ListChanges.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
   import SignIn from "../views/SignIn.svelte";
   import ToastList from "./ToastList.svelte";
@@ -29,7 +28,6 @@
     createAlert: CreateAlert,
     editAlert: EditAlert,
     listAlerts: ListAlerts,
-    listChanges: ListChanges,
     saveAlert: SaveAlert,
     signIn: SignIn,
     viewAlert: ViewAlert,

@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { ArrowRight } from "@lucide/svelte";
+  import { ArrowRight, BellOff } from "@lucide/svelte";
 
-  import type { Event, Page } from "../types";
+  import type { Event, Page, Run } from "../types";
 
   import Link from "../components/Link.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
-  import { scheduled, schedules, update } from "../api";
+  import Welcome from "../components/Welcome.svelte";
+  import { scheduled, history, schedules, update } from "../api";
   import { authState } from "../auth.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { getCanonicalURL } from "../url";
-  import { emptyPage, getSiteLabel } from "../utils";
+  import { emptyPage, isEvent, getSiteLabel } from "../utils";
 
   const router = getRouter();
   const toaster = getToaster();
@@ -19,29 +20,67 @@
   // The effect fetches on mount and re-runs whenever auth flips to
   // authenticated (boot + re-login), with cancellation on unmount/re-run.
   let events = $state<Page<Event>>(emptyPage<Event>());
+  let runs = $state<Page<Run>>(emptyPage<Run>());
 
   $effect(() => {
     if (authState.status !== "authenticated") return;
 
+    const url = getCanonicalURL();
     let cancelled = false;
 
-    scheduled(getCanonicalURL()).then((res) => {
+    Promise.all([scheduled(url), history(url)]).then(([eventsRes, runsRes]) => {
       if (cancelled) return;
 
       // The API surfaces failures as a `.error` field rather than throwing.
       // Leave any already-loaded data in place rather than blanking it out.
-      if (res.error) {
-        console.error("Failed to load alerts:", res.error);
+      if (eventsRes.error || runsRes.error) {
+        console.error(
+          "Failed to load alerts:",
+          eventsRes.error ?? runsRes.error,
+        );
         toaster.error("Something went wrong loading your alerts.");
         return;
       }
 
-      events = res.data ?? emptyPage<Event>();
+      events = eventsRes.data ?? emptyPage<Event>();
+      runs = runsRes.data ?? emptyPage<Run>();
     });
 
     return () => {
       cancelled = true;
     };
+  });
+
+  let hasEvents = $derived(events.results.length > 0);
+
+  // Join each alert to its most recent change, then sort most-recent first.
+  // `history()` returns runs newest-first, so the first run seen for an event
+  // id is that alert's latest change. Alerts with no changes sink to the
+  // bottom, ordered by when they were created.
+  let rows = $derived.by(() => {
+    const latest = new Map<number, Run>();
+    for (const run of runs.results) {
+      if (isEvent(run.event) && !latest.has(run.event.id)) {
+        latest.set(run.event.id, run);
+      }
+    }
+
+    return events.results
+      .map((event) => ({ event, run: latest.get(event.id) }))
+      .sort((a, b) => {
+        if (a.run && b.run) {
+          return (
+            new Date(b.run.created_at).getTime() -
+            new Date(a.run.created_at).getTime()
+          );
+        }
+        if (a.run) return -1;
+        if (b.run) return 1;
+        return (
+          new Date(b.event.created_at).getTime() -
+          new Date(a.event.created_at).getTime()
+        );
+      });
   });
 
   let loading: boolean = $state(false);
@@ -102,37 +141,61 @@
 
 <div class="container list-alerts">
   <main class="section">
-    <h3>Your alerts</h3>
-
-    <button
-      type="button"
-      class="disable"
-      disabled={selected.length === 0 || loading}
-      onclick={() => disable(selected)}
-    >
-      {message}
-    </button>
-
-    <div class="alerts">
-      {#each events.results as event (event.id)}
-        <div class="event">
-          <div class="header">
-            <input type="checkbox" value={event} bind:group={selected} />
-            <h4><Link view="viewAlert" {event}>{getSiteLabel(event)}</Link></h4>
-          </div>
-          <div class="body">
-            <dl>
-              <dt>Created</dt>
-              <dd>
-                <RelativeTime date={new Date(event.created_at)} />
-              </dd>
-              <dt>Alert status</dt>
-              <dd>{schedules[event.event]}</dd>
-            </dl>
-          </div>
+    <Welcome>
+      {#if !hasEvents}
+        <div class="empty-state">
+          <p class="empty-message">You don't have any alerts for this page.</p>
         </div>
-      {/each}
-    </div>
+      {:else}
+        <h3 class="alert-count">
+          You have <span class="alert-count-value">{rows.length} alerts</span> for this page.
+        </h3>
+
+        <button
+          type="button"
+          class="disable table-action"
+          disabled={selected.length === 0 || loading}
+          onclick={() => disable(selected)}
+        >
+          <BellOff size={14} />
+          {message}
+        </button>
+
+        <div class="table">
+          {#each rows as { event, run } (event.id)}
+            <div class="row">
+              <input type="checkbox" value={event} bind:group={selected} />
+              <div class="row-body">
+                <p class="row-title">
+                  <Link view="viewAlert" {event}>{getSiteLabel(event)}</Link>
+                </p>
+                <p class="row-meta">
+                  {#if run}
+                    {#if run.data?.compare}
+                      <a
+                        class="changed-link"
+                        href={run.data.compare}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Changed <RelativeTime date={new Date(run.created_at)} />
+                      </a>
+                    {:else}
+                      Changed <RelativeTime date={new Date(run.created_at)} />
+                    {/if}
+                  {:else}
+                    No changes yet
+                  {/if}
+                </p>
+                <p class="row-meta">
+                  Checks <span class="schedule {schedules[event.event]}">{schedules[event.event]}</span> 
+                </p>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </Welcome>
   </main>
 
   <footer class="button-row">
@@ -146,10 +209,8 @@
 <style>
   .container {
     display: flex;
-    padding: var(--font-md, 16px) 0.75rem;
     flex-direction: column;
-    gap: var(--font-lg, 20px);
-    border-bottom: 1px solid var(--orange-2, #ffc2ba);
+    height: 100%;
   }
 
   main,
@@ -167,6 +228,39 @@
     gap: 1em;
     padding: 1em;
     flex: 1 1 auto;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: var(--font-lg, 20px);
+    font-weight: 400;
+    color: #0c1e27;
+  }
+
+  .alert-count-value {
+    color: var(--red-3);
+  }
+
+  .schedule {
+    &.disabled {
+      opacity: .7;
+    }
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+  }
+
+  .empty-message {
+    margin: 0 0 1em;
+    font-size: var(--font-md, 16px);
+    line-height: 1.3;
+    color: #0c1e27;
   }
 
   button.disable {
@@ -195,88 +289,67 @@
     opacity: 0.5;
   }
 
-  .alerts {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    align-self: stretch;
-    border-radius: var(--klaxon-border-radius, 0.5rem);
-    border: 1px solid var(--gray-2, #d8dee2);
+  .table {
     background: #fffefa;
+    border: 1px solid var(--gray-2, #d8dee2);
+    border-radius: 8px;
+    overflow: hidden;
   }
 
-  .event {
+  .table-action {
+    display: inline-block;
+  }
+
+  .row {
     display: flex;
-    padding: 0.75rem;
-    flex-direction: column;
     align-items: flex-start;
-    gap: 0.375rem;
-    align-self: stretch;
+    gap: 0.5rem;
+    padding: 0.625rem 0.25rem;
+  }
 
-    border-bottom: 1px solid var(--gray-2, #d8dee2);
+  .row + .row {
+    border-top: 1px solid var(--gray-2, #d8dee2);
+  }
 
-    .header {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.875rem;
-      align-self: stretch;
+  .row input[type="checkbox"] {
+    margin-top: 0.125rem;
+    flex: none;
+  }
 
-      input[type="checkbox"] {
-        display: flex;
-        padding-top: 0.25rem;
-        align-items: flex-start;
-        gap: 0.625rem;
-        align-self: stretch;
-      }
+  .row-body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 
-      h4 {
-        flex: 1 0 0;
-        min-width: 0;
-        overflow-wrap: anywhere;
+  .row-title {
+    margin: 0;
+    min-width: 0;
+  }
 
-        /* Clamp long URLs/titles to two lines, then ellipsis. */
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        overflow: hidden;
+  /* The title is a Link (renders a button) that navigates to the alert.
+     Clamp long URLs/titles to two lines, then ellipsis. */
+  .row-title :global(.link) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    text-align: left;
 
-        color: var(--klaxon-color-link, #c41a4d);
-        font-size: var(--font-md, 16px);
-        font-style: normal;
-        font-weight: 700;
-        line-height: 130%; /* 1.3rem */
-      }
-    }
+    font-size: var(--font-sm, 14px);
+    line-height: 1.3;
+  }
 
-    .body {
-      display: flex;
-      padding-left: 2.125rem;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.375rem;
-      align-self: stretch;
+  .row-meta {
+    margin: 0.125rem 0 0;
+    font-size: var(--font-xs, 12px);
+    color: #233944;
+  }
 
-      dl {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        align-self: stretch;
-        column-gap: 0.5rem;
-        row-gap: 0.375rem;
-        margin: 0;
-      }
-
-      dt {
-        font-weight: bold;
-      }
-
-      dt::after {
-        content: ":";
-      }
-
-      dd {
-        margin: 0;
-      }
-    }
+  .changed-link {
+    color: var(--klaxon-color-link, #c41a4d);
+    text-decoration: underline;
+    cursor: pointer;
   }
 </style>

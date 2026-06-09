@@ -1,4 +1,4 @@
-import type { APIResponse, Event, NumericRange, Page } from "./types";
+import type { APIResponse, Event, NumericRange, Page, Run } from "./types";
 
 /**
  * Handle what comes back from the API and return either data or errors.
@@ -79,6 +79,13 @@ export function emptyPage<T>(): Page<T> {
     previous: null,
     results: [],
   };
+}
+
+export function getRunLabel(run: Run): string {
+  if (run.data?.timestamp) return run.data.timestamp;
+  if (run.data?.compare) return run.data.compare;
+  if (isEvent(run.event)) return getSiteLabel(run.event);
+  return run.addon.name;
 }
 
 export function getSiteLabel(event: Event): string {

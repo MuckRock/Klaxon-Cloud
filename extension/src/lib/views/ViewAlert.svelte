@@ -4,7 +4,7 @@
   import RelativeTime from "../components/RelativeTime.svelte";
   import { getRouter } from "../router.svelte";
   import { history, schedules } from "../api";
-  import { getSiteLabel, isEvent } from "../utils";
+  import { getRunLabel, getSiteLabel, isEvent } from "../utils";
   import { getCanvas } from "../canvas.svelte";
 
   interface Props {
@@ -115,10 +115,10 @@
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {getSiteLabel(event)}
+                    {getRunLabel(run)}
                   </a>
                 {:else}
-                  <strong>{getSiteLabel(event)}</strong>
+                  <strong>{getRunLabel(run)}</strong>
                 {/if}
               </p>
               <div class="row-meta">

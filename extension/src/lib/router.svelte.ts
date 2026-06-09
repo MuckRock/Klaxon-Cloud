@@ -6,7 +6,6 @@ export type View =
   | "createAlert"
   | "editAlert"
   | "editSelection"
-  | "listChanges"
   | "listAlerts"
   | "saveAlert"
   | "signIn"
@@ -17,7 +16,7 @@ type Props = Record<string, any>;
 class Router {
   views: Partial<Record<View, Component<any>>> = $state({}); // set this up in App.svelte
   props: any = $state({}); // navigation params spread into views; `any` so required view props are satisfied
-  current: View = $state("listChanges");
+  current: View = $state("listAlerts");
   #history: [View, Props | undefined][] = $state([]);
 
   constructor() {
