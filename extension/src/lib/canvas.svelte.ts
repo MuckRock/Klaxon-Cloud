@@ -152,8 +152,8 @@ export function initCanvas(
   }
 
   const EDGE_PAD = 4;
-  const BTN_SIZE = 24;
-  const BTN_OFFSET = 12; // how far from the selection corner the button sits
+  const BTN_SIZE = 28; // matches the dismiss button's width/height
+  const BTN_HALF = BTN_SIZE / 2;
 
   function showSelection(el: Element) {
     positionAt(selectionDiv, el);
@@ -165,24 +165,31 @@ export function initCanvas(
       return;
     }
 
-    // Position dismiss button at top-right of selection, clamped to viewport
+    // The dismiss button is centered on the selection's top-right corner.
     const rect = el.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    let btnLeft = rect.right - BTN_OFFSET;
-    let btnTop = rect.top - BTN_SIZE + BTN_OFFSET;
+    let cx = rect.right;
+    let cy = rect.top;
 
-    // Clamp to keep at least EDGE_PAD from each viewport edge and the sidebar
+    // Keep the button within the viewport, clear of each edge and the sidebar,
+    // so it stays reachable while the selection's corner is off-screen.
     const rightEdge = vw - sidebarWidth;
-    btnLeft = Math.max(
-      EDGE_PAD,
-      Math.min(btnLeft, rightEdge - BTN_SIZE - EDGE_PAD),
+    cx = Math.max(
+      EDGE_PAD + BTN_HALF,
+      Math.min(cx, rightEdge - EDGE_PAD - BTN_HALF),
     );
-    btnTop = Math.max(EDGE_PAD, Math.min(btnTop, vh - BTN_SIZE - EDGE_PAD));
+    cy = Math.max(EDGE_PAD + BTN_HALF, Math.min(cy, vh - EDGE_PAD - BTN_HALF));
 
-    dismissBtn.style.left = `${btnLeft}px`;
-    dismissBtn.style.top = `${btnTop}px`;
+    // ...but never let it detach from the box: its center stays within the
+    // selection's bounds, so it follows the box off-screen instead of sticking
+    // to the viewport edge it disappeared from.
+    cx = Math.max(rect.left, Math.min(cx, rect.right));
+    cy = Math.max(rect.top, Math.min(cy, rect.bottom));
+
+    dismissBtn.style.left = `${cx - BTN_HALF}px`;
+    dismissBtn.style.top = `${cy - BTN_HALF}px`;
     dismissBtn.style.display = "block";
   }
 
