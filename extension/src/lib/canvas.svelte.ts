@@ -88,17 +88,17 @@ export function initCanvas(
 
   const hoverDiv = document.createElement("div");
   hoverDiv.style.cssText =
-    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:3px solid rgba(39,198,162,0.8); outline-offset:2px; box-shadow:0 0 8px 4px rgba(39,198,162,0.4);";
+    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:3px solid rgba(225,39,95,0.8); outline-offset:2px; box-shadow:0 0 8px 4px rgba(225,39,95,0.4);";
 
   const selectionDiv = document.createElement("div");
   selectionDiv.style.cssText =
-    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:4px solid #1EBE38; outline-offset:0;";
+    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:4px solid var(--red-3); outline-offset:0;";
 
   const dismissBtn = document.createElement("button");
   dismissBtn.setAttribute("aria-label", "Clear selection");
   dismissBtn.textContent = "\u00d7";
   dismissBtn.style.cssText =
-    "position:fixed; pointer-events:auto; z-index:2147483647; display:none; box-sizing:border-box; width:28px; height:28px; border-radius:50%; border:2px solid #1EBE38; background:#1EBE38; color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0; text-align:center;";
+    "position:fixed; pointer-events:auto; z-index:2147483647; display:none; box-sizing:border-box; width:28px; height:28px; border-radius:50%; border:2px solid var(--red-3); background:var(--red-3); color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0; text-align:center;";
   dismissBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -107,7 +107,7 @@ export function initCanvas(
 
   const dragDiv = document.createElement("div");
   dragDiv.style.cssText =
-    "position:fixed; pointer-events:none; z-index:2147483645; display:none; box-sizing:border-box; border:2px dashed rgba(39,198,162,0.8); background:rgba(39,198,162,0.08);";
+    "position:fixed; pointer-events:none; z-index:2147483645; display:none; box-sizing:border-box; border:2px dashed rgba(225,39,95,0.8); background:rgba(225,39,95,0.08);";
 
   shadow.appendChild(dimming);
   shadow.appendChild(hoverDiv);
