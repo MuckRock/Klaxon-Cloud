@@ -28,8 +28,10 @@
   // Pre-load this alert's existing selection into the canvas once, so the user
   // sees and tweaks it rather than starting from scratch. Cleared on unmount.
   onMount(() => {
-    if (event.parameters.selector)
-      canvas.setSelector(event.parameters.selector);
+    if (event.parameters.selector) {
+      const el = canvas.setSelector(event.parameters.selector);
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
     return () => canvas.clearSelection();
   });
 
