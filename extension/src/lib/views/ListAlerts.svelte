@@ -168,8 +168,9 @@
         </div>
       {:else}
         <h3 class="alert-count">
-          You have <span class="alert-count-value">{rows.length} {rows.length > 1 ? 'alerts' : 'alert'}</span> for
-          this page.
+          You have <span class="alert-count-value"
+            >{rows.length} {rows.length > 1 ? "alerts" : "alert"}</span
+          > for this page.
         </h3>
 
         <div class="toolbar">
