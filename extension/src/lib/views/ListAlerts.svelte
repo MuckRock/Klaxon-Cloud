@@ -4,7 +4,9 @@
   import type { Event, Page, Run } from "../types";
 
   import Link from "../components/Link.svelte";
+  import Loading from "../components/Loading.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
+  import Siren from "../components/Siren.svelte";
   import Welcome from "../components/Welcome.svelte";
   import { scheduled, history, schedules, update } from "../api";
   import { authState } from "../auth.svelte";
@@ -22,14 +24,19 @@
   let events = $state<Page<Event>>(emptyPage<Event>());
   let runs = $state<Page<Run>>(emptyPage<Run>());
 
+  let loadingAlerts = $state(true);
+
   $effect(() => {
     if (authState.status !== "authenticated") return;
 
     const url = getCanonicalURL();
     let cancelled = false;
 
+    loadingAlerts = true;
     Promise.all([scheduled(url), history(url)]).then(([eventsRes, runsRes]) => {
       if (cancelled) return;
+
+      loadingAlerts = false;
 
       // The API surfaces failures as a `.error` field rather than throwing.
       // Leave any already-loaded data in place rather than blanking it out.
@@ -147,14 +154,23 @@
 <div class="container list-alerts">
   <main class="section">
     <Welcome>
-      {#if !hasEvents}
+      {#if loadingAlerts && !hasEvents}
         <div class="empty-state">
-          <p class="empty-message">You don't have any alerts for this page.</p>
+          <Loading message="Checking for alerts…" />
+        </div>
+      {:else if !hasEvents}
+        <div class="empty-state welcome-empty">
+          <Siren dimmed />
+          <h3 class="empty-head">No alerts</h3>
+          <p class="empty-message">
+            Create a new alert to watch this page for changes.
+          </p>
         </div>
       {:else}
         <h3 class="alert-count">
-          You have <span class="alert-count-value">{rows.length} alerts</span> for
-          this page.
+          You have <span class="alert-count-value"
+            >{rows.length} {rows.length > 1 ? "alerts" : "alert"}</span
+          > for this page.
         </h3>
 
         <div class="toolbar">
@@ -281,6 +297,24 @@
     font-size: var(--font-md, 16px);
     line-height: 1.3;
     color: #0c1e27;
+  }
+
+  .welcome-empty {
+    gap: 0.5em;
+  }
+
+  .empty-head {
+    margin: 0;
+    font-size: var(--font-xl, 24px);
+    font-weight: 600;
+    line-height: normal;
+    color: #0c1e27;
+  }
+
+  .welcome-empty .empty-message {
+    margin: 0;
+    text-wrap: pretty;
+    line-height: 1.4;
   }
 
   button.disable {

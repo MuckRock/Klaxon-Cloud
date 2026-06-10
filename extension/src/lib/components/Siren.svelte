@@ -1,6 +1,15 @@
 <script lang="ts">
   import Logo from "./Logo.svelte";
 
+  interface Props {
+    // When true, the siren is "off": the spinning beams are hidden and the
+    // lamp is drawn in a muted dark color. Used to signal that a signed-in
+    // user has no active alerts for the current page/site.
+    dimmed?: boolean;
+  }
+
+  let { dimmed = false }: Props = $props();
+
   // Eight beams at 45° intervals, radiating from the center of the
   // illustration (which is anchored on the logo). Each is a slim wedge
   // filled with a radial gradient so it glows near the lamp and fades to
@@ -11,36 +20,38 @@
   const halfWidth = 15;
 </script>
 
-<div class="siren" title="Klaxon">
-  <svg class="beams" viewBox="0 0 200 200" aria-hidden="true">
-    <defs>
-      <radialGradient
-        id="beam-gradient"
-        gradientUnits="userSpaceOnUse"
-        cx="100"
-        cy="100"
-        r="100"
-      >
-        <stop offset="0" stop-color="var(--red-3)" stop-opacity="0" />
-        <stop offset="0.18" stop-color="var(--red-3)" stop-opacity="0.55" />
-        <stop offset="0.55" stop-color="#f2789c" stop-opacity="0.3" />
-        <stop offset="1" stop-color="var(--red-3)" stop-opacity="0" />
-      </radialGradient>
-    </defs>
-    <g class="spin">
-      {#each beams as angle (angle)}
-        <polygon
-          points={`100,100 ${100 - halfWidth},0 ${100 + halfWidth},0`}
-          fill="url(#beam-gradient)"
-          transform={`rotate(${angle} 100 100)`}
-        />
-      {/each}
-    </g>
-  </svg>
+<div class="siren" class:dimmed title="Klaxon">
+  {#if !dimmed}
+    <svg class="beams" viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <radialGradient
+          id="beam-gradient"
+          gradientUnits="userSpaceOnUse"
+          cx="100"
+          cy="100"
+          r="100"
+        >
+          <stop offset="0" stop-color="var(--red-3)" stop-opacity="0" />
+          <stop offset="0.18" stop-color="var(--red-3)" stop-opacity="0.55" />
+          <stop offset="0.55" stop-color="#f2789c" stop-opacity="0.3" />
+          <stop offset="1" stop-color="var(--red-3)" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <g class="spin">
+        {#each beams as angle (angle)}
+          <polygon
+            points={`100,100 ${100 - halfWidth},0 ${100 + halfWidth},0`}
+            fill="url(#beam-gradient)"
+            transform={`rotate(${angle} 100 100)`}
+          />
+        {/each}
+      </g>
+    </svg>
 
-  <!-- Obscures beams as they swing below the lamp, so the light reads as
-       coming from the siren rather than from underneath it. -->
-  <div class="floor"></div>
+    <!-- Obscures beams as they swing below the lamp, so the light reads as
+         coming from the siren rather than from underneath it. -->
+    <div class="floor"></div>
+  {/if}
 
   <div class="logo">
     <!-- Fills the lamp's silhouette (including the "k" cutout) with the page
@@ -112,6 +123,19 @@
 
   .backing {
     fill: var(--klaxon-bg);
+  }
+
+  /* Dimmed siren: no beams, lamp recolored to a muted dark slate. Targets the
+     logo mark only (not the .backing, which keeps masking with the page bg so
+     the "k" cutout still reads). */
+  .dimmed .logo :global(svg):not(.backing) {
+    fill: var(--red-4);
+    opacity: 0.7;
+  }
+
+  .dimmed {
+    margin-bottom: 0;
+    height: auto;
   }
 
   @keyframes spin {
