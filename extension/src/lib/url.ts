@@ -18,3 +18,19 @@ export function getCanonicalURL(): string {
   }
   return window.location.href;
 }
+
+/**
+ * Resolve the page's title — the value the backend uses to name an alert when
+ * no custom title is provided.
+ */
+export function getCanonicalTitle(): string {
+  try {
+    const og = document
+      .querySelector("meta[property='og:title']")
+      ?.getAttribute("content");
+    if (og) return og;
+  } catch (_) {
+    /* ignore */
+  }
+  return document.title;
+}

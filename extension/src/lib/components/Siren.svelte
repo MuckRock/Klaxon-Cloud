@@ -61,7 +61,10 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 20em;
+    height: 16em;
+    margin-bottom: -3em;
+    overflow: hidden;
+    z-index: -1;
   }
 
   .beams {

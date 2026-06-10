@@ -7,38 +7,66 @@
     ValidationError,
   } from "../types";
 
+  import { authState } from "../auth.svelte.ts";
   import { getCanvas } from "../canvas.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { dispatch } from "../api";
-  import { getCanonicalURL } from "../url";
+  import { completeSave, reportSaveError } from "../save";
+  import { getCanonicalURL, getCanonicalTitle } from "../url";
 
-  let form: HTMLFormElement | undefined = $state();
+  interface Props {
+    // Carried back from the sign-in interstitial so the form re-populates the
+    // user's entries when they return (via Back or a post-auth save error).
+    schedule?: AddOnSchedule;
+    title?: string;
+    slackWebhook?: string;
+  }
+
+  let {
+    schedule: frequency = "weekly",
+    title: initialTitle = "",
+    slackWebhook = "",
+  }: Props = $props();
 
   const router = getRouter();
   const toaster = getToaster();
   const canvas = getCanvas();
 
   const url = getCanonicalURL();
+  const defaultTitle = getCanonicalTitle();
   let locked = $derived(canvas.state.locked);
   let selector = $derived(canvas.state.selector);
 
-  let frequency: AddOnSchedule = $state("weekly");
+  let title = $derived(initialTitle || defaultTitle);
   let saving = $state(false);
 
   async function handleSave() {
-    saving = true;
-
-    const fd = new FormData(form);
     const params: KlaxonParams = {
-      title: fd.get("title") as string,
-      slack_webhook: fd.get("slack_webhook") as string,
+      // Fall back to the page title when the user leaves the field blank, so the
+      // saved alert matches the placeholder shown in the form.
+      title: title.trim() || defaultTitle,
+      slack_webhook: slackWebhook,
       site: url,
       // Only a *locked* selection is a real choice. An unlocked canvas means
       // "watch the whole page" — without this guard the canvas's live hover
       // preview would leak in as an arbitrary selector.
       selector: locked ? (selector ?? "") : "",
     };
+
+    // Signed-out users can fill out the form, but the save needs a token. Route
+    // them through the sign-in interstitial, carrying the dispatch args forward
+    // and the form values back so nothing they typed is lost.
+    if (authState.status !== "authenticated") {
+      router.navigate(
+        "signIn",
+        { schedule: frequency, params },
+        { restore: { schedule: frequency, title, slackWebhook } },
+      );
+      return;
+    }
+
+    saving = true;
 
     const result: APIResponse<Event, ValidationError> = await dispatch(
       frequency,
@@ -48,19 +76,15 @@
     saving = false;
 
     if (result.error) {
-      console.error("Save alert failed:", result.error);
-      toaster.error(result.error.message ?? "Failed to save alert.");
+      reportSaveError(toaster, result.error);
       return;
     }
 
-    canvas.clearSelection();
-    toaster.success("Alert saved successfully!");
-    router.navigate("listChanges");
+    completeSave({ canvas, toaster, router });
   }
 </script>
 
 <form
-  bind:this={form}
   class="container save-alert"
   onsubmit={(e) => {
     e.preventDefault();
@@ -105,7 +129,13 @@
           this webpage.)
         </p>
       </div>
-      <input id="alert-name" type="text" placeholder="Title" name="title" />
+      <input
+        id="alert-name"
+        type="text"
+        placeholder={defaultTitle || "Title"}
+        name="title"
+        bind:value={title}
+      />
     </div>
 
     <!-- slack webhook -->
@@ -129,6 +159,7 @@
         type="url"
         placeholder="Webhook URL"
         name="slack_webhook"
+        bind:value={slackWebhook}
       />
     </div>
   </main>

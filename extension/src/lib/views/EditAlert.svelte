@@ -11,6 +11,7 @@
   import { getToaster } from "../toaster.svelte";
   import { getRouter } from "../router.svelte";
   import { eventValues, schedules, update } from "../api";
+  import { completeSave, reportSaveError } from "../save";
 
   interface Props {
     event: Event;
@@ -55,14 +56,11 @@
     saving = false;
 
     if (result.error) {
-      console.error("Save alert failed:", result.error);
-      toaster.error(result.error.message ?? "Failed to save alert.");
+      reportSaveError(toaster, result.error);
       return;
     }
 
-    canvas.clearSelection();
-    toaster.success("Alert saved successfully!");
-    router.navigate("listChanges");
+    completeSave({ canvas, toaster, router });
   }
 
   /**

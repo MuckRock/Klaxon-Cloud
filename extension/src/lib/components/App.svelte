@@ -8,6 +8,7 @@
   import ListAlerts from "../views/ListAlerts.svelte";
   import ListChanges from "../views/ListChanges.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
+  import SignIn from "../views/SignIn.svelte";
   import ToastList from "./ToastList.svelte";
   import ViewAlert from "../views/ViewAlert.svelte";
 
@@ -30,6 +31,7 @@
     listAlerts: ListAlerts,
     listChanges: ListChanges,
     saveAlert: SaveAlert,
+    signIn: SignIn,
     viewAlert: ViewAlert,
     editSelection: EditSelection,
   };
