@@ -50,13 +50,13 @@
   // to a list) clears the selection so it doesn't linger on the page. The pick
   // views (createAlert/saveAlert) build a fresh selection that must survive the
   // hop between them, so they can't just clear it on their own teardown.
-  const SELECTION_VIEWS: View[] = [
+  const SELECTION_VIEWS: Set<View> = new Set([
     "createAlert",
     "saveAlert",
     "editAlert",
     "editSelection",
     "viewAlert",
-  ];
+  ]);
 
   function handleRouteChange(view: View) {
     canvas.active = [
@@ -66,7 +66,7 @@
       "viewAlert",
     ].includes(view);
     canvas.editable = !["editAlert", "viewAlert"].includes(view);
-    if (!SELECTION_VIEWS.includes(view)) canvas.clearSelection();
+    if (!SELECTION_VIEWS.has(view)) canvas.clearSelection();
   }
 
   // Bind to a reactive variable so the view re-mounts on navigation.

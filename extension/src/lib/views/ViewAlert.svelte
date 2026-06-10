@@ -25,7 +25,11 @@
   $effect(() => {
     if (selector) {
       const el = canvas.setSelector(selector);
-      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.scrollIntoView({
+        block: "start",
+        inline: "nearest",
+        behavior: "smooth",
+      });
     }
     return () => {
       canvas.clearSelection();

@@ -30,7 +30,11 @@
   onMount(() => {
     if (event.parameters.selector) {
       const el = canvas.setSelector(event.parameters.selector);
-      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.scrollIntoView({
+        block: "start",
+        inline: "nearest",
+        behavior: "smooth",
+      });
     }
     return () => canvas.clearSelection();
   });
