@@ -3,6 +3,12 @@ node_modules
 # Output
 /extension/build
 
+# Playwright e2e
+/extension/playwright-report
+/extension/test-results
+/extension/blob-report
+/extension/.playwright
+
 # OS
 .DS_Store
 Thumbs.db

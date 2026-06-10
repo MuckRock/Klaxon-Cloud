@@ -1,6 +1,11 @@
 build
 node_modules
 
+# Playwright output
+playwright-report
+test-results
+blob-report
+
 # Package Managers
 package-lock.json
 pnpm-lock.yaml
