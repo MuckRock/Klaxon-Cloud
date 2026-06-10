@@ -13,6 +13,7 @@ import type {
 } from "./lib/types";
 import {
   buildAuthorizeUrl,
+  buildSignupUrl,
   decodeJwtPayload,
   endpoints,
   exchangeOidcForJwt,
@@ -57,13 +58,13 @@ async function clearStored(): Promise<void> {
   await chrome.storage.local.remove(STORAGE_KEY);
 }
 
-async function signIn({
-  host,
-  clientId,
-  scopes,
-}: AuthConfig): Promise<StoredAuth> {
-  // The first step of signing in is to send users to MuckRock Accounts.
-  // This is where they enter their username and password.
+async function signIn(
+  { host, clientId, scopes }: AuthConfig,
+  action: "login" | "create" = "login",
+): Promise<StoredAuth> {
+  // The first step of signing in is to send users to MuckRock Accounts. This is
+  // where they enter their username and password — or, when `action` is
+  // "create", create a new account first (we open the signup page instead).
   const ep = endpoints(host);
   const verifier = randomBase64Url(64);
   const challenge = await pkceChallenge(verifier);
@@ -81,8 +82,14 @@ async function signIn({
     codeChallenge: challenge,
   });
 
+  // For "create", front the authorize URL with the signup page; allauth returns
+  // to the authorize URL (as `next`) once the account exists, so the rest of
+  // the flow below is identical to a normal login.
+  const startUrl =
+    action === "create" ? buildSignupUrl(host, authorizeUrl) : authorizeUrl;
+
   const finalUrl = await chrome.identity.launchWebAuthFlow({
-    url: authorizeUrl,
+    url: startUrl,
     interactive: true,
   });
   if (!finalUrl) throw new Error("Authorization cancelled");
@@ -258,7 +265,13 @@ chrome.runtime.onMessage.addListener(
       try {
         switch (msg.type) {
           case "auth/login":
-            sendResponse({ ok: true, data: await signIn(msg.config) });
+            sendResponse({ ok: true, data: await signIn(msg.config, "login") });
+            break;
+          case "auth/create":
+            sendResponse({
+              ok: true,
+              data: await signIn(msg.config, "create"),
+            });
             break;
           case "auth/logout":
             await signOut(msg.config);

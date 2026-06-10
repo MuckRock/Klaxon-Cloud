@@ -1,7 +1,7 @@
 <script lang="ts">
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
   import Loading from "./Loading.svelte";
-  import { authState, login } from "../auth.svelte.ts";
+  import { authState, login, createAccount } from "../auth.svelte.ts";
 
   const loading = $derived(authState.status === "authenticating");
   // Authenticated-but-still-mounted is transient: the parent view reacts to the
@@ -20,6 +20,9 @@
     <button class="primary signIn" onclick={() => login()}>
       Sign in with MuckRock
     </button>
+    <button class="secondary createAccount" onclick={() => createAccount()}>
+      Create an account
+    </button>
   {/if}
   {#if authState.status === "error" && authState.error}
     <p class="error" role="alert">
@@ -27,10 +30,7 @@
       <span>{authState.error}</span>
     </p>
   {/if}
-  <p>
-    If you don't have a MuckRock account, you can create one for free when
-    signing in.
-  </p>
+  <p>Creating a MuckRock account is free.</p>
 </div>
 
 <style>
@@ -68,6 +68,24 @@
   button.primary:focus {
     /* Darken slightly for hover feedback. */
     filter: brightness(0.9);
+  }
+
+  button.secondary {
+    width: 100%;
+    padding: 8px 12px;
+    color: var(--blue-3);
+    background: transparent;
+    border: 1px solid var(--blue-4);
+    border-radius: 0.5em;
+    font-family: var(--font-sans);
+    font-size: var(--font-md);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button.secondary:hover,
+  button.secondary:focus {
+    background: var(--gray-1);
   }
 
   .error {

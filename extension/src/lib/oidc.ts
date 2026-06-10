@@ -44,6 +44,7 @@ export interface OidcEndpoints {
   endSession: string;
   jwt: string;
   jwtRefresh: string;
+  signup: string;
 }
 
 export function endpoints(host: string): OidcEndpoints {
@@ -55,6 +56,7 @@ export function endpoints(host: string): OidcEndpoints {
     endSession: `${base}/openid/end-session`,
     jwt: `${base}/api/jwt/`,
     jwtRefresh: `${base}/api/refresh/`,
+    signup: `${base}/accounts/signup/`,
   };
 }
 
@@ -88,6 +90,14 @@ export function buildAuthorizeUrl({
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
   }).toString();
+  return url.toString();
+}
+
+export function buildSignupUrl(host: string, authorizeUrl: string): string {
+  const authorize = new URL(authorizeUrl);
+  const url = new URL(endpoints(host).signup);
+  url.searchParams.set("next", authorize.pathname + authorize.search);
+  url.searchParams.set("intent", "klaxon-cloud");
   return url.toString();
 }
 

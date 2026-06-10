@@ -84,16 +84,27 @@ export async function restore(retry = true): Promise<void> {
   }
 }
 
-export async function login(): Promise<void> {
+// login() opens the sign-in page; createAccount() opens the signup page first.
+// Both drive the same SW flow and end in the same authenticated state — the
+// only difference is where Squarelet drops the user before the OIDC handshake.
+async function authenticate(type: "auth/login" | "auth/create"): Promise<void> {
   try {
     authState.status = "authenticating";
     authState.error = null;
-    const stored = await send<StoredAuth>("auth/login", { config: config() });
+    const stored = await send<StoredAuth>(type, { config: config() });
     applyStored(stored);
   } catch (err) {
     authState.status = "error";
     authState.error = err instanceof Error ? err.message : String(err);
   }
+}
+
+export function login(): Promise<void> {
+  return authenticate("auth/login");
+}
+
+export function createAccount(): Promise<void> {
+  return authenticate("auth/create");
 }
 
 export async function logout(): Promise<void> {
