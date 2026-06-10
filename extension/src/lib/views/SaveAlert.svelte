@@ -7,7 +7,6 @@
     ValidationError,
   } from "../types";
 
-  import { untrack } from "svelte";
   import { authState } from "../auth.svelte.ts";
   import { getCanvas } from "../canvas.svelte";
   import { getRouter } from "../router.svelte";
@@ -25,9 +24,9 @@
   }
 
   let {
-    schedule = "weekly",
+    schedule: frequency = "weekly",
     title: initialTitle = "",
-    slackWebhook: initialSlackWebhook = "",
+    slackWebhook = "",
   }: Props = $props();
 
   const router = getRouter();
@@ -39,12 +38,7 @@
   let locked = $derived(canvas.state.locked);
   let selector = $derived(canvas.state.selector);
 
-  // Seed editable form state from the (one-shot) props. untrack keeps these
-  // from being treated as reactive reads — the props only provide initial
-  // values; the inputs own the state thereafter.
-  let frequency: AddOnSchedule = $state(untrack(() => schedule));
-  let title = $state(untrack(() => initialTitle));
-  let slackWebhook = $state(untrack(() => initialSlackWebhook));
+  let title = $derived(initialTitle || defaultTitle);
   let saving = $state(false);
 
   async function handleSave() {
