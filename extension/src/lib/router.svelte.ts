@@ -50,6 +50,17 @@ class Router {
     this.onchange(view);
   }
 
+  // Navigate without growing the back stack: drops the breadcrumb that led to
+  // the current view, then goes to `view`. Used by transient editor views
+  // (e.g. editSelection) so that saving returns to the origin without leaving
+  // the editor — or a duplicate of the origin — on the history stack.
+  replace(view: View, props?: Props) {
+    this.#history.pop();
+    this.current = view;
+    this.props = props ?? {};
+    this.onchange(view);
+  }
+
   onchange(view: View) {}
 
   get view() {

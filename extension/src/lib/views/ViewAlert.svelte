@@ -23,7 +23,14 @@
   let loading = $state(true);
 
   $effect(() => {
-    if (selector) canvas.setSelector(selector);
+    if (selector) {
+      const el = canvas.setSelector(selector);
+      el?.scrollIntoView({
+        block: "start",
+        inline: "nearest",
+        behavior: "smooth",
+      });
+    }
     return () => {
       canvas.clearSelection();
     };

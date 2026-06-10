@@ -88,17 +88,17 @@ export function initCanvas(
 
   const hoverDiv = document.createElement("div");
   hoverDiv.style.cssText =
-    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:3px solid rgba(39,198,162,0.8); outline-offset:2px; box-shadow:0 0 8px 4px rgba(39,198,162,0.4);";
+    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:3px solid rgba(225,39,95,0.8); outline-offset:2px; box-shadow:0 0 8px 4px rgba(225,39,95,0.4);";
 
   const selectionDiv = document.createElement("div");
   selectionDiv.style.cssText =
-    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:4px solid #1EBE38; outline-offset:0;";
+    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:4px solid var(--red-3); outline-offset:0;";
 
   const dismissBtn = document.createElement("button");
   dismissBtn.setAttribute("aria-label", "Clear selection");
   dismissBtn.textContent = "\u00d7";
   dismissBtn.style.cssText =
-    "position:fixed; pointer-events:auto; z-index:2147483647; display:none; box-sizing:border-box; width:28px; height:28px; border-radius:50%; border:2px solid #1EBE38; background:#1EBE38; color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0; text-align:center;";
+    "position:fixed; pointer-events:auto; z-index:2147483647; display:none; box-sizing:border-box; width:28px; height:28px; border-radius:50%; border:2px solid var(--red-3); background:var(--red-3); color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0; text-align:center;";
   dismissBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -107,7 +107,7 @@ export function initCanvas(
 
   const dragDiv = document.createElement("div");
   dragDiv.style.cssText =
-    "position:fixed; pointer-events:none; z-index:2147483645; display:none; box-sizing:border-box; border:2px dashed rgba(39,198,162,0.8); background:rgba(39,198,162,0.08);";
+    "position:fixed; pointer-events:none; z-index:2147483645; display:none; box-sizing:border-box; border:2px dashed rgba(225,39,95,0.8); background:rgba(225,39,95,0.08);";
 
   shadow.appendChild(dimming);
   shadow.appendChild(hoverDiv);
@@ -152,8 +152,8 @@ export function initCanvas(
   }
 
   const EDGE_PAD = 4;
-  const BTN_SIZE = 24;
-  const BTN_OFFSET = 12; // how far from the selection corner the button sits
+  const BTN_SIZE = 28; // matches the dismiss button's width/height
+  const BTN_HALF = BTN_SIZE / 2;
 
   function showSelection(el: Element) {
     positionAt(selectionDiv, el);
@@ -165,24 +165,31 @@ export function initCanvas(
       return;
     }
 
-    // Position dismiss button at top-right of selection, clamped to viewport
+    // The dismiss button is centered on the selection's top-right corner.
     const rect = el.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    let btnLeft = rect.right - BTN_OFFSET;
-    let btnTop = rect.top - BTN_SIZE + BTN_OFFSET;
+    let cx = rect.right;
+    let cy = rect.top;
 
-    // Clamp to keep at least EDGE_PAD from each viewport edge and the sidebar
+    // Keep the button within the viewport, clear of each edge and the sidebar,
+    // so it stays reachable while the selection's corner is off-screen.
     const rightEdge = vw - sidebarWidth;
-    btnLeft = Math.max(
-      EDGE_PAD,
-      Math.min(btnLeft, rightEdge - BTN_SIZE - EDGE_PAD),
+    cx = Math.max(
+      EDGE_PAD + BTN_HALF,
+      Math.min(cx, rightEdge - EDGE_PAD - BTN_HALF),
     );
-    btnTop = Math.max(EDGE_PAD, Math.min(btnTop, vh - BTN_SIZE - EDGE_PAD));
+    cy = Math.max(EDGE_PAD + BTN_HALF, Math.min(cy, vh - EDGE_PAD - BTN_HALF));
 
-    dismissBtn.style.left = `${btnLeft}px`;
-    dismissBtn.style.top = `${btnTop}px`;
+    // ...but never let it detach from the box: its center stays within the
+    // selection's bounds, so it follows the box off-screen instead of sticking
+    // to the viewport edge it disappeared from.
+    cx = Math.max(rect.left, Math.min(cx, rect.right));
+    cy = Math.max(rect.top, Math.min(cy, rect.bottom));
+
+    dismissBtn.style.left = `${cx - BTN_HALF}px`;
+    dismissBtn.style.top = `${cy - BTN_HALF}px`;
     dismissBtn.style.display = "block";
   }
 
