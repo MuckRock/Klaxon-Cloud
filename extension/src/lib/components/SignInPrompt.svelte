@@ -1,6 +1,6 @@
 <script lang="ts">
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
-  import Loader from "@lucide/svelte/icons/loader";
+  import Loading from "./Loading.svelte";
   import { authState, login } from "../auth.svelte.ts";
 
   const loading = $derived(authState.status === "authenticating");
@@ -13,15 +13,9 @@
 <div class="account">
   <p>Your alerts will be saved with your MuckRock account.</p>
   {#if loading}
-    <p class="signing-in">
-      <span class="spinner"><Loader size={20} /></span>
-      <span class="label">Signing you in…</span>
-    </p>
+    <Loading message="Signing you in…" />
   {:else if authenticated}
-    <p class="signing-in">
-      <span class="spinner"><Loader size={20} /></span>
-      <span class="label">Signed in!</span>
-    </p>
+    <Loading message="Signed in!" />
   {:else}
     <button class="primary signIn" onclick={() => login()}>
       Sign in with MuckRock
@@ -73,36 +67,6 @@
   button.primary:hover,
   button.primary:focus {
     background: var(--blue-4);
-  }
-
-  .signing-in {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5em;
-    font-weight: 700;
-    color: var(--red-3);
-    cursor: default;
-  }
-
-  /* Faded so the icon reads as a subtle in-progress hint next to the bolder
-     label. Wrapping span carries the spin so the SVG inherits currentColor. */
-  .spinner {
-    display: inline-flex;
-    opacity: 0.5;
-    animation: spin 5s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .spinner {
-      animation: none;
-    }
   }
 
   .error {
