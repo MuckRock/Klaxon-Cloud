@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 import { scanSidebar } from "./support/a11y";
-import { scheduleValues } from "./support/api";
+import { eventsPage, makeEvent, scheduleValues } from "./support/api";
 import { renderSignedIn } from "./support/render";
 import { scheduled } from "../src/test/fixtures/events";
 import { getSiteLabel } from "../src/lib/utils";
@@ -13,9 +13,17 @@ import type { Page } from "@playwright/test";
 const ALERT = scheduled.results[0];
 const ALERT_LABEL = getSiteLabel(ALERT);
 
-/** List → ViewAlert → EditAlert. */
-async function openEditAlert(page: Page) {
-  await page.getByRole("button", { name: ALERT_LABEL }).click();
+// A disabled alert (schedule 0): EditAlert shows a Reactivate action instead of
+// the schedule picker. getSiteLabel falls back to the title.
+const DISABLED_ALERT = makeEvent({
+  id: 555,
+  event: scheduleValues.disabled,
+  parameters: { title: "Disabled alert" },
+});
+
+/** List → ViewAlert → EditAlert for the given alert label. */
+async function openEditAlert(page: Page, label = ALERT_LABEL) {
+  await page.getByRole("button", { name: label }).click();
   await page.getByRole("button", { name: "Edit alert" }).click();
   await expect(page.getByRole("heading", { name: "Edit alert" })).toBeVisible();
 }
@@ -70,6 +78,28 @@ test("editing an alert's selection saves and returns to the alert", async ({
   expect(requests.updated[0].payload.parameters.selector).toBeTruthy();
 });
 
+test("reactivating a disabled alert re-enables it on a weekly schedule", async ({
+  context,
+  page,
+  serviceWorker,
+}) => {
+  const requests = await renderSignedIn(context, page, serviceWorker, {
+    events: eventsPage([DISABLED_ALERT]),
+  });
+  await openEditAlert(page, "Disabled alert");
+
+  // The disabled alert shows a Reactivate action in place of the schedule picker.
+  await expect(
+    page.getByText("This alert is currently disabled."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Reactivate" }).click();
+
+  await expect(page.getByText("Alert reactivated")).toBeVisible();
+  expect(requests.updated).toHaveLength(1);
+  expect(requests.updated[0].id).toBe(DISABLED_ALERT.id);
+  expect(requests.updated[0].payload.event).toBe(scheduleValues.weekly);
+});
+
 test.describe("accessibility", () => {
   test("EditAlert has no WCAG A/AA violations", async ({
     context,
@@ -78,6 +108,23 @@ test.describe("accessibility", () => {
   }, testInfo) => {
     await renderSignedIn(context, page, serviceWorker);
     await openEditAlert(page);
+
+    const { violations } = await scanSidebar(page, testInfo);
+    expect(violations.map((v) => `${v.id} (${v.impact})`)).toEqual([]);
+  });
+
+  test("EditAlert (disabled, with Reactivate) has no WCAG A/AA violations", async ({
+    context,
+    page,
+    serviceWorker,
+  }, testInfo) => {
+    await renderSignedIn(context, page, serviceWorker, {
+      events: eventsPage([DISABLED_ALERT]),
+    });
+    await openEditAlert(page, "Disabled alert");
+    await expect(
+      page.getByRole("button", { name: "Reactivate" }),
+    ).toBeVisible();
 
     const { violations } = await scanSidebar(page, testInfo);
     expect(violations.map((v) => `${v.id} (${v.impact})`)).toEqual([]);

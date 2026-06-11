@@ -282,7 +282,7 @@
   }
 
   .alert-count-value {
-    color: var(--red-3);
+    color: var(--klaxon-color-link);
   }
 
   .schedule {

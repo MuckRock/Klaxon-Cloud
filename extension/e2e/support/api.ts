@@ -1,5 +1,11 @@
 import type { BrowserContext } from "@playwright/test";
-import type { AddOnPayload, Event, Page, Run } from "../../src/lib/types";
+import type {
+  AddOnPayload,
+  Event,
+  KlaxonParams,
+  Page,
+  Run,
+} from "../../src/lib/types";
 import { scheduled } from "../../src/test/fixtures/events";
 import { emptyRuns, runs as runsFixture } from "../../src/test/fixtures/runs";
 
@@ -25,7 +31,11 @@ export const scheduleValues = {
 const TEMPLATE_EVENT = scheduled.results[0];
 
 /** Build an Event from the template, overriding the fields a test cares about. */
-export function makeEvent(overrides: Partial<Event> = {}): Event {
+export function makeEvent(
+  overrides: Partial<Omit<Event, "parameters">> & {
+    parameters?: Partial<KlaxonParams>;
+  } = {},
+): Event {
   return {
     ...TEMPLATE_EVENT,
     ...overrides,
@@ -46,6 +56,11 @@ export function runsForEvent(event: Event, count = 2): Page<Run> {
       .slice(0, count)
       .map((run) => ({ ...run, event })),
   };
+}
+
+/** Wrap events in the paginated envelope the list endpoint returns. */
+export function eventsPage(results: Event[]): Page<Event> {
+  return { next: null, previous: null, results };
 }
 
 export interface ApiMockOptions {

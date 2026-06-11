@@ -122,7 +122,7 @@
     <div class="field">
       {#if frequency === "disabled"}
         <p class="description">This alert is currently disabled.</p>
-        <button type="button" class="reactivate" onclick={reactivate}>
+        <button type="button" class="btn-primary" onclick={reactivate}>
           Reactivate
         </button>
       {:else}
@@ -279,28 +279,6 @@
 
   .select-wrapper {
     position: relative;
-  }
-
-  button.reactivate {
-    display: flex;
-    padding: 0.25rem 0.625rem;
-    justify-content: center;
-    align-items: center;
-    gap: 0.375rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--orange-4, #69515c);
-    background: var(--orange-3, #ec7b6b);
-
-    color: var(--gray-1, #f5f6f7);
-    text-align: center;
-    cursor: pointer;
-
-    /* Small Label */
-    font-family: var(--font-sans, "Source Sans Pro");
-    font-size: var(--font-sm, 14px);
-    font-style: normal;
-    font-weight: 600;
-    line-height: normal;
   }
 
   select {

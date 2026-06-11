@@ -48,14 +48,14 @@
 
   button.primary {
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 12px;
     color: var(--white);
     background: var(--blue-3);
     border: 1px solid var(--blue-4);
     border-radius: 0.5em;
     font-family: var(--font-sans);
-    font-size: var(--font-md);
-    font-weight: 600;
+    font-size: var(--font-lg);
+    font-weight: 700;
     cursor: pointer;
   }
 
@@ -66,7 +66,8 @@
 
   button.primary:hover,
   button.primary:focus {
-    background: var(--blue-4);
+    /* Darken slightly for hover feedback. */
+    filter: brightness(0.9);
   }
 
   .error {
