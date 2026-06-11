@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   base64UrlEncode,
   buildAuthorizeUrl,
+  buildSignupUrl,
   decodeJwtPayload,
   endpoints,
   exchangeOidcForJwt,
@@ -98,6 +99,12 @@ describe("endpoints", () => {
     expect(ep.jwt).toBe("https://accounts.muckrock.com/api/jwt/");
     expect(ep.jwtRefresh).toBe("https://accounts.muckrock.com/api/refresh/");
   });
+
+  it("builds the allauth signup endpoint with a trailing slash", () => {
+    expect(endpoints("https://dev.squarelet.com/").signup).toBe(
+      "https://dev.squarelet.com/accounts/signup/",
+    );
+  });
 });
 
 describe("buildAuthorizeUrl", () => {
@@ -138,6 +145,40 @@ describe("buildAuthorizeUrl", () => {
       codeChallenge: "c",
     });
     expect(new URL(url).searchParams.has("client_secret")).toBe(false);
+  });
+});
+
+describe("buildSignupUrl", () => {
+  const authorizeUrl = buildAuthorizeUrl({
+    host: "https://dev.squarelet.com",
+    clientId: "muckrock-extension",
+    scopes: "openid profile email",
+    redirectUri: "https://abc.chromiumapp.org/",
+    state: "S",
+    nonce: "N",
+    codeChallenge: "C",
+  });
+
+  it("points at the signup page", () => {
+    const url = new URL(
+      buildSignupUrl("https://dev.squarelet.com", authorizeUrl),
+    );
+    expect(url.origin + url.pathname).toBe(
+      "https://dev.squarelet.com/accounts/signup/",
+    );
+  });
+
+  it("carries the authorize URL as a same-host relative ?next= so the OIDC flow resumes after signup", () => {
+    const next = new URL(
+      buildSignupUrl("https://dev.squarelet.com", authorizeUrl),
+    ).searchParams.get("next");
+    expect(next).not.toBeNull();
+    // Relative path (no scheme/host) keeps allauth's safe-redirect check happy.
+    expect(next!.startsWith("/openid/authorize?")).toBe(true);
+    // Round-trips back to the full authorize URL when resolved against the host.
+    expect(new URL(next!, "https://dev.squarelet.com").toString()).toBe(
+      authorizeUrl,
+    );
   });
 });
 
