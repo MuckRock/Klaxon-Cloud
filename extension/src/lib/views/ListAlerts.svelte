@@ -170,9 +170,10 @@
         </div>
       {:else}
         <h3 class="alert-count">
-          You have <span class="alert-count-value"
-            >{rows.length} {rows.length > 1 ? "alerts" : "alert"}</span
-          > for this page.
+          You have <span class="alert-count-value">
+            {rows.length}
+            {rows.length > 1 ? "alerts" : "alert"}
+          </span> on this site.
         </h3>
 
         <div class="toolbar">
@@ -224,9 +225,9 @@
                   {/if}
                 </p>
                 <p class="row-meta">
-                  Checks <span class="schedule {schedules[event.event]}"
-                    >{schedules[event.event]}</span
-                  >
+                  Checks <span class="schedule {schedules[event.event]}">
+                    {schedules[event.event]}
+                  </span>
                 </p>
               </div>
             </div>

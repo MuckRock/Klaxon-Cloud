@@ -72,14 +72,9 @@
     </div>
 
     <dl class="details">
-      <dt>Site</dt>
+      <dt>URL</dt>
       <dd class="site">
-        <a
-          href={event.parameters.site}
-          class="link"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={event.parameters.site} class="link">
           {event.parameters.site}
         </a>
       </dd>
