@@ -201,7 +201,12 @@
         <div class="table">
           {#each rows as { event, run } (event.id)}
             <div class="row">
-              <input type="checkbox" value={event} bind:group={selected} />
+              <input
+                type="checkbox"
+                value={event}
+                bind:group={selected}
+                aria-label={`Select ${getSiteLabel(event)}`}
+              />
               <div class="row-body">
                 <p class="row-title">
                   <Link view="viewAlert" {event}>{getSiteLabel(event)}</Link>
