@@ -11,8 +11,9 @@ import { scheduled } from "../src/test/fixtures/events";
 import { getSiteLabel } from "../src/lib/utils";
 import type { Page } from "@playwright/test";
 
-// Flow 3: view an alert. Clicking an alert's title in the list opens ViewAlert,
-// which shows the alert's details and its recent change history.
+// Flow: view an alert.
+//    Clicking an alert's title in the list opens ViewAlert,
+//    which shows the alert's details and its recent change history.
 
 const ALERT = scheduled.results[0];
 const ALERT_LABEL = getSiteLabel(ALERT);

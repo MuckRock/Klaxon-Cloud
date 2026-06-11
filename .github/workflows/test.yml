@@ -35,8 +35,6 @@ jobs:
       - name: Test
         run: npm test
 
-  # Runs in parallel with `test`: loads the *built* extension into a persistent
-  # Chromium context and exercises the views + accessibility scans (e2e/).
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -52,18 +50,14 @@ jobs:
       - name: Install
         run: npm ci
 
-      # The suite loads the built extension into a persistent Chromium context,
-      # so it needs a real browser (+ its OS libraries). Pin to chromium, the
-      # channel e2e/fixtures.ts launches.
-      - name: Install Playwright Chromium
+      # The suite loads the built extension into a persistent Chromium context.
+      - name: Install Playwright with Chromium
         run: npx playwright install --with-deps chromium
 
-      # e2e/global-setup.ts builds the extension before the suite and requires
-      # extension/.env (MUCKROCK_* are baked in at build time). The mocked API
-      # is matched by path, so hosts/IDs don't matter — but MUCKROCK_CLIENT_ID
-      # must be non-empty: src/lib/auth.svelte.ts config() throws on an empty
-      # client id, which fails getAccessToken() and every authenticated request.
-      # The example leaves it blank, so set a dummy (auth is seeded in-test).
+      # e2e/global-setup.ts builds the extension and requires extension/.env
+      # (MUCKROCK_* are baked in at build time). The mocked API is matched by
+      # path, so hosts/IDs don't matter — but MUCKROCK_CLIENT_ID must be non-empty:
+      # src/lib/auth.svelte.ts config() throws on an empty client id.
       - name: Provide build env
         run: |
           cp .env.example .env

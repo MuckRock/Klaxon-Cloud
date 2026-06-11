@@ -37,9 +37,9 @@ test("signed in: shows the list of alerts", async ({
   await expect(page.locator(".row")).toHaveCount(scheduled.results.length);
 });
 
-// Flow 4: edit multiple alerts from the list. The toolbar's "Select all" and
-// per-row checkboxes feed a bulk "Disable", which PATCHes each selected alert
-// to the disabled schedule.
+// Flow: edit multiple alerts from the list.
+//    The toolbar's "Select all" and per-row checkboxes feed a bulk "Disable",
+//    which PATCHes each selected alert to the disabled schedule.
 test.describe("bulk actions", () => {
   test('"Select all" selects every row and disables them together', async ({
     context,

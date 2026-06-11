@@ -3,10 +3,10 @@ import { scanSidebar } from "./support/a11y";
 import { scheduleValues } from "./support/api";
 import { renderSignedIn } from "./support/render";
 
-// Flow 1: create an alert. From the list, "Create a new alert" opens the
-// picker (CreateAlert), "Add alert details" advances to the form (SaveAlert),
-// and "Save alert" POSTs a new addon_event. Covered in both modes: watching
-// the whole page (no selection) and watching a picked region.
+// Flow: Create an alert.
+//    From the list view, clicking "Create a new alert" activates the canvas (CreateAlert)
+//    Clicking "Add alert details" advances to the form (SaveAlert), then clicking "Save alert"
+//    POSTs a new addon_event. Covered in both modes: watching the whole page and watching a picked region.
 
 /** List → CreateAlert (the picker step). */
 async function startCreating(page: import("@playwright/test").Page) {

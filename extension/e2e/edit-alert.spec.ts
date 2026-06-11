@@ -6,9 +6,11 @@ import { scheduled } from "../src/test/fixtures/events";
 import { getSiteLabel } from "../src/lib/utils";
 import type { Page } from "@playwright/test";
 
-// Flow 2: edit an existing alert and its selection. From the list, an alert's
-// title opens ViewAlert; "Edit alert" opens the EditAlert form; and from there
-// "Edit selection" opens the EditSelection picker. Both editors PATCH the alert.
+// Flow: edit an existing alert and its selection.
+//    From the list, an alert's title opens ViewAlert;
+//    "Edit alert" opens the EditAlert form; and from there
+//    "Edit selection" opens the EditSelection picker.
+//    Both editors PATCH the alert.
 
 const ALERT = scheduled.results[0];
 const ALERT_LABEL = getSiteLabel(ALERT);

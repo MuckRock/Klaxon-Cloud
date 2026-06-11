@@ -11,7 +11,6 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { StoredAuth } from "../src/lib/types";
-import { TEST_PAGE_HTML, TEST_PAGE_URL } from "./support/page";
 
 // `chrome` is the extension service-worker global. e2e/ is outside tsconfig's
 // `include`, so @types/chrome isn't loaded here; declare it loosely. The
@@ -66,6 +65,19 @@ export async function signOut(serviceWorker: Worker) {
     await chrome.storage.local.remove("muckrock_auth");
   });
 }
+
+export const TEST_PAGE_URL = "https://klaxon.test/";
+
+export const TEST_PAGE_HTML = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Klaxon e2e test page</title>
+  </head>
+  <body>
+    <h1>Klaxon e2e test page</h1>
+  </body>
+</html>`;
 
 /**
  * Navigate to the throwaway test page (fulfilled locally) and inject the
