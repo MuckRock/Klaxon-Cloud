@@ -1,46 +1,12 @@
-import { expect, openSidebar, signIn, signOut, test } from "./fixtures";
+import { expect, test } from "./fixtures";
 import { scanSidebar } from "./support/a11y";
-import { makeStoredAuth } from "./support/auth";
+import { scheduleValues } from "./support/api";
+import { renderSignedIn, renderSignedOut } from "./support/render";
 import { scheduled } from "../src/test/fixtures/events";
-import { runs } from "../src/test/fixtures/runs";
-import type { BrowserContext, Page, Worker } from "@playwright/test";
 
-// These tests render the injected sidebar (open shadow DOM on #klaxon-host).
-// Playwright locators pierce open shadow roots automatically, so we assert on
-// the UI without any shadow-specific traversal.
-
-// Render the signed-out sidebar: no stored auth → authState stays idle →
-// ListAlerts' data effect returns early and Welcome shows its sign-in branch.
-async function renderSignedOut(page: Page, serviceWorker: Worker) {
-  await signOut(serviceWorker);
-  await openSidebar(page, serviceWorker);
-}
-
-// Render the signed-in alerts list. Mock the DocumentCloud API the *service
-// worker* fetches — context.route (not page.route) is required because the
-// fetch originates in the SW; match on path so the baked-in host is irrelevant.
-// Seed auth before injecting: restore() reads it once at boot and the ListAlerts
-// effect fires its fetch on mount.
-async function renderSignedIn(
-  context: BrowserContext,
-  page: Page,
-  serviceWorker: Worker,
-) {
-  await context.route("**/addon_events/**", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify(scheduled),
-    }),
-  );
-  await context.route("**/addon_runs/**", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify(runs),
-    }),
-  );
-  await signIn(serviceWorker, makeStoredAuth());
-  await openSidebar(page, serviceWorker);
-}
+// ListAlerts is the app's home view. These tests render the injected sidebar
+// (open shadow DOM on #klaxon-host) and drive it through real clicks. Setup
+// lives in support/render.ts so every view spec shares the same harness.
 
 test("signed out: shows the Welcome sign-in state", async ({
   page,
@@ -71,11 +37,64 @@ test("signed in: shows the list of alerts", async ({
   await expect(page.locator(".row")).toHaveCount(scheduled.results.length);
 });
 
-// Accessibility scans of the same view in each auth state. Kept in their own
-// suite (separate from the functional assertions above) and strict: a WCAG 2
-// A/AA violation in the rendered sidebar fails the test. scanSidebar attaches
-// the full axe report and logs each offending element. This is the template for
-// a11y-checking future views.
+// Flow 4: edit multiple alerts from the list. The toolbar's "Select all" and
+// per-row checkboxes feed a bulk "Disable", which PATCHes each selected alert
+// to the disabled schedule.
+test.describe("bulk actions", () => {
+  test('"Select all" selects every row and disables them together', async ({
+    context,
+    page,
+    serviceWorker,
+  }) => {
+    const requests = await renderSignedIn(context, page, serviceWorker);
+    await expect(page.locator(".row")).toHaveCount(scheduled.results.length);
+
+    // Disable is inert until something is selected.
+    const disable = page.getByRole("button", { name: "Disable" });
+    await expect(disable).toBeDisabled();
+
+    await page.getByRole("checkbox").first().check(); // the toolbar select-all
+    await expect(
+      page.getByText(`${scheduled.results.length} selected`),
+    ).toBeVisible();
+    await expect(disable).toBeEnabled();
+
+    await disable.click();
+
+    await expect(
+      page.getByText(`${scheduled.results.length} alerts disabled.`),
+    ).toBeVisible();
+    // One PATCH per alert, each setting the disabled schedule.
+    expect(requests.updated).toHaveLength(scheduled.results.length);
+    for (const { payload } of requests.updated) {
+      expect(payload.event).toBe(scheduleValues.disabled);
+    }
+  });
+
+  test("disabling a single selected alert reports the singular result", async ({
+    context,
+    page,
+    serviceWorker,
+  }) => {
+    const requests = await renderSignedIn(context, page, serviceWorker);
+    await expect(page.locator(".row")).toHaveCount(scheduled.results.length);
+
+    // The first checkbox is the toolbar's select-all; the rest are per-row.
+    await page.locator(".row input[type='checkbox']").first().check();
+    await expect(page.getByText("1 selected")).toBeVisible();
+
+    await page.getByRole("button", { name: "Disable" }).click();
+
+    await expect(page.getByText("Alert disabled.")).toBeVisible();
+    expect(requests.updated).toHaveLength(1);
+    expect(requests.updated[0].payload.event).toBe(scheduleValues.disabled);
+  });
+});
+
+// Accessibility scans of the view in each auth state. Strict: a WCAG 2 A/AA
+// violation in the rendered sidebar fails the test. scanSidebar attaches the
+// full axe report and logs each offending element. This is the template for
+// a11y-checking every view.
 test.describe("accessibility", () => {
   test("signed out: Welcome state has no WCAG A/AA violations", async ({
     page,
