@@ -1,5 +1,5 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page, TestInfo } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 // WCAG 2.0/2.1 levels A and AA — the conventional baseline ruleset.
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];

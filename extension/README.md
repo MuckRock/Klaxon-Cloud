@@ -46,6 +46,24 @@ This produces a `build/` directory containing the extension files.
 6. The sidebar should appear on the right side of the page
 7. Hover over elements to see them highlighted; click to lock a selection
 
+### End-to-end tests
+
+We use Playwright for browser and accessibility testing. Before running these tests, make sure Playwright is installed:
+
+```sh
+npx playwright install --with-deps chromium
+```
+
+Then run the tests:
+
+```sh
+# headless
+npm run test:e2e
+
+# with a browser
+npm run test:e2e:headed
+```
+
 ## Registering an OAuth redirect URI
 
 Sign-in uses the browser's `identity.launchWebAuthFlow`, which returns to a
