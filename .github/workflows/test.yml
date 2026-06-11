@@ -34,3 +34,47 @@ jobs:
 
       - name: Test
         run: npm test
+
+  # Runs in parallel with `test`: loads the *built* extension into a persistent
+  # Chromium context and exercises the views + accessibility scans (e2e/).
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # The suite loads the built extension into a persistent Chromium context,
+      # so it needs a real browser (+ its OS libraries). Pin to chromium, the
+      # channel e2e/fixtures.ts launches.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # e2e/global-setup.ts builds the extension before the suite and requires
+      # extension/.env (MUCKROCK_* are baked in at build time). The values only
+      # need to be parseable — the suite mocks the API by path, not host — so the
+      # checked-in example is sufficient.
+      - name: Provide build env
+        run: cp .env.example .env
+
+      # github reporter annotates failures inline on the PR; html captures the
+      # axe-core attachments and traces for the uploaded report.
+      - name: Run e2e tests
+        run: npm run test:e2e -- --reporter=github,html
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: extension/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
