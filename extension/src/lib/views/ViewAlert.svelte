@@ -4,7 +4,7 @@
   import RelativeTime from "../components/RelativeTime.svelte";
   import { getRouter } from "../router.svelte";
   import { history, schedules } from "../api";
-  import { getSiteLabel, isEvent } from "../utils";
+  import { getRunLabel, getSiteLabel, isEvent } from "../utils";
   import { getCanvas } from "../canvas.svelte";
 
   interface Props {
@@ -23,7 +23,14 @@
   let loading = $state(true);
 
   $effect(() => {
-    if (selector) canvas.setSelector(selector);
+    if (selector) {
+      const el = canvas.setSelector(selector);
+      el?.scrollIntoView({
+        block: "start",
+        inline: "nearest",
+        behavior: "smooth",
+      });
+    }
     return () => {
       canvas.clearSelection();
     };
@@ -108,10 +115,10 @@
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {getSiteLabel(event)}
+                    {getRunLabel(run)}
                   </a>
                 {:else}
-                  <strong>{getSiteLabel(event)}</strong>
+                  <strong>{getRunLabel(run)}</strong>
                 {/if}
               </p>
               <div class="row-meta">

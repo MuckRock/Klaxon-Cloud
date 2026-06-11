@@ -276,6 +276,7 @@
     cursor: pointer;
     text-align: left;
     width: 100%;
+    font-family: var(--font-sans);
   }
 
   .toggle-arrow {

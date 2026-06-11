@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import Siren from "./Siren.svelte";
+  import SignInPrompt from "./SignInPrompt.svelte";
   import UserInfo from "./UserInfo.svelte";
-  import { authState, login, logout } from "../auth.svelte.ts";
+  import { authState, logout } from "../auth.svelte.ts";
 
   interface Props {
     children: Snippet;
@@ -28,22 +29,8 @@
         Klaxon monitors web pages for you and alerts you when they’ve changed.
       </p>
     </div>
-    <div class="account">
-      <p>Your alerts will be saved with your MuckRock account.</p>
-      {#if authState.status === "authenticating"}
-        <p>Signing in…</p>
-      {:else}
-        <button class="primary signIn" onclick={() => login()}>
-          Sign in with MuckRock
-        </button>
-      {/if}
-      {#if authState.status === "idle" && authState.error}
-        <p class="error">{authState.error}</p>
-      {/if}
-      <p>
-        If you don't have a MuckRock account, you can create one for free when
-        signing in.
-      </p>
+    <div class="sign-in">
+      <SignInPrompt />
     </div>
     <div class="get-started">
       <p>
@@ -62,9 +49,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
+    gap: 1em;
   }
   .introduction,
-  .account,
   .get-started {
     display: flex;
     flex-direction: column;
@@ -98,27 +85,9 @@
     font-weight: 600;
   }
 
-  button.primary {
-    width: 100%;
-    padding: 8px 12px;
-    color: var(--white);
-    background: var(--blue-3);
-    border: 1px solid var(--blue-4);
-    border-radius: 0.5em;
-    font-size: var(--font-sm);
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  button.primary:disabled {
-    background: #94a3b8;
-    cursor: not-allowed;
-  }
-
-  .error {
-    color: #b91c1c;
-    font-size: 12px;
-    margin: 6px 0 0;
+  .sign-in {
+    margin: 0 0.25em;
+    padding: 1.5em 0.75em;
   }
 
   .auth {

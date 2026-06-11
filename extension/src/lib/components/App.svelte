@@ -6,8 +6,8 @@
   import EditSelection from "../views/EditSelection.svelte";
   import Header from "./Header.svelte";
   import ListAlerts from "../views/ListAlerts.svelte";
-  import ListChanges from "../views/ListChanges.svelte";
   import SaveAlert from "../views/SaveAlert.svelte";
+  import SignIn from "../views/SignIn.svelte";
   import ToastList from "./ToastList.svelte";
   import ViewAlert from "../views/ViewAlert.svelte";
 
@@ -28,8 +28,8 @@
     createAlert: CreateAlert,
     editAlert: EditAlert,
     listAlerts: ListAlerts,
-    listChanges: ListChanges,
     saveAlert: SaveAlert,
+    signIn: SignIn,
     viewAlert: ViewAlert,
     editSelection: EditSelection,
   };
@@ -46,6 +46,18 @@
   );
   setCanvas(canvas);
 
+  // Views that display a selection. Leaving this set (e.g. clicking "Back" out
+  // to a list) clears the selection so it doesn't linger on the page. The pick
+  // views (createAlert/saveAlert) build a fresh selection that must survive the
+  // hop between them, so they can't just clear it on their own teardown.
+  const SELECTION_VIEWS: Set<View> = new Set([
+    "createAlert",
+    "saveAlert",
+    "editAlert",
+    "editSelection",
+    "viewAlert",
+  ]);
+
   function handleRouteChange(view: View) {
     canvas.active = [
       "createAlert",
@@ -54,6 +66,7 @@
       "viewAlert",
     ].includes(view);
     canvas.editable = !["editAlert", "viewAlert"].includes(view);
+    if (!SELECTION_VIEWS.has(view)) canvas.clearSelection();
   }
 
   // Bind to a reactive variable so the view re-mounts on navigation.
@@ -96,12 +109,19 @@
     --gray-1: #f5f6f7;
     --gray-2: #d8dee2;
     --gray-3: #99a8b3;
+    --gray-4: #5c717c;
+    --blue-1: #eaa4bb;
+    --blue-2: #b5ceed;
     --blue-3: #4294f0;
     --blue-4: #1367d0;
+    --orange-1: #fff0ee;
     --orange-2: #ffc2ba;
     --orange-3: #ec7b6b;
     --orange-4: #69515c;
+    --red-1: #eaa4bb;
+    --red-2: #eaa4bb;
     --red-3: #e1275f;
+    --red-4: #5d275f;
 
     --klaxon-bg: #fffdf3;
     --klaxon-bg-dark: #fff5e3;
@@ -173,7 +193,10 @@
     justify-content: flex-end;
     position: sticky;
     bottom: 0;
-    background: var(--klaxon-bg);
+    /* Fade overflow out beneath the row: transparent at the top edge,
+       reaching the full background before the button so content scrolling
+       underneath appears to dissolve rather than meet a hard line. */
+    background: linear-gradient(to bottom, transparent, var(--klaxon-bg) 20%);
     margin-top: 1em;
     padding: 1em;
   }
