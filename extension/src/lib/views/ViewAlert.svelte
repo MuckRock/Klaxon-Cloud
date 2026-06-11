@@ -42,7 +42,7 @@
 
   async function loadRuns(eventId: number, site: string) {
     loading = true;
-    const { data } = await history(site, { event: eventId, per_page: 10 });
+    const { data } = await history({ site, event: eventId, per_page: 10 });
     if (data) {
       runs = data.results.filter(
         (r) => isEvent(r.event) && r.event.id === eventId,
@@ -72,14 +72,9 @@
     </div>
 
     <dl class="details">
-      <dt>Site</dt>
+      <dt>URL</dt>
       <dd class="site">
-        <a
-          href={event.parameters.site}
-          class="link"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={event.parameters.site} class="link">
           {event.parameters.site}
         </a>
       </dd>

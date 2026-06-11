@@ -81,13 +81,25 @@ export const eventValues: Record<AddOnSchedule, number> = {
   weekly: 3,
 };
 
+// for history and scheduled
+interface SearchParams {
+  site?: string;
+  domain?: string;
+  cursor?: string;
+  per_page?: number;
+  event?: number;
+}
+
 /**
  * List Klaxon runs by site
  */
-export async function history(
-  site: string,
-  params: { cursor?: string; per_page?: number; event?: number } = {},
-): Promise<APIResponse<Page<Run>, unknown>> {
+export async function history({
+  cursor,
+  per_page,
+  event,
+  site,
+  domain,
+}: SearchParams): Promise<APIResponse<Page<Run>, unknown>> {
   const token = await getAccessToken().catch(console.warn);
   if (!token) {
     return { error: { status: 401, message: "Not authenticated" } };
@@ -97,15 +109,20 @@ export async function history(
     API_URL,
   );
   endpoint.searchParams.set("message", CHANGED); // filter out noop runs
-  endpoint.searchParams.set("site", site);
-  if (params.event) {
-    endpoint.searchParams.set("event", params.event.toString());
+  if (site) {
+    endpoint.searchParams.set("site", site);
   }
-  if (params.cursor) {
-    endpoint.searchParams.set("cursor", params.cursor);
+  if (domain) {
+    endpoint.searchParams.set("domain", domain);
   }
-  if (params.per_page) {
-    endpoint.searchParams.set("per_page", params.per_page.toString());
+  if (event) {
+    endpoint.searchParams.set("event", event.toString());
+  }
+  if (cursor) {
+    endpoint.searchParams.set("cursor", cursor);
+  }
+  if (per_page) {
+    endpoint.searchParams.set("per_page", per_page.toString());
   }
 
   const resp = await swFetch(endpoint, {
@@ -121,10 +138,13 @@ export async function history(
 /**
  * List scheduled add-on events
  */
-export async function scheduled(
-  site: string,
-  params: { cursor?: string; per_page?: number } = {},
-): Promise<APIResponse<Page<Event>, unknown>> {
+export async function scheduled({
+  site,
+  domain: domain,
+  cursor,
+  per_page,
+  event,
+}: SearchParams): Promise<APIResponse<Page<Event>, unknown>> {
   const token = await getAccessToken().catch(console.warn);
   if (!token) {
     return { error: { status: 401, message: "Not authenticated" } };
@@ -133,12 +153,20 @@ export async function scheduled(
     `addon_events/?expand=addon&addon=${KLAXON_ID}`,
     API_URL,
   );
-  endpoint.searchParams.set("site", site); // so it's encoded
-  if (params.cursor) {
-    endpoint.searchParams.set("cursor", params.cursor);
+  if (site) {
+    endpoint.searchParams.set("site", site); // so it's encoded
   }
-  if (params.per_page) {
-    endpoint.searchParams.set("per_page", params.per_page.toString());
+  if (domain) {
+    endpoint.searchParams.set("domain", domain);
+  }
+  if (event) {
+    endpoint.searchParams.set("event", event.toString());
+  }
+  if (cursor) {
+    endpoint.searchParams.set("cursor", cursor);
+  }
+  if (per_page) {
+    endpoint.searchParams.set("per_page", per_page.toString());
   }
 
   const resp = await swFetch(endpoint, {

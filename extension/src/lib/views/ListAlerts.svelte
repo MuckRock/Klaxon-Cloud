@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { ArrowRight, BellOff } from "@lucide/svelte";
-
   import type { Event, Page, Run } from "../types";
+
+  import { ArrowRight, BellOff } from "@lucide/svelte";
 
   import Link from "../components/Link.svelte";
   import Loading from "../components/Loading.svelte";
@@ -12,15 +12,12 @@
   import { authState } from "../auth.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
+  import { emptyPage, getSiteLabel, isEvent } from "../utils";
   import { getCanonicalURL } from "../url";
-  import { emptyPage, isEvent, getSiteLabel } from "../utils";
 
   const router = getRouter();
   const toaster = getToaster();
 
-  // This view owns its own data instead of receiving it via router props.
-  // The effect fetches on mount and re-runs whenever auth flips to
-  // authenticated (boot + re-login), with cancellation on unmount/re-run.
   let events = $state<Page<Event>>(emptyPage<Event>());
   let runs = $state<Page<Run>>(emptyPage<Run>());
 
@@ -33,25 +30,30 @@
     let cancelled = false;
 
     loadingAlerts = true;
-    Promise.all([scheduled(url), history(url)]).then(([eventsRes, runsRes]) => {
-      if (cancelled) return;
 
-      loadingAlerts = false;
+    const domain = window.location.origin;
 
-      // The API surfaces failures as a `.error` field rather than throwing.
-      // Leave any already-loaded data in place rather than blanking it out.
-      if (eventsRes.error || runsRes.error) {
-        console.error(
-          "Failed to load alerts:",
-          eventsRes.error ?? runsRes.error,
-        );
-        toaster.error("Something went wrong loading your alerts.");
-        return;
-      }
+    Promise.all([scheduled({ domain }), history({ domain })]).then(
+      ([eventsRes, runsRes]) => {
+        if (cancelled) return;
 
-      events = eventsRes.data ?? emptyPage<Event>();
-      runs = runsRes.data ?? emptyPage<Run>();
-    });
+        loadingAlerts = false;
+
+        // The API surfaces failures as a `.error` field rather than throwing.
+        // Leave any already-loaded data in place rather than blanking it out.
+        if (eventsRes.error || runsRes.error) {
+          console.error(
+            "Failed to load alerts:",
+            eventsRes.error ?? runsRes.error,
+          );
+          toaster.error("Something went wrong loading your alerts.");
+          return;
+        }
+
+        events = eventsRes.data ?? emptyPage<Event>();
+        runs = runsRes.data ?? emptyPage<Run>();
+      },
+    );
 
     return () => {
       cancelled = true;
@@ -168,9 +170,10 @@
         </div>
       {:else}
         <h3 class="alert-count">
-          You have <span class="alert-count-value"
-            >{rows.length} {rows.length > 1 ? "alerts" : "alert"}</span
-          > for this page.
+          You have <span class="alert-count-value">
+            {rows.length}
+            {rows.length > 1 ? "alerts" : "alert"}
+          </span> on this site.
         </h3>
 
         <div class="toolbar">
@@ -222,9 +225,9 @@
                   {/if}
                 </p>
                 <p class="row-meta">
-                  Checks <span class="schedule {schedules[event.event]}"
-                    >{schedules[event.event]}</span
-                  >
+                  Checks <span class="schedule {schedules[event.event]}">
+                    {schedules[event.event]}
+                  </span>
                 </p>
               </div>
             </div>
