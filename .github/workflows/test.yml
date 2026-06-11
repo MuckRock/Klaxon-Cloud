@@ -34,3 +34,45 @@ jobs:
 
       - name: Test
         run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # The suite loads the built extension into a persistent Chromium context.
+      - name: Install Playwright with Chromium
+        run: npx playwright install --with-deps chromium
+
+      # e2e/global-setup.ts builds the extension and requires extension/.env
+      # (MUCKROCK_* are baked in at build time). The mocked API is matched by
+      # path, so hosts/IDs don't matter — but MUCKROCK_CLIENT_ID must be non-empty:
+      # src/lib/auth.svelte.ts config() throws on an empty client id.
+      - name: Provide build env
+        run: |
+          cp .env.example .env
+          sed -i 's/^MUCKROCK_CLIENT_ID=.*/MUCKROCK_CLIENT_ID="e2e"/' .env
+
+      # github reporter annotates failures inline on the PR; html captures the
+      # axe-core attachments and traces for the uploaded report.
+      - name: Run e2e tests
+        run: npm run test:e2e -- --reporter=github,html
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: extension/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -72,7 +72,7 @@
   }
 
   button.back-link {
-    color: var(--red-3);
+    color: var(--klaxon-color-link);
     font-feature-settings:
       "liga" off,
       "clig" off;
