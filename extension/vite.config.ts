@@ -13,6 +13,12 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
   },
+  // Under Vitest, resolve Svelte's browser build so component tests can
+  // `mount()` (the default SSR build throws lifecycle_function_unavailable).
+  // Gated on VITEST so the production bundle is unaffected.
+  resolve: {
+    conditions: process.env.VITEST ? ["browser"] : [],
+  },
   plugins: [
     svelte({
       compilerOptions: {
