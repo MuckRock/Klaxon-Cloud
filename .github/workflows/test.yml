@@ -59,11 +59,15 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       # e2e/global-setup.ts builds the extension before the suite and requires
-      # extension/.env (MUCKROCK_* are baked in at build time). The values only
-      # need to be parseable — the suite mocks the API by path, not host — so the
-      # checked-in example is sufficient.
+      # extension/.env (MUCKROCK_* are baked in at build time). The mocked API
+      # is matched by path, so hosts/IDs don't matter — but MUCKROCK_CLIENT_ID
+      # must be non-empty: src/lib/auth.svelte.ts config() throws on an empty
+      # client id, which fails getAccessToken() and every authenticated request.
+      # The example leaves it blank, so set a dummy (auth is seeded in-test).
       - name: Provide build env
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          sed -i 's/^MUCKROCK_CLIENT_ID=.*/MUCKROCK_CLIENT_ID="e2e"/' .env
 
       # github reporter annotates failures inline on the PR; html captures the
       # axe-core attachments and traces for the uploaded report.
