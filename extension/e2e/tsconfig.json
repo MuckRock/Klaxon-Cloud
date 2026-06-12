@@ -1,0 +1,11 @@
+{
+  // e2e specs and fixtures run in Node (Playwright), not the browser, so they
+  // need Node types — not the `vite/client`/`chrome` browser globals the root
+  // tsconfig loads. This config owns e2e/ in the editor; svelte-check still
+  // runs against the root tsconfig, which deliberately excludes e2e/.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}
