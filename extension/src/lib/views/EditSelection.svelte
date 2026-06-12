@@ -7,6 +7,7 @@
   import { getToaster } from "../toaster.svelte";
   import { schedules, update } from "../api";
   import { getCanvas } from "../canvas.svelte";
+  import { WHOLE_PAGE_SELECTOR, isWholePage } from "../utils";
 
   interface Props {
     event: Event;
@@ -28,7 +29,7 @@
   // Pre-load this alert's existing selection into the canvas once, so the user
   // sees and tweaks it rather than starting from scratch. Cleared on unmount.
   onMount(() => {
-    if (event.parameters.selector) {
+    if (!isWholePage(event.parameters.selector)) {
       const el = canvas.setSelector(event.parameters.selector);
       el?.scrollIntoView({
         block: "start",
@@ -43,9 +44,12 @@
     saving = true;
 
     // Only a *locked* selection is a real choice. An unlocked canvas means
-    // "watch the whole page" — without this guard the canvas's live hover
-    // preview would leak in as an arbitrary selector.
-    const params = { ...event.parameters, selector: locked ? selector : "" };
+    // "watch the whole page", saved as "*" — without this guard the canvas's
+    // live hover preview would leak in as an arbitrary selector.
+    const params = {
+      ...event.parameters,
+      selector: locked && selector ? selector : WHOLE_PAGE_SELECTOR,
+    };
     const frequency = schedules[event.event] ?? "weekly";
 
     const result: APIResponse<Event, ValidationError> = await update(

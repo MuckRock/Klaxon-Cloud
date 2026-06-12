@@ -44,6 +44,7 @@ export interface OidcEndpoints {
   endSession: string;
   jwt: string;
   jwtRefresh: string;
+  login: string;
   signup: string;
 }
 
@@ -56,6 +57,7 @@ export function endpoints(host: string): OidcEndpoints {
     endSession: `${base}/openid/end-session`,
     jwt: `${base}/api/jwt/`,
     jwtRefresh: `${base}/api/refresh/`,
+    login: `${base}/accounts/login/`,
     signup: `${base}/accounts/signup/`,
   };
 }
@@ -93,12 +95,27 @@ export function buildAuthorizeUrl({
   return url.toString();
 }
 
-export function buildSignupUrl(host: string, authorizeUrl: string): string {
+// Front the OIDC authorize URL with an allauth account page (login or signup).
+// We never hand the bare /openid/authorize URL to launchWebAuthFlow: on
+// production Squarelet an unauthenticated user is bounced to login via a
+// redirect chain the auth window can't follow ("Authorization page could not
+// be loaded"). Starting at a real account page avoids that, and allauth resumes
+// the OIDC handshake by following the same-host-relative `?next=` once the user
+// is authenticated.
+function buildAccountUrl(endpoint: string, authorizeUrl: string): string {
   const authorize = new URL(authorizeUrl);
-  const url = new URL(endpoints(host).signup);
+  const url = new URL(endpoint);
   url.searchParams.set("next", authorize.pathname + authorize.search);
   url.searchParams.set("intent", "klaxon-cloud");
   return url.toString();
+}
+
+export function buildLoginUrl(host: string, authorizeUrl: string): string {
+  return buildAccountUrl(endpoints(host).login, authorizeUrl);
+}
+
+export function buildSignupUrl(host: string, authorizeUrl: string): string {
+  return buildAccountUrl(endpoints(host).signup, authorizeUrl);
 }
 
 export async function getAuthToken(

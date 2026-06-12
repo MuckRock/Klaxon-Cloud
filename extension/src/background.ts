@@ -13,6 +13,7 @@ import type {
 } from "./lib/types";
 import {
   buildAuthorizeUrl,
+  buildLoginUrl,
   buildSignupUrl,
   decodeJwtPayload,
   endpoints,
@@ -82,11 +83,16 @@ async function signIn(
     codeChallenge: challenge,
   });
 
-  // For "create", front the authorize URL with the signup page; allauth returns
-  // to the authorize URL (as `next`) once the account exists, so the rest of
-  // the flow below is identical to a normal login.
+  // Always front the authorize URL with an allauth account page: signup for
+  // "create", otherwise the login page. allauth returns to the authorize URL
+  // (as `next`) once the user is authenticated, so the rest of the flow below
+  // is identical for both actions. Handing launchWebAuthFlow the bare authorize
+  // URL fails on production Squarelet when the user isn't already signed in
+  // (see buildAccountUrl).
   const startUrl =
-    action === "create" ? buildSignupUrl(host, authorizeUrl) : authorizeUrl;
+    action === "create"
+      ? buildSignupUrl(host, authorizeUrl)
+      : buildLoginUrl(host, authorizeUrl);
 
   const finalUrl = await chrome.identity.launchWebAuthFlow({
     url: startUrl,

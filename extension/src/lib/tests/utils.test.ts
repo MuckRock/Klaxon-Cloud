@@ -1,5 +1,25 @@
 import { describe, it, expect } from "vitest";
-import { parseTimestamp } from "../utils";
+import { isWholePage, parseTimestamp } from "../utils";
+
+describe("isWholePage", () => {
+  it("treats the '*' selector as whole-page", () => {
+    expect(isWholePage("*")).toBe(true);
+    expect(isWholePage(" * ")).toBe(true);
+  });
+
+  it("treats an empty/whitespace/missing selector as whole-page (legacy)", () => {
+    expect(isWholePage("")).toBe(true);
+    expect(isWholePage("   ")).toBe(true);
+    expect(isWholePage(null)).toBe(true);
+    expect(isWholePage(undefined)).toBe(true);
+  });
+
+  it("treats a real selector as a partial selection", () => {
+    expect(isWholePage("#main")).toBe(false);
+    expect(isWholePage("div.content > p")).toBe(false);
+    expect(isWholePage("readme-toc")).toBe(false);
+  });
+});
 
 describe("parseTimestamp", () => {
   it("parses a valid YYYYMMDDHHMMSS timestamp as UTC", () => {

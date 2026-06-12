@@ -12,6 +12,7 @@
   import { getRouter } from "../router.svelte";
   import { eventValues, schedules, update } from "../api";
   import { completeSave, reportSaveError } from "../save";
+  import { isWholePage } from "../utils";
 
   interface Props {
     event: Event;
@@ -22,6 +23,7 @@
   let form: HTMLFormElement | undefined = $state();
 
   let selector = $derived(event.parameters.selector);
+  let wholePage = $derived(isWholePage(selector));
 
   const router = getRouter();
   const toaster = getToaster();
@@ -31,7 +33,7 @@
   let saving = $state(false);
 
   $effect(() => {
-    if (selector) {
+    if (!wholePage) {
       const el = canvas.setSelector(selector);
       el?.scrollIntoView({
         block: "start",
@@ -105,7 +107,7 @@
       <h3>Edit alert</h3>
       <p class="description">
         This alert is watching <strong>
-          {selector ? "part of the page" : "the entire page"}
+          {wholePage ? "the entire page" : "part of the page"}
         </strong> for changes.
       </p>
       <button
