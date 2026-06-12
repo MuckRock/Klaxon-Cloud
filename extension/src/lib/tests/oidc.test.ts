@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   base64UrlEncode,
   buildAuthorizeUrl,
+  buildLoginUrl,
   buildSignupUrl,
   decodeJwtPayload,
   endpoints,
@@ -100,10 +101,10 @@ describe("endpoints", () => {
     expect(ep.jwtRefresh).toBe("https://accounts.muckrock.com/api/refresh/");
   });
 
-  it("builds the allauth signup endpoint with a trailing slash", () => {
-    expect(endpoints("https://dev.squarelet.com/").signup).toBe(
-      "https://dev.squarelet.com/accounts/signup/",
-    );
+  it("builds the allauth login and signup endpoints with a trailing slash", () => {
+    const ep = endpoints("https://dev.squarelet.com/");
+    expect(ep.login).toBe("https://dev.squarelet.com/accounts/login/");
+    expect(ep.signup).toBe("https://dev.squarelet.com/accounts/signup/");
   });
 });
 
@@ -148,7 +149,10 @@ describe("buildAuthorizeUrl", () => {
   });
 });
 
-describe("buildSignupUrl", () => {
+describe.each([
+  ["buildLoginUrl", buildLoginUrl, "/accounts/login/"],
+  ["buildSignupUrl", buildSignupUrl, "/accounts/signup/"],
+] as const)("%s", (_name, build, expectedPath) => {
   const authorizeUrl = buildAuthorizeUrl({
     host: "https://dev.squarelet.com",
     clientId: "muckrock-extension",
@@ -159,18 +163,16 @@ describe("buildSignupUrl", () => {
     codeChallenge: "C",
   });
 
-  it("points at the signup page", () => {
-    const url = new URL(
-      buildSignupUrl("https://dev.squarelet.com", authorizeUrl),
-    );
+  it(`points at the ${expectedPath} page`, () => {
+    const url = new URL(build("https://dev.squarelet.com", authorizeUrl));
     expect(url.origin + url.pathname).toBe(
-      "https://dev.squarelet.com/accounts/signup/",
+      `https://dev.squarelet.com${expectedPath}`,
     );
   });
 
-  it("carries the authorize URL as a same-host relative ?next= so the OIDC flow resumes after signup", () => {
+  it("carries the authorize URL as a same-host relative ?next= so the OIDC flow resumes after authenticating", () => {
     const next = new URL(
-      buildSignupUrl("https://dev.squarelet.com", authorizeUrl),
+      build("https://dev.squarelet.com", authorizeUrl),
     ).searchParams.get("next");
     expect(next).not.toBeNull();
     // Relative path (no scheme/host) keeps allauth's safe-redirect check happy.
