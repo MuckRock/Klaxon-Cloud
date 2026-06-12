@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Klaxon Cloud — a Chrome/Firefox MV3 browser extension (Svelte 5 + Vite + TypeScript) that injects a sidebar into the active page. The user hovers/clicks/drags to pick a DOM region; the extension records a CSS selector + matched text used to monitor that region for changes. Successor to the older Klaxon bookmarklet.
 
-The repo lives at `Klaxon-Cloud/extension/`. The parent repo also contains `plans/` (design docs) and may contain a symlinked `research/` dir.
+The repo lives at `Klaxon-Cloud/extension/`. The parent repo also contains `docs/plans/` (design docs) and may contain a symlinked `research/` dir.
 
 ## Commands
 
@@ -90,7 +90,7 @@ OIDC + PKCE against Squarelet, public client (no secret).
 - **Two token tiers** (the OIDC→JWT exchange is implemented; this is the current shape, not a plan): the stored record is `{ oidc, jwt, userinfo }`.
   - `oidc` — the Squarelet OIDC tokens from the PKCE flow (`/openid/token`).
   - `jwt` — a **DocumentCloud JWT** minted by `POST /api/jwt/` on Squarelet ([PR #675](https://github.com/MuckRock/squarelet/pull/675)) from the OIDC access token (`exchangeOidcForJwt`, body `{ oidc_token }`). **DC API calls use this JWT**, not the OIDC token — `accessToken()` returns `jwt.access_token`.
-  - Refresh is two-tiered (`refreshTokens` in `background.ts`): first refresh the JWT directly via `POST /api/refresh/` (`refreshJwt`, body `{ refresh }`); on failure, refresh the OIDC token and re-mint the JWT + re-fetch userinfo; if that also fails, sign out. `isValidStoredAuth` drops legacy `{ auth, userinfo }` records so only the three-slot shape is seen. Original plan at [`../plans/auth-jwt-exchange.md`](../plans/auth-jwt-exchange.md).
+  - Refresh is two-tiered (`refreshTokens` in `background.ts`): first refresh the JWT directly via `POST /api/refresh/` (`refreshJwt`, body `{ refresh }`); on failure, refresh the OIDC token and re-mint the JWT + re-fetch userinfo; if that also fails, sign out. `isValidStoredAuth` drops legacy `{ auth, userinfo }` records so only the three-slot shape is seen. Original plan at [`../docs/plans/auth-jwt-exchange.md`](../docs/plans/auth-jwt-exchange.md).
 
 ## Conventions
 
