@@ -43,8 +43,8 @@ test("create an alert watching the whole page", async ({
   expect(requests.created).toHaveLength(1);
   expect(requests.created[0].event).toBe(scheduleValues.daily);
   expect(requests.created[0].parameters.title).toBe("Homepage watch");
-  // Whole page → no selector.
-  expect(requests.created[0].parameters.selector).toBe("");
+  // Whole page → "*" selector.
+  expect(requests.created[0].parameters.selector).toBe("*");
 });
 
 test("create an alert watching a page selection", async ({
