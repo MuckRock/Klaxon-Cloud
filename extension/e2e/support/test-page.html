@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Klaxon e2e test page</title>
+    <style>
+      /*
+        CSS-leak trap. These re-declare every Klaxon design token from
+        App.svelte's :host block, but with deliberately wrong values, set on
+        :root so they'd inherit into anything that doesn't redefine them.
+
+        Custom properties inherit across the shadow boundary, so if the sidebar
+        ever stops defining a token on :host, the shadow tree will pick up the
+        poison value below. css-leaks.spec.ts reads the sidebar's computed
+        tokens and fails if any of them match these.
+
+        Keep this list in sync with the :host block in App.svelte. The values
+        only need to differ from the real ones; they're intentionally garish so
+        a leak is obvious in --headed runs too.
+      */
+      :root {
+        --font-sans: "Comic Sans MS", cursive;
+        --font-xs: 40px;
+        --font-sm: 41px;
+        --font-md: 42px;
+        --font-lg: 43px;
+        --font-xl: 44px;
+
+        --klaxon-color-link: lime;
+        --white: black;
+        --gray-1: hotpink;
+        --gray-2: hotpink;
+        --gray-3: hotpink;
+        --gray-4: hotpink;
+        --blue-1: lime;
+        --blue-2: lime;
+        --blue-3: lime;
+        --blue-4: lime;
+        --orange-1: purple;
+        --orange-2: purple;
+        --orange-3: purple;
+        --orange-4: purple;
+        --red-1: cyan;
+        --red-2: cyan;
+        --red-3: cyan;
+        --red-4: cyan;
+
+        --klaxon-bg: magenta;
+        --klaxon-bg-dark: teal;
+
+        --klaxon-border-radius: 99px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Klaxon e2e test page</h1>
+  </body>
+</html>

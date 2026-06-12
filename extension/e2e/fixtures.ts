@@ -1,3 +1,4 @@
+import type { StoredAuth } from "../src/lib/types";
 import {
   test as base,
   chromium,
@@ -5,16 +6,14 @@ import {
   type Page,
   type Worker,
 } from "@playwright/test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { StoredAuth } from "../src/lib/types";
-
-// `chrome` is the extension service-worker global. e2e/ is outside tsconfig's
-// `include`, so @types/chrome isn't loaded here; declare it loosely. The
-// callback bodies below run in the SW, not in this Node process.
+// `chrome` is the extension service-worker global. e2e/tsconfig.json doesn't
+// load @types/chrome (this is Node, not the browser), so declare it loosely.
+// The callback bodies below run in the SW, not in this Node process.
 declare const chrome: any;
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -68,16 +67,10 @@ export async function signOut(serviceWorker: Worker) {
 
 export const TEST_PAGE_URL = "https://klaxon.test/";
 
-export const TEST_PAGE_HTML = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Klaxon e2e test page</title>
-  </head>
-  <body>
-    <h1>Klaxon e2e test page</h1>
-  </body>
-</html>`;
+export const TEST_PAGE_HTML = readFileSync(
+  resolve(here, "support", "test-page.html"),
+  "utf8",
+);
 
 /**
  * Navigate to the throwaway test page (fulfilled locally) and inject the
