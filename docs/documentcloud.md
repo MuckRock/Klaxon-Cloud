@@ -1,11 +1,8 @@
 # The DocumentCloud Add-On backend
 
-DocumentCloud is the system of record and the orchestrator. Everything here lives
-in the [`addons` app](https://github.com/MuckRock/documentcloud/tree/master/documentcloud/addons)
-of [`MuckRock/documentcloud`](https://github.com/MuckRock/documentcloud). Klaxon
-is **not special** to DocumentCloud — it's one Add-On among many, and this whole
-subsystem is generic. Klaxon-specific behavior lives entirely in the Add-On
-script and the extension.
+DocumentCloud is the system of record and the orchestrator for all Add-Ons. Everything lives in the [`addons` app](https://github.com/MuckRock/documentcloud/tree/master/documentcloud/addons) of [`MuckRock/documentcloud`](https://github.com/MuckRock/documentcloud).
+
+Klaxon is **not special** to DocumentCloud — it's one Add-On among many, and this whole subsystem is generic. Klaxon-specific behavior lives entirely in the Add-On script and the extension.
 
 Key files:
 
@@ -14,8 +11,7 @@ Key files:
 - [`views.py`](https://github.com/MuckRock/documentcloud/blob/master/documentcloud/addons/views.py) — the REST API viewsets and filters, plus the GitHub webhook and the file server.
 - [`serializers.py`](https://github.com/MuckRock/documentcloud/blob/master/documentcloud/addons/serializers.py), [`choices.py`](https://github.com/MuckRock/documentcloud/blob/master/documentcloud/addons/choices.py).
 
-The data models are summarized in [architecture.md](./architecture.md#shared-data-model);
-this page focuses on the **API** and the **orchestration**.
+The data models are summarized in [architecture.md](./architecture.md#shared-data-model); this page focuses on the **API** and the **orchestration**.
 
 ## The API surface
 
@@ -72,13 +68,10 @@ sent — through DocumentCloud, addressed to the user's account email.
 
 ### Site and domain filters
 
-Both `addon_events` and `addon_runs` support filtering by the watched URL, backed
-by partial expression indexes on `AddOnEvent.parameters`:
+Both `addon_events` and `addon_runs` support filtering by the watched URL, backed by partial expression indexes on `AddOnEvent.parameters`:
 
 - **`site`** — case-insensitive exact match on `parameters.site`.
-- **`domain`** — matches the **origin** (scheme + host) of `parameters.site`,
-  e.g. `https://www.nifc.gov`. Implemented with a `SiteOrigin` SQL function and a
-  matching index so the filter and index can't drift.
+- **`domain`** — matches the **origin** (scheme + host) of `parameters.site`, a matching index so the filter and index can't drift.
 
 For runs, these filter on the **event's** parameters
 (`event__parameters__site`), since a run's own parameters aren't where the site
@@ -88,9 +81,7 @@ lives.
 
 ### Scheduling (`dispatch_events`)
 
-[`dispatch_events`](https://github.com/MuckRock/documentcloud/blob/master/documentcloud/addons/tasks.py)
-is a periodic Celery task. Its design is worth understanding because it's
-non-obvious:
+[`dispatch_events`](https://github.com/MuckRock/documentcloud/blob/master/documentcloud/addons/tasks.py) is a periodic Celery task. Its design is worth understanding because it's non-obvious:
 
 - It's intended to run on a **5-minute crontab** (Celery beat). **⚠️ Unclear:**
   the exact beat schedule is in DocumentCloud settings, which weren't examined;
@@ -99,9 +90,7 @@ non-obvious:
 - Time is divided into 5-minute **buckets**: 12 per hour, 288 per day, 2016 per
   week.
 - Each event is deterministically assigned a bucket by its **database id**:
-  `id % 12` (hourly), `id % 288` (daily), `id % 2016` (weekly). On each tick, the
-  task computes the current bucket for each cadence and dispatches every event
-  whose `id % N` matches.
+  `id % 12` (hourly), `id % 288` (daily), `id % 2016` (weekly). On each tick, the task computes the current bucket for each cadence and dispatches every event whose `id % N` matches.
 
 The consequence: an **hourly** alert runs once per hour, but the specific
 5-minute slot within the hour is fixed by its event id (not by when you created
@@ -171,15 +160,9 @@ API to cancel the workflow run if it's still `queued`/`in_progress`.
 
 ## Config sync and GitHub integration
 
-- **`update_config`** (task) pulls the Add-On repo's `config.yaml` via the GitHub
-  API and loads it into `AddOn.parameters` (this is where the `site`/`selector`/…
-  parameter schema, title, and description come from). It's triggered on repo
-  changes.
-- **`github_webhook`** (view) handles GitHub App install/uninstall and push
-  events, maintaining `GitHubAccount` / `GitHubInstallation` rows and kicking off
-  `update_config`. Signature-verified with `GITHUB_WEBHOOK_SECRET`.
-- GitHub App installation tokens are minted on demand (JWT signed with the app's
-  private key) and cached.
+- **`update_config`** (task) pulls the Add-On repo's `config.yaml` via the GitHub API and loads it into `AddOn.parameters` (this is where the `site`/`selector`/… parameter schema, title, and description come from). It's triggered on repo changes.
+- **`github_webhook`** (view) handles GitHub App install/uninstall and push events, maintaining `GitHubAccount` / `GitHubInstallation` rows and kicking off `update_config`. Signature-verified with `GITHUB_WEBHOOK_SECRET`.
+- GitHub App installation tokens are minted on demand (JWT signed with the app's private key) and cached.
 
 ## File storage
 
@@ -194,4 +177,3 @@ When the Add-On uploads `diff.html`:
 
 Files expire (`file_expires_at`), so older runs' diffs may no longer be
 downloadable even though the run record remains.
-</content>

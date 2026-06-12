@@ -1,38 +1,26 @@
 # The Klaxon Add-On script
 
-The program that actually observes a site. It lives in [`MuckRock/Klaxon`](https://github.com/MuckRock/Klaxon) as a single [`main.py`](https://github.com/MuckRock/Klaxon/blob/main/main.py), with its parameter schema in [`config.yaml`](https://github.com/MuckRock/Klaxon/blob/main/config.yaml). It is a standard **DocumentCloud Add-On**: it subclasses `AddOn` from the [`python-documentcloud`](https://github.com/MuckRock/python-documentcloud) SDK and runs **inside GitHub Actions**, one process per run.
+The program that actually observes a site. It lives in [`MuckRock/Klaxon`](https://github.com/MuckRock/Klaxon) as a single [`main.py`](https://github.com/MuckRock/Klaxon/blob/main/main.py), with its parameter schema in [`config.yaml`](https://github.com/MuckRock/Klaxon/blob/main/config.yaml).
+
+It is a standard **DocumentCloud Add-On**: it subclasses `AddOn` from the [`python-documentcloud`](https://github.com/MuckRock/python-documentcloud) SDK and runs **inside GitHub Actions**, one process per run.
 
 ## How it's invoked
 
-A run is triggered by a `repository_dispatch` event that DocumentCloud fires (see
-[documentcloud.md](./documentcloud.md#dispatch-addonevent-dispatch--dispatch-task--addon-dispatch)).
-The reusable workflow at
-[`MuckRock/documentcloud-addon-workflows`](https://github.com/MuckRock/documentcloud-addon-workflows)
-(`.github/workflows/run-addon.yml`), referenced by Klaxon's own
-[`run-addon.yml`](https://github.com/MuckRock/Klaxon/blob/main/.github/workflows/run-addon.yml),
-does the harness work:
+A run is triggered by a `repository_dispatch` event that DocumentCloud fires (see [documentcloud.md](./documentcloud.md#dispatch-addonevent-dispatch--dispatch-task--addon-dispatch)). The reusable workflow at [`MuckRock/documentcloud-addon-workflows`](https://github.com/MuckRock/documentcloud-addon-workflows)(`.github/workflows/run-addon.yml`), referenced by Klaxon's own [`run-addon.yml`](https://github.com/MuckRock/Klaxon/blob/main/.github/workflows/run-addon.yml), does the harness work:
 
 1. Reads the GitHub event payload from `$GITHUB_EVENT_PATH`.
-2. Echoes the run id (`client_payload.id`) as a step — this is the step
-   DocumentCloud later reads back to match the run to its uuid.
+2. Echoes the run id (`client_payload.id`) as a step — this is the step DocumentCloud later reads back to match the run to its uuid.
 3. Checks out the Add-On repo, sets up Python, and `pip install -r requirements.txt`.
 4. Extracts the whole `client_payload` as JSON and runs **`python main.py "$PAYLOAD"`**.
-5. Passes the Internet Archive credentials as the env vars **`KEY`** and
-   **`TOKEN`** (from the repo's `SAVEPAGENOW_ACCESS_KEY` /
-   `SAVEPAGENOW_SECRET_KEY` secrets), plus DocumentCloud auth.
+5. Passes the Internet Archive credentials as the env vars **`KEY`** and **`TOKEN`** (from the repo's `SAVEPAGENOW_ACCESS_KEY` / `SAVEPAGENOW_SECRET_KEY` secrets), plus DocumentCloud auth.
 
-The SDK's base class parses that payload argument into `self.data` (the
-parameters), `self.id` (the run uuid), `self.event_id`, `self.user_id`,
-`self.org_id`, and an authenticated API `self.client`. The token from the payload
-lets the client act **as the user who owns the alert**.
+The SDK's base class parses that payload argument into `self.data` (the parameters), `self.id` (the run uuid), `self.event_id`, `self.user_id`, `self.org_id`, and an authenticated API `self.client`. The token from the payload lets the client act **as the user who owns the alert**.
 
-`run-addon.yml` sets a **15-minute timeout** on the job; a run that exceeds it is
-cancelled (which DocumentCloud sees as a failure for auto-disable purposes).
+`run-addon.yml` sets a **15-minute timeout** on the job; a run that exceeds it is cancelled (which DocumentCloud sees as a failure for auto-disable purposes).
 
 ## Inputs
 
-From `config.yaml` (synced into the Add-On's `parameters` on DocumentCloud), the
-parameters — i.e. `self.data` — are:
+From `config.yaml` (synced into the Add-On's `parameters` on DocumentCloud), the parameters — i.e. `self.data` — are:
 
 | Parameter | Required | Meaning |
 | --- | --- | --- |
@@ -150,4 +138,3 @@ snapshot.
   (the older "Add to Klaxon" entry point that redirected into DocumentCloud's
   generic Add-On dispatch form). The browser extension in this repo is its
   successor; the bookmarklet path is not part of the extension flow.
-</content>

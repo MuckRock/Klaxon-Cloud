@@ -17,6 +17,10 @@ This documentation maps out the **whole system, end to end**: the four moving pa
 - **[documentcloud.md](./documentcloud.md)** — the DocumentCloud Add-On backend: the data models, the API the extension talks to, scheduling, and how runs are dispatched to GitHub Actions.
 - **[addon.md](./addon.md)** — the Klaxon Add-On script: what actually runs on a schedule to observe a site, diff it against the Internet Archive, and record a result.
 
+## Summary
+
+The browser extension lets a signed-in user select a page region and save it as an **alert**. Saving an alert creates an **Add-On Event** in DocumentCloud via its API. DocumentCloud runs a scheduler that, on a cadence (hourly/daily/weekly), **dispatches** each due event: it creates an **Add-On Run** record and fires a GitHub `repository_dispatch` at the `MuckRock/Klaxon` repo. GitHub Actions runs the Klaxon **Add-On script**, which fetches the watched region from both the live site and its most recent Internet Archive snapshot, diffs them, and — if they differ — archives a fresh snapshot, emails/Slacks the user, and writes the result (timestamps, snapshot URL, comparison URL, an uploaded HTML diff) back onto the Run via the DocumentCloud API. The extension then reads those Runs back from the API to show the user their recent **changes**.
+
 ## The four moving parts
 
 | Part | Repo | Role |
@@ -41,7 +45,3 @@ The single most important thing to understand is that **the same two concepts go
 | **Add-On** (`addons`) | (not surfaced) | The Klaxon program itself, registered once in DocumentCloud and pointed at the `MuckRock/Klaxon` GitHub repo. |
 
 So: **an "alert" is an event, and a "change" is a run that found a difference.** The rest of these docs use whichever term fits the layer being described and cross-references the other.
-
-## One-paragraph summary
-
-The browser extension lets a signed-in user select a page region and save it as an **alert**. Saving an alert creates an **Add-On Event** in DocumentCloud via its API. DocumentCloud runs a scheduler that, on a cadence (hourly/daily/weekly), **dispatches** each due event: it creates an **Add-On Run** record and fires a GitHub `repository_dispatch` at the `MuckRock/Klaxon` repo. GitHub Actions runs the Klaxon **Add-On script**, which fetches the watched region from both the live site and its most recent Internet Archive snapshot, diffs them, and — if they differ — archives a fresh snapshot, emails/Slacks the user, and writes the result (timestamps, snapshot URL, comparison URL, an uploaded HTML diff) back onto the Run via the DocumentCloud API. The extension then reads those Runs back from the API to show the user their recent **changes**.

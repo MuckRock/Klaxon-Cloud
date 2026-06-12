@@ -1,10 +1,6 @@
 # The browser extension (Klaxon Cloud)
 
-The repo you're in. A Chrome/Firefox Manifest V3 extension built with Svelte 5,
-Vite, and TypeScript. It lives in [`extension/`](../extension/). This page covers
-what it does and how it talks to the rest of the system; for build/dev mechanics
-see [`extension/README.md`](../extension/README.md) and
-[`extension/CLAUDE.md`](../extension/CLAUDE.md).
+A Chrome/Firefox extension built with Svelte 5, Vite, and TypeScript. It lives in [`extension/`](../extension/). This page covers what it does and how it talks to the rest of the system; for build/dev mechanics see [`extension/README.md`](../extension/README.md) and [`extension/CLAUDE.md`](../extension/CLAUDE.md).
 
 ## What it is
 
@@ -50,15 +46,9 @@ Implemented in [`src/lib/canvas.svelte.ts`](../extension/src/lib/canvas.svelte.t
   (id / classes / data-attrs / semantic attrs / `nth-of-type`) and serializes it.
 - Picking is only live on the picker views (`createAlert`, `editSelection`); the
   router toggles `canvas.active` / `canvas.editable` as views change.
-- If **no** selection is locked when saving, the alert watches the **whole page**,
-  saved as the selector `"*"` — the value the Add-On's `soup.select("*")` expects.
-  An empty selector would raise on the backend, so the save paths (`SaveAlert`,
-  `EditSelection`) normalize whole-page to `"*"` via `WHOLE_PAGE_SELECTOR`. The
-  `isWholePage()` helper in `utils.ts` treats both `"*"` and a legacy empty string
-  as whole-page when displaying alerts.
+- If **no** selection is locked when saving, the alert watches the **whole page**, saved as the selector `"*"` — the value the Add-On's `soup.select("*")` expects. An empty selector would raise on the backend, so the save paths (`SaveAlert`, `EditSelection`) normalize whole-page to `"*"` via `WHOLE_PAGE_SELECTOR`. The `isWholePage()` helper in `utils.ts` treats both `"*"` and a legacy empty string as whole-page when displaying alerts.
 
-The selector string is what ends up in the event's `parameters.selector` and is
-later handed to the Add-On, which runs it through BeautifulSoup's `soup.select()`.
+The selector string is what ends up in the event's `parameters.selector` and is later handed to the Add-On, which runs it through BeautifulSoup's `soup.select()`.
 
 ## Views and navigation
 
@@ -182,4 +172,3 @@ values and the math behind them are documented in detail in
 `MUCKROCK_ACCOUNTS_HOST`, `MUCKROCK_DOCUMENTCLOUD_API`, and `MUCKROCK_SCOPES`
 default to the dev environment. See
 [`extension/.env.example`](../extension/.env.example).
-</content>

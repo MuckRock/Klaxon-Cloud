@@ -54,27 +54,17 @@ The numbered edges correspond to the lifecycle in [data-flow.md](./data-flow.md)
 
 ### 1. Browser extension — "Klaxon Cloud" (this repo)
 
-A Chrome/Firefox Manifest V3 extension (Svelte 5 + Vite + TypeScript) that
-injects a sidebar into the current page. The user hovers/clicks/drags to pick a
-DOM region; the extension builds a CSS selector for it and lets the user save it
-as an **alert** with a schedule and notification options. It also lists the
-user's existing alerts for the current site and their recent changes.
+A Chrome/Firefox extension (Svelte 5 + Vite + TypeScript) that injects a sidebar into the current page. The user hovers/clicks/drags to pick a DOM region; the extension builds a CSS selector for it and lets the user save it as an **alert** with a schedule and notification options. It also lists the user's existing alerts for the current site and their recent changes.
 
-It is purely a **client of the DocumentCloud API**. It holds no data of its own
-beyond auth tokens; everything it shows is fetched from DocumentCloud. See
-[extension.md](./extension.md).
+It is purely a **client of the DocumentCloud API**. It holds no data of its own beyond auth tokens; everything it shows is fetched from DocumentCloud. See [extension.md](./extension.md).
 
 ### 2. DocumentCloud server
 
 The system of record. It:
 
-- stores the **Add-On** registration (Klaxon's name, GitHub repo, parameter
-  schema), each user's **Add-On Events** (alerts), and every **Add-On Run**
-  (execution);
-- exposes the REST API the extension uses (`/api/addon_events/`,
-  `/api/addon_runs/`, `/api/addons/`, `/api/messages/`);
-- runs the **scheduler** (a periodic Celery task) that decides which events are
-  due and **dispatches** them;
+- stores the **Add-On** registration (Klaxon's name, GitHub repo, parameter schema), each user's **Add-On Events** (alerts), and every **Add-On Run** (execution);
+- exposes the REST API the extension uses (`/api/addon_events/`, `/api/addon_runs/`, `/api/addons/`, `/api/messages/`);
+- runs the **scheduler** (a periodic Celery task) that decides which events are due and **dispatches** them;
 - talks to GitHub to fire each run and to poll its status;
 - stores the HTML diff files the Add-On uploads (on S3) and serves them back.
 
@@ -82,28 +72,15 @@ See [documentcloud.md](./documentcloud.md).
 
 ### 3. Klaxon Add-On script
 
-The Python program in [`MuckRock/Klaxon`](https://github.com/MuckRock/Klaxon)
-(`main.py`). It runs **inside GitHub Actions**, one invocation per run. It reads
-its parameters (site, selector, etc.) from the dispatch payload, compares the
-watched region of the live site against the most recent Internet Archive
-snapshot, and — when they differ — archives a new snapshot, sends notifications,
-and writes the results back to the DocumentCloud API. See [addon.md](./addon.md).
+The Python program in [`MuckRock/Klaxon`](https://github.com/MuckRock/Klaxon) (`main.py`). It runs **inside GitHub Actions**, one invocation per run. It reads its parameters (site, selector, etc.) from the dispatch payload, compares the watched region of the live site against the most recent Internet Archive snapshot, and — when they differ — archives a new snapshot, sends notifications, and writes the results back to the DocumentCloud API. See [addon.md](./addon.md).
 
-### 4. Squarelet (identity)
+### 4. MuckRock Accounts / Squarelet (identity)
 
-MuckRock's shared OIDC identity provider. The extension authenticates the user
-against Squarelet (Authorization Code + PKCE), then exchanges the resulting OIDC
-token for a **DocumentCloud JWT**, which is what the DocumentCloud API actually
-accepts. Squarelet also issues the refresh tokens DocumentCloud uses to let the
-Add-On act *as the user* when it calls back into the API. See the Auth section of
-[extension.md](./extension.md).
+MuckRock's shared OIDC identity provider. The extension authenticates the user against Squarelet (Authorization Code + PKCE), then exchanges the resulting OIDC token for a **DocumentCloud JWT**, which is what the DocumentCloud API actually accepts. Squarelet also issues the refresh tokens DocumentCloud uses to let the Add-On act *as the user* when it calls back into the API. See the Auth section of [extension.md](./extension.md).
 
 ## Shared data model
 
-Three Django models in DocumentCloud's `addons` app carry essentially all of the
-state. (Field lists are summarized; see
-[`documentcloud/addons/models.py`](https://github.com/MuckRock/documentcloud/blob/master/documentcloud/addons/models.py)
-for the authoritative definitions.)
+Three Django models in DocumentCloud's `addons` app carry essentially all of the state. (Field lists are summarized; see [`documentcloud/addons/models.py`](https://github.com/MuckRock/documentcloud/blob/master/documentcloud/addons/models.py) for the authoritative definitions.)
 
 ### `AddOn` — the program
 
@@ -118,10 +95,7 @@ One row for Klaxon itself. Created/maintained by MuckRock, not by end users.
 | `default`, `featured`, `access` | Visibility/availability flags. |
 
 In the extension this is referenced only by numeric id, via the
-`MUCKROCK_KLAXON_ID` build-time env var. **⚠️ Unclear:** whether a user must
-explicitly "activate"/install the Klaxon Add-On before they can create events for
-it, or whether it being a default/public Add-On is sufficient. See
-[open-questions.md](./open-questions.md).
+`MUCKROCK_KLAXON_ID` build-time env var.The Klaxon Add-On is available to all DocumentCloud users.
 
 ### `AddOnEvent` — the alert
 
@@ -139,7 +113,7 @@ disables.
 The `scratch` field is the crucial piece of cross-run memory: it's how a
 scheduled run knows which archived snapshot to diff against.
 
-### `AddOnRun` — the change (and every non-change too)
+### `AddOnRun` — the change (and every non-change, too)
 
 One row per execution of the Add-On.
 
@@ -176,4 +150,3 @@ AddOn      ── "Klaxon", the program (one row, MuckRock-owned)
 | Creating/serving Internet Archive snapshots | Klaxon Add-On ↔ Internet Archive |
 | Storing/serving the HTML diff file | DocumentCloud (S3) |
 | Sending email / Slack | Klaxon Add-On (email via DocumentCloud `messages/` API; Slack direct to webhook) |
-</content>
