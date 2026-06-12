@@ -14,6 +14,7 @@
   import { dispatch } from "../api";
   import { completeSave, reportSaveError } from "../save";
   import { getCanonicalURL, getCanonicalTitle } from "../url";
+  import { WHOLE_PAGE_SELECTOR } from "../utils";
 
   interface Props {
     // Carried back from the sign-in interstitial so the form re-populates the
@@ -48,10 +49,11 @@
       title: title.trim() || defaultTitle,
       slack_webhook: slackWebhook,
       site: url,
-      // Only a *locked* selection is a real choice. An unlocked canvas means
-      // "watch the whole page" — without this guard the canvas's live hover
-      // preview would leak in as an arbitrary selector.
-      selector: locked ? (selector ?? "") : "",
+      // Only a *locked* selection is a real choice. An unlocked canvas (or one
+      // with no real selector) means "watch the whole page", saved as "*" — the
+      // value the Add-On's `soup.select("*")` expects. Without this guard the
+      // canvas's live hover preview would also leak in as an arbitrary selector.
+      selector: locked && selector ? selector : WHOLE_PAGE_SELECTOR,
     };
 
     // Signed-out users can fill out the form, but the save needs a token. Route

@@ -101,6 +101,22 @@ export function getSiteLabel(event: Event): string {
   }
 }
 
+/** The selector value that means "watch the whole page". */
+export const WHOLE_PAGE_SELECTOR = "*";
+
+/**
+ * Whether an alert watches the whole page rather than a specific region.
+ *
+ * Whole-page alerts are saved with the "*" selector — the value the Add-On's
+ * `soup.select("*")` expects (an empty selector throws on the backend). We also
+ * treat an empty/whitespace selector as whole-page so alerts saved before "*"
+ * was standardized still read correctly.
+ */
+export function isWholePage(selector: string | null | undefined): boolean {
+  const trimmed = selector?.trim();
+  return !trimmed || trimmed === WHOLE_PAGE_SELECTOR;
+}
+
 export function isErrorCode(status: number): status is NumericRange<400, 599> {
   return status >= 400 && status <= 599;
 }

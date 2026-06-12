@@ -4,7 +4,7 @@
   import RelativeTime from "../components/RelativeTime.svelte";
   import { getRouter } from "../router.svelte";
   import { history, schedules } from "../api";
-  import { getRunLabel, getSiteLabel, isEvent } from "../utils";
+  import { getRunLabel, getSiteLabel, isEvent, isWholePage } from "../utils";
   import { getCanvas } from "../canvas.svelte";
 
   interface Props {
@@ -17,13 +17,14 @@
   const canvas = getCanvas();
 
   let selector = $derived(event.parameters.selector);
+  let wholePage = $derived(isWholePage(selector));
   let frequency: AddOnSchedule = $derived(schedules[event.event] ?? "weekly");
 
   let runs: Run[] = $state([]);
   let loading = $state(true);
 
   $effect(() => {
-    if (selector) {
+    if (!wholePage) {
       const el = canvas.setSelector(selector);
       el?.scrollIntoView({
         block: "start",
@@ -58,7 +59,7 @@
       <h3>{getSiteLabel(event)}</h3>
       <p class="description">
         This alert is watching <strong>
-          {selector ? "part of the page" : "the entire page"}
+          {wholePage ? "the entire page" : "part of the page"}
         </strong> for changes.
       </p>
       <button
