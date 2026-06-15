@@ -25,6 +25,8 @@ const HOST_ID = "klaxon-host";
 
   const host = document.createElement("div");
   host.id = HOST_ID;
+  // Ensure the root div is visible even with `div:empty { display: none }`
+  host.style.display = "block";
   document.body.appendChild(host);
 
   const shadow = host.attachShadow({ mode: "open" });
