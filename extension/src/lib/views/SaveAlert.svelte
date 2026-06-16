@@ -34,7 +34,7 @@
   const toaster = getToaster();
   const canvas = getCanvas();
 
-  const url = getCanonicalURL();
+  let url: string = $state(getCanonicalURL());
   const defaultTitle = getCanonicalTitle();
   let locked = $derived(canvas.state.locked);
   let selector = $derived(canvas.state.selector);
@@ -47,7 +47,7 @@
       // Fall back to the page title when the user leaves the field blank, so the
       // saved alert matches the placeholder shown in the form.
       title: title.trim() || defaultTitle,
-      slack_webhook: slackWebhook,
+      slack_webhook: slackWebhook.trim() || undefined,
       site: url,
       // Only a *locked* selection is a real choice. An unlocked canvas (or one
       // with no real selector) means "watch the whole page", saved as "*" — the
@@ -104,6 +104,18 @@
       <p class="description">
         We just need a bit more info to save your alert.
       </p>
+    </div>
+
+    <!-- url -->
+    <div class="field">
+      <div class="field-header">
+        <label for="alert-url" class="field-label"> URL </label>
+        <p class="field-hint">
+          Check that this URL is correct. A mismatch could make this alert
+          harder to find later, or cause changes to be missed.
+        </p>
+      </div>
+      <input type="url" name="url" id="alert-url" bind:value={url} />
     </div>
 
     <!-- schedule -->
