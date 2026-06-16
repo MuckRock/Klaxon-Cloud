@@ -25,6 +25,9 @@ env:
 jobs:
   package:
     runs-on: ubuntu-latest
+    # Needed for ncipollo/release-action to create the GitHub release.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
 
@@ -41,9 +44,13 @@ jobs:
         run: npm run build
 
       - name: Stage package
+        id: stage
         run: |
-          short_sha=$(git rev-parse --short HEAD)
-          echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
+          # Expose the sha and date as step outputs so later steps can build
+          # the artifact and release names.
+          echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          # Date-based release tag; the short sha keeps same-day builds unique.
+          echo "build_date=$(date -u +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
 
           # Everything sits at the package root: the loadable extension files
           # (manifest.json, content.js, background.js, icons) alongside the
@@ -63,6 +70,21 @@ jobs:
       - name: Upload package
         uses: actions/upload-artifact@v7
         with:
-          name: klaxon-cloud-extension-${{ env.SHORT_SHA }}
+          name: klaxon-cloud-extension-${{ steps.stage.outputs.short_sha }}
           path: extension/package/
           if-no-files-found: error
+
+      - name: Zip package
+        run: |
+          # A single zip is the asset attached to the release; the unzipped
+          # folder is what you load directly into the browser.
+          (cd package && zip -r "../klaxon-cloud-extension-${{ steps.stage.outputs.short_sha }}.zip" .)
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: build-${{ steps.stage.outputs.build_date }}-${{ steps.stage.outputs.short_sha }}
+          name: Klaxon Cloud build ${{ steps.stage.outputs.build_date }} (${{ steps.stage.outputs.short_sha }})
+          artifacts: extension/klaxon-cloud-extension-${{ steps.stage.outputs.short_sha }}.zip
+          allowUpdates: true
+          generateReleaseNotes: true
