@@ -1,5 +1,6 @@
 import type { APIError } from "./types";
-import type { Canvas } from "./canvas.svelte";
+import type { CanvasClient } from "./canvas-client.svelte";
+import { invalidateAlerts } from "./alerts-cache";
 import { getRouter } from "./router.svelte";
 import { getToaster } from "./toaster.svelte";
 
@@ -24,12 +25,15 @@ export function reportSaveError(toaster: Toaster, error: APIError<unknown>) {
  * component init and passes the instances in.
  */
 export function completeSave(ctx: {
-  canvas: Canvas;
+  canvas: CanvasClient;
   toaster: Toaster;
   router: Router;
 }) {
   ctx.canvas.clearSelection();
   ctx.toaster.success("Alert saved successfully!");
+  // The just-created/edited alert isn't in the cached list for its origin, so
+  // drop that entry — the list refetches it fresh on arrival.
+  invalidateAlerts(ctx.canvas.origin);
   // The save is done — dump history so Back can't return to the form and
   // resubmit it.
   ctx.router.navigate("listAlerts", undefined, { reset: true });

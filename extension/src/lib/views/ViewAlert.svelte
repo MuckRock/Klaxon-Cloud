@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { AddOnSchedule, Event, Run } from "../types";
 
+  import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
   import { getRouter } from "../router.svelte";
   import { history, schedules } from "../api";
   import { getRunLabel, getSiteLabel, isEvent, isWholePage } from "../utils";
-  import { getCanvas } from "../canvas.svelte";
+  import { getCanvas } from "../canvas-client.svelte";
 
   interface Props {
     event: Event;
@@ -20,18 +21,16 @@
   let wholePage = $derived(isWholePage(selector));
   let frequency: AddOnSchedule = $derived(schedules[event.event] ?? "weekly");
 
+  // True when the canvas is pinned to a different tab than the one being viewed
+  // (PinnedTabNotice surfaces this). Editing an alert means picking/scrolling on
+  // its page, which we can't do from another tab — so block the edit actions.
+  let away = $derived(canvas.away);
+
   let runs: Run[] = $state([]);
   let loading = $state(true);
 
   $effect(() => {
-    if (!wholePage) {
-      const el = canvas.setSelector(selector);
-      el?.scrollIntoView({
-        block: "start",
-        inline: "nearest",
-        behavior: "smooth",
-      });
-    }
+    if (!wholePage) void canvas.setSelector(selector);
     return () => {
       canvas.clearSelection();
     };
@@ -55,6 +54,7 @@
 
 <div class="container alert-detail">
   <main class="section content">
+    <PinnedTabNotice />
     <div class="intro">
       <h3>{getSiteLabel(event)}</h3>
       <p class="description">
@@ -65,6 +65,7 @@
       <button
         type="button"
         class="edit-selection-link"
+        disabled={away}
         onclick={() =>
           router.navigate("editSelection", { event, origin: "viewAlert" })}
       >
@@ -143,6 +144,7 @@
     <button
       class="btn-primary"
       type="button"
+      disabled={away}
       onclick={() => router.navigate("editAlert", { event })}
     >
       Edit alert
@@ -218,6 +220,12 @@
     font-size: var(--font-sm, 14px);
     font-weight: 700;
     text-decoration: underline;
+  }
+
+  .edit-selection-link:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: none;
   }
 
   dl.details {

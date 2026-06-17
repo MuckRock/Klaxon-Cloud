@@ -3,7 +3,7 @@
 
   import { authState } from "../auth.svelte.ts";
   import { dispatch } from "../api";
-  import { getCanvas } from "../canvas.svelte";
+  import { getCanvas } from "../canvas-client.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { completeSave, reportSaveError } from "../save";

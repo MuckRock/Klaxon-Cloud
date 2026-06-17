@@ -1,8 +1,8 @@
 import { defineConfig } from "vite";
-import { BROWSERS } from "./scripts/manifest.mjs";
+import { BROWSERS } from "../scripts/manifest.mjs";
 
-// Must match the target of the content build (see vite.config.ts): both emit
-// into build/<browser>/ so each browser gets a self-contained, tailored bundle.
+// Service worker bundle. Emits into the same build/<browser>/ dir as the page
+// and sidepanel configs (each browser gets a self-contained, tailored bundle).
 const browser = process.env.BROWSER ?? "chrome";
 if (!BROWSERS.includes(browser)) {
   throw new Error(
@@ -20,7 +20,7 @@ export default defineConfig({
         dir: `build/${browser}`,
       },
     },
-    // Don't empty build/<browser>/ — the main config already populated it.
+    // The page config owns emptying build/<browser>/.
     emptyOutDir: false,
     copyPublicDir: false,
   },

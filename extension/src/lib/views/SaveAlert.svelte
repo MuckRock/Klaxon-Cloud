@@ -7,40 +7,53 @@
     ValidationError,
   } from "../types";
 
+  import { untrack } from "svelte";
+
+  import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
   import { authState } from "../auth.svelte.ts";
-  import { getCanvas } from "../canvas.svelte";
+  import { getCanvas } from "../canvas-client.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { dispatch } from "../api";
   import { completeSave, reportSaveError } from "../save";
-  import { getCanonicalURL, getCanonicalTitle } from "../url";
   import { WHOLE_PAGE_SELECTOR } from "../utils";
 
   interface Props {
-    // Carried back from the sign-in interstitial so the form re-populates the
-    // user's entries when they return (via Back or a post-auth save error).
+    // Seed values, carried back from the sign-in interstitial OR restored from a
+    // per-tab snapshot, so the form re-populates the user's entries.
     schedule?: AddOnSchedule;
     title?: string;
     slackWebhook?: string;
+    url?: string;
   }
 
-  let {
-    schedule: frequency = "weekly",
-    title: initialTitle = "",
-    slackWebhook = "",
-  }: Props = $props();
+  const props: Props = $props();
 
   const router = getRouter();
   const toaster = getToaster();
   const canvas = getCanvas();
 
-  let url: string = $state(getCanonicalURL());
-  const defaultTitle = getCanonicalTitle();
+  // Local form state, seeded once from props (carried back from the sign-in
+  // interstitial via the navigate `restore` option). Plain $state so it's
+  // decoupled from later props churn.
+  let frequency = $state<AddOnSchedule>(
+    untrack(() => props.schedule) ?? "weekly",
+  );
+  let title = $state(untrack(() => props.title) ?? "");
+  let slackWebhook = $state(untrack(() => props.slackWebhook) ?? "");
+  let url = $state(untrack(() => props.url) ?? "");
+  let saving = $state(false);
+
+  // The page URL/title now resolve asynchronously over the port (the panel can't
+  // read the page DOM directly). Fill the URL in once it arrives, unless we were
+  // seeded with one; the title backs the placeholder and the save-time fallback.
+  $effect(() => {
+    if (!url && canvas.url) url = canvas.url;
+  });
+  const defaultTitle = $derived(canvas.title);
+
   let locked = $derived(canvas.state.locked);
   let selector = $derived(canvas.state.selector);
-
-  let title = $derived(initialTitle || defaultTitle);
-  let saving = $state(false);
 
   async function handleSave() {
     const params: KlaxonParams = {
@@ -63,7 +76,7 @@
       router.navigate(
         "signIn",
         { schedule: frequency, params },
-        { restore: { schedule: frequency, title, slackWebhook } },
+        { restore: { schedule: frequency, title, slackWebhook, url } },
       );
       return;
     }

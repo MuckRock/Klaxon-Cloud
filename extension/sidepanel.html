@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Klaxon Cloud</title>
+    <style>
+      /* The panel is a normal extension page (no shadow host), so make the
+         document fill the browser-allocated panel and let <App> take it from
+         there. Design tokens live on :root in App.svelte. */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      #app {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/sidepanel.ts"></script>
+  </body>
+</html>

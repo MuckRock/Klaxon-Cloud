@@ -9,14 +9,16 @@
   import Siren from "../components/Siren.svelte";
   import Welcome from "../components/Welcome.svelte";
   import { scheduled, history, schedules, update } from "../api";
+  import { getCachedAlerts, setCachedAlerts } from "../alerts-cache";
   import { authState } from "../auth.svelte";
+  import { getCanvas } from "../canvas-client.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { emptyPage, getSiteLabel, isEvent } from "../utils";
-  import { getCanonicalURL } from "../url";
 
   const router = getRouter();
   const toaster = getToaster();
+  const canvas = getCanvas();
 
   let events = $state<Page<Event>>(emptyPage<Event>());
   let runs = $state<Page<Run>>(emptyPage<Run>());
@@ -26,12 +28,29 @@
   $effect(() => {
     if (authState.status !== "authenticated") return;
 
-    const url = getCanonicalURL();
+    // The active tab's origin (resolved by the panel from chrome.tabs); the list
+    // re-keys to it when the user switches tabs or navigates.
+    const domain = canvas.origin;
+    if (!domain) return;
+
+    // Serve a previously-loaded origin from the cache so tab switches are
+    // instant and don't refetch. Cache entries stay consistent with in-place
+    // edits (they share objects) and are invalidated on create/edit.
+    const cached = getCachedAlerts(domain);
+    if (cached) {
+      events = cached.events;
+      runs = cached.runs;
+      loadingAlerts = false;
+      return;
+    }
+
     let cancelled = false;
 
+    // Cache miss: drop the previous origin's alerts so we show the loading state
+    // rather than flashing the wrong page's list while this origin fetches.
+    events = emptyPage<Event>();
+    runs = emptyPage<Run>();
     loadingAlerts = true;
-
-    const domain = window.location.origin;
 
     Promise.all([scheduled({ domain }), history({ domain })]).then(
       ([eventsRes, runsRes]) => {
@@ -52,6 +71,7 @@
 
         events = eventsRes.data ?? emptyPage<Event>();
         runs = runsRes.data ?? emptyPage<Run>();
+        setCachedAlerts(domain, { events, runs });
       },
     );
 
@@ -160,6 +180,15 @@
         <div class="empty-state">
           <Loading message="Checking for alerts…" />
         </div>
+      {:else if !canvas.watchable}
+        <div class="empty-state welcome-empty">
+          <Siren dimmed />
+          <h3 class="empty-head">Can't watch this page</h3>
+          <p class="empty-message">
+            Klaxon can only watch ordinary web pages. Browse to a site to create
+            an alert.
+          </p>
+        </div>
       {:else if !hasEvents}
         <div class="empty-state welcome-empty">
           <Siren dimmed />
@@ -243,7 +272,11 @@
   </main>
 
   <footer class="button-row">
-    <button class="btn-primary" onclick={() => router.navigate("createAlert")}>
+    <button
+      class="btn-primary"
+      disabled={!canvas.watchable}
+      onclick={() => router.navigate("createAlert")}
+    >
       Create a new alert
       <ArrowRight />
     </button>

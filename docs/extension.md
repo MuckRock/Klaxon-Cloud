@@ -4,9 +4,11 @@ A Chrome/Firefox extension built with Svelte 5, Vite, and TypeScript. It lives i
 
 ## What it is
 
-When the user clicks the toolbar button, the extension injects a content script
-into the active page. The script creates a sidebar (mounted in a shadow DOM so
-the page's CSS can't bleed in) and shifts the page over to make room. From the
+When the user clicks the toolbar button, the extension opens a **native browser
+sidebar** — Chrome's `sidePanel`, Firefox's `sidebarAction` — hosting the Svelte
+app. Unlike the old injected sidebar, this panel persists across page navigations
+and has full `chrome.*` access. To pick a region of a page, the panel injects a
+small **content script** (the Canvas) into the active tab on demand. From the
 sidebar the user can:
 
 - **pick a region of the page** to watch (or watch the whole page),
@@ -17,28 +19,48 @@ sidebar the user can:
 The extension stores nothing of its own except auth tokens; every alert and
 change it shows is fetched live from the DocumentCloud API.
 
-## Two bundles: content script + service worker
+## Three build components
 
-The extension builds into two stable files (Chrome extensions need fixed
-filenames listed in the manifest, so there's no hashing or code-splitting):
+Two browser realms can't share code at runtime — the panel is an extension page,
+the Canvas is a page-injected content script — so the build has three entries plus
+the service worker. Chrome extensions need fixed filenames listed in the manifest,
+so the page and worker bundles are unhashed; the panel is a normal HTML page, so
+its JS/CSS may be hashed (the manifest only points at `sidepanel.html`). Each
+build component has its own Vite config under [`extension/vite/`](../extension/vite/):
 
-- **`build/content.js`** — the content script (entry `src/main.svelte.ts`). This
-  is the sidebar UI: the Svelte app, the picker, and the API client.
-- **`build/background.js`** — the service worker (entry `src/background.ts`). It
-  owns everything the content script can't do: the OIDC sign-in flow, token
-  storage/refresh, and a fetch proxy.
+- **`build/<browser>/sidepanel.html` + `sidepanel.js`** — the side panel
+  (entry `src/sidepanel.ts`, config `vite/sidepanel.config.ts`). This is the
+  sidebar UI: the Svelte app and the API client. It runs in the browser's native
+  panel as an extension-origin page.
+- **`build/<browser>/page.js`** — the Canvas content script (entry
+  `src/page.svelte.ts`, config `vite/page.config.ts`). Injected on demand into the
+  active tab; it owns the on-page picker overlays inside a shadow DOM. This config
+  also owns `static/` (icons, fonts) and writes the per-browser `manifest.json`.
+- **`build/<browser>/background.js`** — the service worker (entry
+  `src/background.ts`, config `vite/background.config.ts`). It owns everything the
+  panel can't do directly: the OIDC sign-in flow, token storage/refresh, a fetch
+  proxy, and injecting `page.js` on request (`canvas/ensure`).
 
-The split exists because two browser capabilities are unavailable to content
-scripts: `chrome.identity.launchWebAuthFlow` (needed for sign-in) and
-cross-origin `fetch` without CORS friction. The content script reaches the
-service worker through `chrome.runtime.sendMessage`. See
-[`src/background.ts`](../extension/src/background.ts).
+The service worker also opens the sidebar from the toolbar button — on Chrome via
+`sidePanel.setPanelBehavior({ openPanelOnActionClick: true })`, on Firefox by
+toggling `sidebarAction` on `action.onClicked`. See
+[`src/background.ts`](../extension/src/background.ts). The panel reaches the worker
+through `chrome.runtime.sendMessage`.
 
-## The picker (selecting what to watch)
+## The Canvas (selecting what to watch)
 
-Implemented in [`src/lib/canvas.svelte.ts`](../extension/src/lib/canvas.svelte.ts)
-(interaction/overlay) and [`src/lib/selector.ts`](../extension/src/lib/selector.ts)
-(pure DOM → selector logic).
+The picker is split across the two realms, joined by a `chrome.tabs` port:
+
+- **Engine** — [`src/lib/canvas.svelte.ts`](../extension/src/lib/canvas.svelte.ts)
+  (interaction/overlay) and [`src/lib/selector.ts`](../extension/src/lib/selector.ts)
+  (pure DOM → selector logic) — runs **in the page** via `src/page.svelte.ts`.
+- **Proxy** — [`src/lib/canvas-client.svelte.ts`](../extension/src/lib/canvas-client.svelte.ts)
+  (`CanvasClient`) — runs **in the panel**. It mirrors the engine's reactive state
+  into `$state` and proxies actions over the port, presenting the same
+  `canvas`-shaped object the views consume via `getCanvas`/`setCanvas` (the one
+  ergonomic change: `setSelector` is now `async`).
+
+How it behaves:
 
 - As the user hovers, the canvas highlights the element under the cursor; click
   to **lock** a selection; drag to select an enclosing region.
@@ -49,6 +71,32 @@ Implemented in [`src/lib/canvas.svelte.ts`](../extension/src/lib/canvas.svelte.t
 - If **no** selection is locked when saving, the alert watches the **whole page**, saved as the selector `"*"` — the value the Add-On's `soup.select("*")` expects. An empty selector would raise on the backend, so the save paths (`SaveAlert`, `EditSelection`) normalize whole-page to `"*"` via `WHOLE_PAGE_SELECTOR`. The `isWholePage()` helper in `utils.ts` treats both `"*"` and a legacy empty string as whole-page when displaying alerts.
 
 The selector string is what ends up in the event's `parameters.selector` and is later handed to the Add-On, which runs it through BeautifulSoup's `soup.select()`.
+
+## Tab lifecycle and restricted pages
+
+The panel is **one document shared across every tab** in a window. Its view/form
+state is **global** — it changes only when you navigate it, never when you switch
+tabs. The only tab-aware piece is the Canvas, which runs in two modes:
+
+- **Tracking** (default, on the alert list): `CanvasClient` follows the active
+  tab — reconnecting on `tabs.onActivated` and on a completed top-level
+  navigation — so `origin`/`watchable` reflect the page you're looking at and the
+  list shows that page's alerts. No overlay.
+- **Pinned** (during a selection flow — `createAlert` / `saveAlert` / `viewAlert`
+  / `editAlert` / `editSelection`): the canvas locks onto the tab the flow began
+  on and stops following tab switches (`CanvasClient.pinned`). The port to that
+  page stays open, so its overlay stays where it was injected — you don't see it
+  while looking at another tab, and it's there when you switch back. The flow
+  stays coherent. `App.svelte`'s `handleRouteChange` pins on entering a selection
+  view and unpins (clearing the selection, then re-syncing to the active tab) on
+  returning to the list. Closing the panel disconnects the port, which hides the
+  overlay (the engine's `visible` flag) without losing it.
+- On **restricted pages** (`chrome://`, the web store, PDFs, `file://`) the Canvas
+  can't be injected; `CanvasClient.watchable` stays false. `ListAlerts.svelte`
+  then shows a "can't watch this page" empty state and disables **Create a new
+  alert**. The page's canonical URL/title and origin are resolved page-side and
+  sent to the panel (`getPage` over the port); on restricted pages the panel falls
+  back to the raw tab URL.
 
 ## Views and navigation
 
@@ -118,10 +166,10 @@ Key details:
 
 ### Why the fetch goes through the service worker
 
-API calls don't `fetch` directly from the content script. `api.ts` sends an
+API calls don't `fetch` directly from the panel. `api.ts` sends an
 `api/fetch` message to the service worker (`swFetch`), which performs the real
-request and returns a Response-shaped object. This sidesteps page CORS and keeps
-the request out of the page context. Cookies are deliberately **omitted**
+request and returns a Response-shaped object. This keeps the bearer token out of
+the panel/page context and sidesteps CORS. Cookies are deliberately **omitted**
 (`credentials: "omit"`) to avoid tripping DocumentCloud's CSRF protection; the
 bearer token is the only credential.
 

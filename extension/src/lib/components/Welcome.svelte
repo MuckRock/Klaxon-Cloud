@@ -2,8 +2,7 @@
   import type { Snippet } from "svelte";
   import Siren from "./Siren.svelte";
   import SignInPrompt from "./SignInPrompt.svelte";
-  import UserInfo from "./UserInfo.svelte";
-  import { authState, logout } from "../auth.svelte.ts";
+  import { authState } from "../auth.svelte.ts";
 
   interface Props {
     children: Snippet;
@@ -15,10 +14,6 @@
 </script>
 
 {#if isLoggedIn}
-  <div class="auth">
-    <UserInfo />
-    <button class="signOut link" onclick={() => logout()}>Sign out</button>
-  </div>
   {@render children()}
 {:else}
   <div class="container">
@@ -88,25 +83,5 @@
   .sign-in {
     margin: 0 0.25em;
     padding: 1.5em 0.75em;
-  }
-
-  .auth {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1em;
-  }
-
-  .signOut.link {
-    background: none;
-    border: none;
-    text-decoration: underline;
-    color: var(--klaxon-color-link);
-    font-family: var(--font-sans);
-    font-weight: 600;
-    font-size: var(--font-xs);
-    cursor: pointer;
-    padding: 0;
   }
 </style>

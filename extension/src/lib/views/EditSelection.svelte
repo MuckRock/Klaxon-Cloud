@@ -2,11 +2,12 @@
   import type { APIResponse, Event, ValidationError } from "../types";
   import { onMount } from "svelte";
 
+  import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
   import SelectionPicker from "../components/SelectionPicker.svelte";
   import { getRouter, type View } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { schedules, update } from "../api";
-  import { getCanvas } from "../canvas.svelte";
+  import { getCanvas } from "../canvas-client.svelte";
   import { WHOLE_PAGE_SELECTOR, isWholePage } from "../utils";
 
   interface Props {
@@ -26,16 +27,17 @@
   let locked = $derived(canvas.state.locked);
   let selector = $derived(canvas.state.selector);
 
+  // True when the canvas is pinned to a different tab than the one being viewed
+  // (PinnedTabNotice surfaces this). The picker overlay lives on the alert's own
+  // tab, so block saving until the user returns to it.
+  let away = $derived(canvas.away);
+
   // Pre-load this alert's existing selection into the canvas once, so the user
   // sees and tweaks it rather than starting from scratch. Cleared on unmount.
   onMount(() => {
+    // setSelector round-trips to the page
     if (!isWholePage(event.parameters.selector)) {
-      const el = canvas.setSelector(event.parameters.selector);
-      el?.scrollIntoView({
-        block: "start",
-        inline: "nearest",
-        behavior: "smooth",
-      });
+      void canvas.setSelector(event.parameters.selector);
     }
     return () => canvas.clearSelection();
   });
@@ -78,6 +80,7 @@
 
 <div class="container edit-selection">
   <main class="section">
+    <PinnedTabNotice />
     <h3>Edit selection</h3>
     <p class="description">
       Adjust which <strong>part of the page</strong> this alert watches for changes.
@@ -92,7 +95,7 @@
       class="btn-primary"
       type="button"
       onclick={handleSave}
-      disabled={saving}
+      disabled={saving || away}
     >
       {saving ? "Saving…" : "Save selection"}
     </button>

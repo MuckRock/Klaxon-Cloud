@@ -1,4 +1,4 @@
-import { createContext, mount, unmount } from "svelte";
+import { mount, unmount } from "svelte";
 import {
   resolveTarget,
   resolveEnclosingElement,
@@ -20,6 +20,7 @@ export interface Canvas {
   readonly state: CanvasState;
   active: boolean;
   editable: boolean;
+  visible: boolean;
   clearSelection(): void;
   setSelector(css: string): Element | null;
   destroy(): void;
@@ -38,6 +39,7 @@ export function initCanvas(
   shadow: ShadowRoot,
   sidebarWidth: number,
 ): Canvas {
+  let visible = true;
   let active = $state(false);
   let editable = $state(true);
   let mouse = $state({ x: 0, y: 0 });
@@ -81,6 +83,9 @@ export function initCanvas(
   }
 
   // ── Overlay divs ─────────────────────────────────────────────────────────
+  // These live in the page's shadow root, which can't see the panel's design
+  // tokens (those are defined on the panel document's :root), so the brand red
+  // (--red-3, #e1275f) is written literally here — matching the rgba reds below.
 
   const dimming = document.createElement("div");
   dimming.style.cssText =
@@ -92,13 +97,13 @@ export function initCanvas(
 
   const selectionDiv = document.createElement("div");
   selectionDiv.style.cssText =
-    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:4px solid var(--red-3); outline-offset:0;";
+    "position:fixed; pointer-events:none; z-index:2147483646; display:none; box-sizing:border-box; border-radius:0.375rem; outline:4px solid #e1275f; outline-offset:0;";
 
   const dismissBtn = document.createElement("button");
   dismissBtn.setAttribute("aria-label", "Clear selection");
   dismissBtn.textContent = "\u00d7";
   dismissBtn.style.cssText =
-    "position:fixed; pointer-events:auto; z-index:2147483647; display:none; box-sizing:border-box; width:28px; height:28px; border-radius:50%; border:2px solid var(--red-3); background:var(--red-3); color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0; text-align:center;";
+    "position:fixed; pointer-events:auto; z-index:2147483647; display:none; box-sizing:border-box; width:28px; height:28px; border-radius:50%; border:2px solid #e1275f; background:#e1275f; color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0; text-align:center;";
   dismissBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -377,8 +382,20 @@ export function initCanvas(
   }
 
   function onScrollOrResize() {
+    if (!visible) return;
     if (hoverEl) positionAt(hoverDiv, hoverEl);
     if (selectionEl) showSelection(selectionEl);
+  }
+
+  // Hide every overlay visual without touching the selection state, so the
+  // locked selection can be restored later (see the `visible` setter).
+  function hideOverlays() {
+    hideHover();
+    hideDrag();
+    selectionDiv.style.display = "none";
+    dimming.style.display = "none";
+    dismissBtn.style.display = "none";
+    apertureTarget = null;
   }
 
   // ── Listeners ────────────────────────────────────────────────────────────
@@ -421,7 +438,7 @@ export function initCanvas(
     set editable(v: boolean) {
       if (v === editable) return;
       editable = v;
-      if (selectionEl) {
+      if (selectionEl && visible) {
         if (editable) {
           showSelection(selectionEl);
           showApertureBar(selectionEl);
@@ -429,6 +446,22 @@ export function initCanvas(
           dismissBtn.style.display = "none";
           apertureTarget = null;
         }
+      }
+    },
+    get visible() {
+      return visible;
+    },
+    set visible(v: boolean) {
+      if (v === visible) return;
+      visible = v;
+      if (visible) {
+        // Restore the locked selection's overlay (respecting editable).
+        if (selectionEl && locked) {
+          showSelection(selectionEl);
+          showApertureBar(selectionEl);
+        }
+      } else {
+        hideOverlays();
       }
     },
     clearSelection,
@@ -459,5 +492,3 @@ export function initCanvas(
     },
   };
 }
-
-export const [getCanvas, setCanvas] = createContext<Canvas>();
