@@ -11,9 +11,11 @@ The repo lives at `Klaxon-Cloud/extension/`. The parent repo also contains `docs
 ## Commands
 
 ```sh
-npm run dev:content  # vite build --watch — content script (src/main.svelte.ts → build/content.js)
-npm run dev:service  # vite build --watch -c vite.config.background.ts — service worker (src/background.ts → build/background.js)
-npm run build        # one-shot prod build of BOTH bundles into build/
+npm run dev:content  # vite build --watch — content script (src/main.svelte.ts → build/chrome/content.js)
+npm run dev:service  # vite build --watch -c vite.config.background.ts — service worker (src/background.ts → build/chrome/background.js)
+npm run build        # one-shot prod build for both browsers
+npm run build:chrome # just the Chrome build → build/chrome/
+npm run build:firefox # just the Firefox build → build/firefox/
 npm run check        # svelte-check (type-check .svelte + .svelte.ts)
 npm run lint         # prettier --check .
 npm run format       # prettier --write .
@@ -21,11 +23,13 @@ npm test             # vitest run (happy-dom)
 npm run test:watch
 ```
 
-Dev runs as two separate vite invocations because they share `build/` and can't both `emptyOutDir` — run them in two terminals (or whatever multiplexer you use). The service-worker config sets `emptyOutDir: false` and `copyPublicDir: false` so the content-script build is the one that owns `build/`.
+Both vite configs target one browser per invocation, selected by the `BROWSER` env var (`chrome` | `firefox`, default `chrome`), and emit into `build/<browser>/`. `npm run build` runs both browsers; the watchers (`dev:content`/`dev:service`) default to Chrome — prefix with `BROWSER=firefox` to develop against Firefox.
+
+Dev runs as two separate vite invocations because they share `build/<browser>/` and can't both `emptyOutDir` — run them in two terminals (or whatever multiplexer you use). The service-worker config sets `emptyOutDir: false` and `copyPublicDir: false` so the content-script build is the one that owns `build/<browser>/`.
 
 Single test: `npx vitest run src/lib/tests/oidc.test.ts` or filter by name `npx vitest run -t "pkce"`.
 
-Loading in Chrome: `chrome://extensions` → enable Developer mode → Load unpacked → select `build/`. The action button injects the content script. The extension ID is pinned by the `"key"` in `static/manifest.json`, so it's stable across reloads.
+Loading in Chrome: `chrome://extensions` → enable Developer mode → Load unpacked → select `build/chrome/`. The action button injects the content script. The extension ID is pinned by the `"key"` in `manifest/chrome.json`, so it's stable across reloads.
 
 ## Env vars
 
@@ -35,10 +39,20 @@ Loading in Chrome: `chrome://extensions` → enable Developer mode → Load unpa
 
 ### Build shape
 
-Two vite configs, both emitting into `build/` with stable filenames (Chrome extensions need filenames listed in `manifest.json`, so no asset hashing and no code splitting):
+Two vite configs, both emitting into `build/<browser>/` with stable filenames (Chrome extensions need filenames listed in `manifest.json`, so no asset hashing and no code splitting). Each is parametrized by the `BROWSER` env var (default `chrome`):
 
-- **`vite.config.ts`** — content script. IIFE bundle at `build/content.js`, entry `src/main.svelte.ts`. CSS is `injected` into JS (Svelte compiler option) so styles work inside the shadow DOM the content script creates. `static/` is its `publicDir`: `manifest.json` and icons get copied to `build/` verbatim.
-- **`vite.config.background.ts`** — service worker. ESM bundle at `build/background.js`, entry `src/background.ts`. `emptyOutDir: false` and `copyPublicDir: false` so it doesn't stomp on the content-script build.
+- **`vite.config.ts`** — content script. IIFE bundle at `build/<browser>/content.js`, entry `src/main.svelte.ts`. CSS is `injected` into JS (Svelte compiler option) so styles work inside the shadow DOM the content script creates. `static/` is its `publicDir`: icons and fonts get copied verbatim. It also runs the `klaxon-manifest` plugin (a `closeBundle` hook) that writes the browser-specific `manifest.json` into the output dir.
+- **`vite.config.background.ts`** — service worker. ESM bundle at `build/<browser>/background.js`, entry `src/background.ts`. `emptyOutDir: false` and `copyPublicDir: false` so it doesn't stomp on the content-script build.
+
+#### Per-browser manifests
+
+Chrome and Firefox disagree on a few manifest keys, and a single shared manifest makes each browser warn about the other's keys. The manifest is split under `manifest/`:
+
+- **`manifest/base.json`** — everything shared (name, icons, permissions, `web_accessible_resources`, `manifest_version`, …).
+- **`manifest/chrome.json`** — `background.service_worker` (+ `type: module`) and the Chrome-only `key` (ID pin).
+- **`manifest/firefox.json`** — `background.scripts` (+ `type: module`) and the Firefox-only `browser_specific_settings.gecko`.
+
+`scripts/manifest.mjs` exports `buildManifest(browser)`, which shallow-merges `base` + the browser overlay (the overlay supplies the whole `background` block plus its browser-only top-level keys, so no deep merge is needed). It's the single source of truth, reused by both the vite plugin and `scripts/redirect-uris.mjs`. **There is no longer a `static/manifest.json`** — edit the fragments under `manifest/` instead.
 
 ### Content script (`src/main.svelte.ts`)
 
@@ -80,11 +94,11 @@ The router is a class singleton in **`src/lib/router.svelte.ts`** (`export const
 
 OIDC + PKCE against Squarelet, public client (no secret).
 
-- **Service worker** (`src/background.ts`, built to `build/background.js` via `vite.config.background.ts`) does all of: `launchWebAuthFlow`, token exchange, refresh, storage. It must — content scripts can't call `chrome.identity.launchWebAuthFlow`. Tokens persist in `chrome.storage.local` under `muckrock_auth`. Concurrent refreshes are deduped (`refreshPromise`). Listens for `auth/login | auth/logout | auth/token | auth/state` runtime messages, plus `api/fetch` for proxying API calls that need the credentialed token (so the content script doesn't see the bearer).
+- **Service worker** (`src/background.ts`, built to `build/<browser>/background.js` via `vite.config.background.ts`) does all of: `launchWebAuthFlow`, token exchange, refresh, storage. It must — content scripts can't call `chrome.identity.launchWebAuthFlow`. Tokens persist in `chrome.storage.local` under `muckrock_auth`. Concurrent refreshes are deduped (`refreshPromise`). Listens for `auth/login | auth/logout | auth/token | auth/state` runtime messages, plus `api/fetch` for proxying API calls that need the credentialed token (so the content script doesn't see the bearer).
 - **Sidebar client** (`src/lib/auth.svelte.ts`) sends those messages and mirrors the stored record into a reactive `authState: $state<{ status, user, expiresAt, error }>`. Subscribes to `chrome.storage.onChanged` for cross-tab sync (guarded — content scripts don't always see `chrome.storage` even with the permission). `restore()` runs once at content-script boot to seed state from whatever the SW already has.
 - **OIDC helpers** in `src/lib/oidc.ts` (PKCE, base64url, JWT payload decode, endpoint URL builders, token-exchange / userinfo / refresh fetchers) are pure functions imported by both the SW and `src/lib/tests/oidc.test.ts`.
 - **Redirect URI**: the SW logs `chrome.identity.getRedirectURL()` on boot. Squarelet's `django-oidc-provider` does exact-string matching, so this URL (with trailing slash) must be registered verbatim on the OIDC client. **Both browsers are cross-machine stable** because both derive the redirect from the (pinned) extension ID — so two URLs are registered on the OIDC client, one per browser, and both are recomputable offline:
-  - **Chrome**: `https://noigegfnnlepflfmiajbpdhpgjgmiikc.chromiumapp.org/`. The ID is pinned by `manifest.json` `"key"` (it's the SHA-256-derived hash of the key, mapped to a–p).
+  - **Chrome**: `https://noigegfnnlepflfmiajbpdhpgjgmiikc.chromiumapp.org/`. The ID is pinned by the `"key"` in `manifest/chrome.json` (it's the SHA-256-derived hash of the key, mapped to a–p).
   - **Firefox**: `https://42386841672e9751ac81498187b4242b2e7d8fde.extensions.allizom.org/`. The subdomain is `SHA-1(extension.id)` in hex — `extension.id` is `browser_specific_settings.gecko.id` (`klaxon-cloud@muckrock.com`). Verified against Firefox source: `child/ext-identity.js` does `computeHash(extension.id)` with `CryptoHash("sha1")`, then `https://${hash}.${redirectDomain}/`, where `redirectDomain` is the `extensions.webextensions.identity.redirectDomain` pref (default `extensions.allizom.org`).
   - Caveats: the Firefox URL is only stable **because `gecko.id` is set** — without it, a temporary install gets a random ID and thus a different hash (the source of the "different per machine" reports in old threads; it's _not_ the random `moz-extension://<uuid>` internal UUID, which is unrelated to the identity redirect). Since Firefox 75 you must use the `getRedirectURL()` value as the OAuth `redirect_uri` — you can't substitute a hosted callback page. Confirmed unchanged as of the current source (checked against Firefox 151).
 - **Two token tiers** (the OIDC→JWT exchange is implemented; this is the current shape, not a plan): the stored record is `{ oidc, jwt, userinfo }`.
@@ -96,5 +110,5 @@ OIDC + PKCE against Squarelet, public client (no secret).
 
 - **Svelte 5 runes** throughout (`$state`, `$derived`, `$effect`, `$props`). Reactive non-component state lives in `*.svelte.ts` files (e.g. `auth.svelte.ts`, `canvas.svelte.ts`) — the `.svelte.ts` extension is what enables runes outside `.svelte` files.
 - **Reactive state in `*.svelte.ts`, shared via context**, not stores. `router` (`router.svelte.ts`) and `toaster` (`toaster.svelte.ts`) export a module singleton plus a `getX`/`setX` context pair; `canvas` (`canvas.svelte.ts`) is instead built per-mount by `initCanvas()` (it needs the host/shadow refs) and shared via `getCanvas`/`setCanvas`. In all three, `App.svelte` calls `setX` once so descendants resolve `getX()`; App itself (and non-component code) holds the instance directly rather than via context.
-- TS is strict throughout. The service worker and OIDC helpers are TypeScript (`src/background.ts`, `src/lib/oidc.ts`); nothing relevant lives in `static/` anymore beyond `manifest.json` and icons.
+- TS is strict throughout. The service worker and OIDC helpers are TypeScript (`src/background.ts`, `src/lib/oidc.ts`); `static/` now holds only the icons and fonts (the manifest fragments live under `manifest/`).
 - Tests use `happy-dom`, not `jsdom`.
