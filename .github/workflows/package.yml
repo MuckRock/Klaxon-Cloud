@@ -57,7 +57,7 @@ jobs:
           # each into its own package dir so the unzipped folder is what you load
           # directly: the loadable files (manifest.json, content.js,
           # background.js, icons) sit at the root alongside the instructions.
-          # Exclude dev-only artifacts (mockups/, robots.txt) that vite copies
+          # Exclude dev-only artifacts (robots.txt) that vite copies
           # from static/ but the extension doesn't use.
           built="commit: ${{ github.sha }}
           built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -65,7 +65,7 @@ jobs:
             dest="package/$browser"
             mkdir -p "$dest"
             cp -R "build/$browser/." "$dest"/
-            rm -rf "$dest/mockups" "$dest/robots.txt"
+            rm -rf "$dest/robots.txt"
 
             cp packaging/INSTALL.md "$dest/INSTALL.md"
             printf 'Klaxon Cloud test build (%s)\n%s\n' "$browser" "$built" \
