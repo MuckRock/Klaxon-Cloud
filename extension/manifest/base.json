@@ -1,0 +1,24 @@
+{
+  "name": "Klaxon Cloud",
+  "description": "Klaxon sends you alerts when webpages you're watching change.",
+  "homepage_url": "https://www.documentcloud.org/add-ons/MuckRock/Klaxon/",
+  "version": "0.1",
+  "manifest_version": 3,
+  "action": {
+    "default_icon": "icon-128.png",
+    "default_title": "Klaxon Cloud"
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "permissions": ["scripting", "activeTab", "identity", "storage"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
+  ]
+}

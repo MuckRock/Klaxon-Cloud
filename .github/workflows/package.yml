@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Stage package
+      - name: Stage packages
         id: stage
         run: |
           # Expose the sha and date as step outputs so later steps can build
@@ -52,39 +52,47 @@ jobs:
           # Date-based release tag; the short sha keeps same-day builds unique.
           echo "build_date=$(date -u +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
 
-          # Everything sits at the package root: the loadable extension files
-          # (manifest.json, content.js, background.js, icons) alongside the
-          # instructions, so the unzipped folder is what you load directly.
+          # `npm run build` emits one tailored extension per browser under
+          # build/<browser>/ (Chrome and Firefox need different manifests). Stage
+          # each into its own package dir so the unzipped folder is what you load
+          # directly: the loadable files (manifest.json, content.js,
+          # background.js, icons) sit at the root alongside the instructions.
           # Exclude dev-only artifacts (mockups/, robots.txt) that vite copies
           # from static/ but the extension doesn't use.
-          dest=package
-          mkdir -p "$dest"
-          cp -R build/. "$dest"/
-          rm -rf "$dest/mockups" "$dest/robots.txt"
+          built="commit: ${{ github.sha }}
+          built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          for browser in chrome firefox; do
+            dest="package/$browser"
+            mkdir -p "$dest"
+            cp -R "build/$browser/." "$dest"/
+            rm -rf "$dest/mockups" "$dest/robots.txt"
 
-          cp packaging/INSTALL.md "$dest/INSTALL.md"
-          printf 'Klaxon Cloud test build\ncommit: %s\nbuilt:  %s\n' \
-            "${{ github.sha }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            > "$dest/BUILD-INFO.txt"
+            cp packaging/INSTALL.md "$dest/INSTALL.md"
+            printf 'Klaxon Cloud test build (%s)\n%s\n' "$browser" "$built" \
+              > "$dest/BUILD-INFO.txt"
+          done
 
-      - name: Upload package
+      - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
           name: klaxon-cloud-extension-${{ steps.stage.outputs.short_sha }}
           path: extension/package/
           if-no-files-found: error
 
-      - name: Zip package
+      - name: Zip packages
         run: |
-          # A single zip is the asset attached to the release; the unzipped
-          # folder is what you load directly into the browser.
-          (cd package && zip -r "../klaxon-cloud-extension-${{ steps.stage.outputs.short_sha }}.zip" .)
+          # One zip per browser is attached to the release; the unzipped folder
+          # is what you load directly into that browser.
+          for browser in chrome firefox; do
+            (cd "package/$browser" && \
+              zip -r "../../klaxon-cloud-extension-$browser-${{ steps.stage.outputs.short_sha }}.zip" .)
+          done
 
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
           tag: build-${{ steps.stage.outputs.build_date }}-${{ steps.stage.outputs.short_sha }}
           name: Klaxon Cloud build ${{ steps.stage.outputs.build_date }} (${{ steps.stage.outputs.short_sha }})
-          artifacts: extension/klaxon-cloud-extension-${{ steps.stage.outputs.short_sha }}.zip
+          artifacts: "extension/klaxon-cloud-extension-chrome-${{ steps.stage.outputs.short_sha }}.zip,extension/klaxon-cloud-extension-firefox-${{ steps.stage.outputs.short_sha }}.zip"
           allowUpdates: true
           generateReleaseNotes: true

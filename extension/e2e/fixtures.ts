@@ -17,7 +17,8 @@ import { fileURLToPath } from "node:url";
 declare const chrome: any;
 
 const here = dirname(fileURLToPath(import.meta.url));
-const pathToExtension = resolve(here, "..", "build");
+// e2e is Chromium-only, so it loads the Chrome build.
+const pathToExtension = resolve(here, "..", "build", "chrome");
 
 /**
  * Loads the *built* extension into a persistent Chromium context and exposes
