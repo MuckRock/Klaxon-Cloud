@@ -191,6 +191,43 @@ export class CanvasClient {
     this.#post({ type: "clear" });
   }
 
+  /**
+   * Point the canvas's tab at `url` (an alert's watched page) and reconnect once
+   * it finishes loading, so the on-page selection lands on the right document.
+   * Targets the pinned tab (selection flows pin on entry); a no-op when the tab
+   * is already showing that page or there's no tab to drive. Resolves after the
+   * reconnect so callers can `setSelector` against the freshly loaded page.
+   */
+  async navigateTab(url: string): Promise<void> {
+    const target = this.#pinnedTab ?? this.#connectedTab;
+    // Already there — don't reload and flicker the page.
+    if (!target || this.url === url) return;
+
+    const tabId = target.id;
+    // Tear the old port down now; the document (and its content script) is about
+    // to be replaced by the navigation.
+    this.#disconnect();
+    this.watchable = false;
+
+    // Drive the navigation and wait for the new document to finish loading
+    // before reconnecting — the content script we inject must land on it.
+    await new Promise<void>((resolve) => {
+      const onComplete = (id: number, info: { status?: string }) => {
+        if (id === tabId && info.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(onComplete);
+          resolve();
+        }
+      };
+      chrome.tabs.onUpdated.addListener(onComplete);
+      void chrome.tabs.update(tabId, { url }).catch(() => {
+        chrome.tabs.onUpdated.removeListener(onComplete);
+        resolve();
+      });
+    });
+
+    await this.#connect(tabId);
+  }
+
   destroy() {
     chrome.tabs.onActivated.removeListener(this.#rebind);
     chrome.tabs.onUpdated.removeListener(this.#onTabUpdated);
@@ -226,7 +263,7 @@ export class CanvasClient {
     return tab;
   }
 
-  async #connect() {
+  async #connect(tabId?: number) {
     const seq = ++this.#connectSeq;
     this.#disconnect();
     // Selection is per-page; drop any mirrored state from the previous tab and
@@ -234,7 +271,12 @@ export class CanvasClient {
     this.#mirror = { ...EMPTY_MIRROR };
     this.watchable = false;
 
-    const tab = await this.#activeTab();
+    // A specific tab id (after navigateTab) is authoritative; otherwise resolve
+    // the active tab by query (initial connect / unpin / tab tracking).
+    const tab =
+      tabId != null
+        ? await chrome.tabs.get(tabId).catch(() => undefined)
+        : await this.#activeTab();
     if (seq !== this.#connectSeq) return; // superseded by a newer connect
     this.url = tab?.url ?? "";
     this.origin = originOf(tab?.url);

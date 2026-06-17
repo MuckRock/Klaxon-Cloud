@@ -30,7 +30,16 @@
   let loading = $state(true);
 
   $effect(() => {
-    if (!wholePage) void canvas.setSelector(selector);
+    // Drive the tab to the alert's page first, then show its selection there —
+    // the list is domain-filtered, so the alert may live on a different path
+    // than the tab we opened from. (Captured up front; navigateTab is async.)
+    const site = event.parameters.site;
+    const sel = selector;
+    const whole = wholePage;
+    void (async () => {
+      await canvas.navigateTab(site);
+      if (!whole) void canvas.setSelector(sel);
+    })();
     return () => {
       canvas.clearSelection();
     };
