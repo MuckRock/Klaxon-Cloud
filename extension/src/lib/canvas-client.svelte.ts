@@ -97,6 +97,29 @@ function originOf(url: string | undefined): string {
   }
 }
 
+/** Normalize for "same document" comparison: drop the fragment (a hash change
+ *  is same-document) and a trailing slash on the path, so cosmetic differences
+ *  between a page's canonical URL and a stored alert `site` don't count. */
+function canonicalize(raw: string): string {
+  const u = new URL(raw);
+  u.hash = "";
+  if (u.pathname.length > 1 && u.pathname.endsWith("/")) {
+    u.pathname = u.pathname.slice(0, -1);
+  }
+  return u.href;
+}
+
+/** True when two URLs address the same document — everything but the fragment
+ *  and a trailing slash matches (the query string is significant). Falls back to
+ *  string equality on unparseable input (e.g. an empty/restricted url). */
+function sameDocument(a: string, b: string): boolean {
+  try {
+    return canonicalize(a) === canonicalize(b);
+  } catch {
+    return a === b;
+  }
+}
+
 /** Enough of a tab to identify, label, and re-focus it. */
 interface TabRef {
   id: number;
@@ -243,8 +266,10 @@ export class CanvasClient {
    */
   async navigateTab(url: string): Promise<void> {
     const target = this.#pinnedTab ?? this.#connectedTab;
-    // Already there — don't reload and flicker the page.
-    if (!target || this.url === url) return;
+    // Already there — don't reload and flicker the page. Compare by document
+    // (ignoring fragment/trailing slash) so a canonical URL and the stored
+    // `site` that differ only cosmetically still count as "already there".
+    if (!target || sameDocument(this.url, url)) return;
 
     const tabId = target.id;
     // Tear the old port down now; the document (and its content script) is about

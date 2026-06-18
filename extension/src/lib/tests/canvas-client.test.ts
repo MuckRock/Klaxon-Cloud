@@ -413,6 +413,46 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
   });
 });
 
+describe("navigateTab url normalization", () => {
+  /** A connected client whose mirrored url is `url`. */
+  async function clientAt(url: string) {
+    mock.tab.url = url;
+    mock.page.url = url;
+    const client = new CanvasClient();
+    await flush();
+    expect(client.url).toBe(url); // sanity: connected and mirrored
+    mock.chrome.tabs.update.mockClear();
+    return client;
+  }
+
+  it("does not re-navigate for a trailing-slash-only difference", async () => {
+    const client = await clientAt("https://klaxon.test/article");
+    await client.navigateTab("https://klaxon.test/article/");
+    expect(mock.chrome.tabs.update).not.toHaveBeenCalled();
+    client.destroy();
+  });
+
+  it("does not re-navigate for a fragment-only difference", async () => {
+    const client = await clientAt("https://klaxon.test/article");
+    await client.navigateTab("https://klaxon.test/article#section");
+    expect(mock.chrome.tabs.update).not.toHaveBeenCalled();
+    client.destroy();
+  });
+
+  it("does navigate when the query string differs (a different page)", async () => {
+    const client = await clientAt("https://klaxon.test/article");
+    const nav = client.navigateTab("https://klaxon.test/article?page=2");
+    await flush();
+    mock.onUpdated.emit(1, { status: "loading" }, mock.tab);
+    mock.onUpdated.emit(1, { status: "complete" }, mock.tab);
+    await nav;
+    expect(mock.chrome.tabs.update).toHaveBeenCalledWith(1, {
+      url: "https://klaxon.test/article?page=2",
+    });
+    client.destroy();
+  });
+});
+
 describe("wire protocol", () => {
   it("posts one-way actions (active/editable/clear) over the port", async () => {
     const client = new CanvasClient();
