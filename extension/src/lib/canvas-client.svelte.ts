@@ -29,6 +29,12 @@ export const CANVAS_PORT = "klaxon-canvas";
  *  before postMessage, the message was lost, the page is wedged). */
 const REQUEST_TIMEOUT_MS = 5000;
 
+/** How long to wait for a driven tab navigation to finish loading (ms) before
+ *  reconnecting anyway. Page loads legitimately take seconds, so this is just a
+ *  backstop against a navigation that never reports complete (hung load, a
+ *  download, a closed tab). */
+const NAVIGATE_TIMEOUT_MS = 15000;
+
 /** State streamed from the engine to the panel (a subset of CanvasState). */
 export interface CanvasMirror {
   readonly selector: string;
@@ -48,6 +54,34 @@ const EMPTY_MIRROR: CanvasMirror = {
 type InboundMessage =
   | ({ type: "state" } & CanvasMirror)
   | { type: "reply"; id: number; data: unknown };
+
+/**
+ * Panel→page messages: fire-and-forget actions plus requests. A request is sent
+ * with a correlation `id` the page echoes back in its `reply` (see Replies);
+ * actions get no id. This is the single source of truth for the wire protocol —
+ * `page.svelte.ts` imports it so the two realms can't drift.
+ */
+export type Outbound =
+  | { type: "setActive"; active: boolean }
+  | { type: "setEditable"; editable: boolean }
+  | { type: "clear" }
+  | { type: "setSelector"; css: string }
+  | { type: "getPage" };
+
+/** Reply payload for each request, keyed by the request's `type`. */
+export interface Replies {
+  setSelector: { found: boolean; valid: boolean };
+  getPage: { url: string; title: string };
+}
+
+/** The subset of Outbound messages that expect a reply. */
+type RequestMessage = Extract<Outbound, { type: keyof Replies }>;
+
+/** A request as the page receives it: tagged with the correlation id. */
+export type PanelRequest = RequestMessage & { id: number };
+
+/** Everything the page receives over the port: one-way actions + requests. */
+export type PanelMessage = Exclude<Outbound, RequestMessage> | PanelRequest;
 
 /** We can only inject the canvas into ordinary web origins. */
 function injectable(url: string | undefined): url is string {
@@ -191,9 +225,7 @@ export class CanvasClient {
    * (now async because it round-trips to the page).
    */
   async setSelector(css: string): Promise<boolean> {
-    const reply = (await this.#request({ type: "setSelector", css })) as
-      | { found: boolean; valid: boolean }
-      | undefined;
+    const reply = await this.#request({ type: "setSelector", css });
     if (reply && reply.valid === false) throw new Error("Invalid CSS selector");
     return reply?.found ?? false;
   }
@@ -222,21 +254,37 @@ export class CanvasClient {
 
     // Drive the navigation and wait for the new document to finish loading
     // before reconnecting — the content script we inject must land on it.
-    await new Promise<void>((resolve) => {
-      const onComplete = (id: number, info: { status?: string }) => {
-        if (id === tabId && info.status === "complete") {
-          chrome.tabs.onUpdated.removeListener(onComplete);
-          resolve();
-        }
-      };
-      chrome.tabs.onUpdated.addListener(onComplete);
-      void chrome.tabs.update(tabId, { url }).catch(() => {
-        chrome.tabs.onUpdated.removeListener(onComplete);
-        resolve();
-      });
-    });
-
+    await this.#awaitTabComplete(tabId, url);
     await this.#connect(tabId);
+  }
+
+  /**
+   * Drive `tabId` to `url` and resolve once that navigation finishes loading.
+   * Only accepts `complete` after first seeing the `loading` tick our own
+   * navigation triggers, so a stale `complete` already queued for the previous
+   * document can't resolve us early. Resolves (rather than hangs) if the tab
+   * never reports complete — see NAVIGATE_TIMEOUT_MS.
+   */
+  #awaitTabComplete(tabId: number, url: string): Promise<void> {
+    return new Promise((resolve) => {
+      let settled = false;
+      let navigating = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        resolve();
+      };
+      const timer = setTimeout(finish, NAVIGATE_TIMEOUT_MS);
+      const onUpdated = (id: number, info: { status?: string }) => {
+        if (id !== tabId) return;
+        if (info.status === "loading") navigating = true;
+        else if (info.status === "complete" && navigating) finish();
+      };
+      chrome.tabs.onUpdated.addListener(onUpdated);
+      void chrome.tabs.update(tabId, { url }).catch(finish);
+    });
   }
 
   destroy() {
@@ -330,9 +378,7 @@ export class CanvasClient {
 
     // Resolve the canonical URL/title and replay the current active/editable
     // state onto the freshly connected (possibly just-injected) engine.
-    const page = (await this.#request({ type: "getPage" })) as
-      | { url: string; title: string }
-      | undefined;
+    const page = await this.#request({ type: "getPage" });
     if (seq !== this.#connectSeq) return;
     if (page?.url) this.url = page.url;
     if (page?.title) this.title = page.title;
@@ -396,7 +442,7 @@ export class CanvasClient {
     }
   };
 
-  #post(msg: Record<string, unknown>) {
+  #post(msg: Outbound) {
     try {
       this.#port?.postMessage(msg);
     } catch {
@@ -404,9 +450,12 @@ export class CanvasClient {
     }
   }
 
-  #request(msg: Record<string, unknown>): Promise<unknown> {
+  #request<M extends RequestMessage>(
+    msg: M,
+  ): Promise<Replies[M["type"]] | undefined> {
     return new Promise((resolve) => {
-      if (!this.#port) {
+      const port = this.#port;
+      if (!port) {
         resolve(undefined);
         return;
       }
@@ -417,8 +466,13 @@ export class CanvasClient {
       const timer = setTimeout(() => {
         if (this.#pending.delete(id)) resolve(undefined);
       }, REQUEST_TIMEOUT_MS);
-      this.#pending.set(id, { resolve, timer });
-      this.#post({ ...msg, id });
+      this.#pending.set(id, { resolve: resolve as (d: unknown) => void, timer });
+      try {
+        port.postMessage({ ...msg, id } satisfies PanelRequest);
+      } catch {
+        /* port closed between the null-check and the send; the disconnect
+           handler or the timeout resolves the pending entry */
+      }
     });
   }
 }

@@ -319,7 +319,7 @@ describe("pinned / away (multi-tab affordance)", () => {
 });
 
 describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
-  it("navigates the pinned tab and reconnects once it finishes loading", async () => {
+  it("navigates the pinned tab and reconnects once its load completes", async () => {
     const client = new CanvasClient();
     await flush();
     client.pinned = true; // selection flows pin on entry
@@ -331,6 +331,7 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
 
     const nav = client.navigateTab("https://other.test/");
     await flush(); // executor has attached its onUpdated listener + called update
+    mock.onUpdated.emit(1, { status: "loading" }, mock.tab);
     mock.onUpdated.emit(1, { status: "complete" }, mock.tab);
     await nav;
 
@@ -344,6 +345,60 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     client.destroy();
   });
 
+  it("ignores a stale `complete` that precedes our navigation's load", async () => {
+    const client = new CanvasClient();
+    await flush();
+    client.pinned = true;
+    mock.tab.url = "https://other.test/";
+    mock.page.url = "https://other.test/";
+
+    const nav = client.navigateTab("https://other.test/");
+    let done = false;
+    void nav.then(() => (done = true));
+    await flush();
+
+    // A `complete` left over from the previous document — before our load
+    // begins — must NOT resolve the wait (that would reconnect to the old page).
+    mock.onUpdated.emit(1, { status: "complete" }, mock.tab);
+    await flush();
+    expect(done).toBe(false);
+
+    // Our navigation's real load cycle (loading → complete) resolves it.
+    mock.onUpdated.emit(1, { status: "loading" }, mock.tab);
+    mock.onUpdated.emit(1, { status: "complete" }, mock.tab);
+    await nav;
+    expect(done).toBe(true);
+
+    client.destroy();
+  });
+
+  it("resolves via the timeout when the load never completes", async () => {
+    vi.useFakeTimers();
+    const client = new CanvasClient();
+    await vi.advanceTimersByTimeAsync(1);
+    client.pinned = true;
+    const portsBefore = mock.ports.length;
+    mock.tab.url = "https://slow.test/";
+    mock.page.url = "https://slow.test/";
+
+    const nav = client.navigateTab("https://slow.test/");
+    let done = false;
+    void nav.then(() => (done = true));
+
+    // No load events arrive...
+    await vi.advanceTimersByTimeAsync(0);
+    expect(done).toBe(false);
+
+    // ...so the backstop fires and the client reconnects against the tab anyway.
+    await vi.advanceTimersByTimeAsync(15000);
+    await nav;
+    expect(done).toBe(true);
+    expect(mock.ports.length).toBeGreaterThan(portsBefore);
+    expect(client.url).toBe("https://slow.test/");
+
+    client.destroy();
+  });
+
   it("is a no-op when the tab is already showing the target url", async () => {
     const client = new CanvasClient();
     await flush();
@@ -353,6 +408,49 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     await client.navigateTab("https://klaxon.test/");
 
     expect(mock.chrome.tabs.update).not.toHaveBeenCalled();
+
+    client.destroy();
+  });
+});
+
+describe("wire protocol", () => {
+  it("posts one-way actions (active/editable/clear) over the port", async () => {
+    const client = new CanvasClient();
+    await flush();
+    const port = mock.lastPort();
+    port.posted.length = 0; // drop the connect handshake
+
+    client.active = true;
+    client.editable = false;
+    client.clearSelection();
+
+    expect(port.posted).toEqual([
+      { type: "setActive", active: true },
+      { type: "setEditable", editable: false },
+      { type: "clear" },
+    ]);
+
+    client.destroy();
+  });
+
+  it("mirrors streamed engine `state` messages into `state`", async () => {
+    const client = new CanvasClient();
+    await flush();
+
+    mock.lastPort().onMessage.emit({
+      type: "state",
+      selector: "p#x",
+      matchText: "hello",
+      locked: true,
+      structured: undefined,
+    });
+
+    expect(client.state).toEqual({
+      selector: "p#x",
+      matchText: "hello",
+      locked: true,
+      structured: undefined,
+    });
 
     client.destroy();
   });

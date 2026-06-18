@@ -6,6 +6,7 @@
 // lives in a native side panel (see src/sidepanel.ts); this script is purely the
 // page-side half and talks to the panel over a `chrome.tabs` port,
 // one port per connected panel.
+import type { PanelMessage, Replies } from "./lib/canvas-client.svelte.ts";
 import { initCanvas } from "./lib/canvas.svelte.ts";
 import { loadFonts } from "./lib/fonts.ts";
 import { getCanonicalTitle, getCanonicalURL } from "./lib/url.ts";
@@ -72,54 +73,50 @@ const HOST_ID = "klaxon-host";
       });
     });
 
-    port.onMessage.addListener(
-      (msg: { type: string; [k: string]: unknown }) => {
-        switch (msg.type) {
-          case "setActive":
-            canvas.active = msg.active as boolean;
-            break;
-          case "setEditable":
-            canvas.editable = msg.editable as boolean;
-            break;
-          case "clear":
-            canvas.clearSelection();
-            break;
-          case "setSelector": {
-            // document.querySelector throws on a malformed selector — report
-            // validity separately so the panel can tell "invalid" from "no match".
-            let found = false;
-            let valid = true;
-            try {
-              const el = canvas.setSelector(msg.css as string);
-              found = !!el;
-              // Bring the matched region into view — the element lives here on
-              // the page, so the scroll has to happen page-side (the panel only
-              // learns whether it matched).
-              el?.scrollIntoView({
-                block: "start",
-                behavior: "smooth",
-                inline: "nearest",
-              });
-            } catch {
-              valid = false;
-            }
-            port.postMessage({
-              type: "reply",
-              id: msg.id,
-              data: { found, valid },
+    port.onMessage.addListener((msg: PanelMessage) => {
+      switch (msg.type) {
+        case "setActive":
+          canvas.active = msg.active;
+          break;
+        case "setEditable":
+          canvas.editable = msg.editable;
+          break;
+        case "clear":
+          canvas.clearSelection();
+          break;
+        case "setSelector": {
+          // document.querySelector throws on a malformed selector — report
+          // validity separately so the panel can tell "invalid" from "no match".
+          let found = false;
+          let valid = true;
+          try {
+            const el = canvas.setSelector(msg.css);
+            found = !!el;
+            // Bring the matched region into view — the element lives here on
+            // the page, so the scroll has to happen page-side (the panel only
+            // learns whether it matched).
+            el?.scrollIntoView({
+              block: "start",
+              behavior: "smooth",
+              inline: "nearest",
             });
-            break;
+          } catch {
+            valid = false;
           }
-          case "getPage":
-            port.postMessage({
-              type: "reply",
-              id: msg.id,
-              data: { url: getCanonicalURL(), title: getCanonicalTitle() },
-            });
-            break;
+          const data: Replies["setSelector"] = { found, valid };
+          port.postMessage({ type: "reply", id: msg.id, data });
+          break;
         }
-      },
-    );
+        case "getPage": {
+          const data: Replies["getPage"] = {
+            url: getCanonicalURL(),
+            title: getCanonicalTitle(),
+          };
+          port.postMessage({ type: "reply", id: msg.id, data });
+          break;
+        }
+      }
+    });
 
     port.onDisconnect.addListener(() => {
       stop();
