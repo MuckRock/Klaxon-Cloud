@@ -19,10 +19,15 @@
 //     switch back. The panel keeps showing the same view throughout.
 // =====
 
-import { createContext } from "svelte";
 import type { StructuredSelector } from "./selector.ts";
+import { createContext } from "svelte";
 
 export const CANVAS_PORT = "klaxon-canvas";
+
+/** How long to wait for a page reply before giving up (ms). Local IPC is
+ *  near-instant; this only fires when the page never answers (handler threw
+ *  before postMessage, the message was lost, the page is wedged). */
+const REQUEST_TIMEOUT_MS = 5000;
 
 /** State streamed from the engine to the panel (a subset of CanvasState). */
 export interface CanvasMirror {
@@ -65,6 +70,12 @@ interface TabRef {
   title: string;
 }
 
+/** An in-flight #request awaiting its reply (or a timeout). */
+interface PendingRequest {
+  resolve: (data: unknown) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+
 export class CanvasClient {
   // Mirror of the engine's reactive state, fed by `state` port messages.
   #mirror = $state<CanvasMirror>({ ...EMPTY_MIRROR });
@@ -104,7 +115,7 @@ export class CanvasClient {
   // Pending request/response calls keyed by an incrementing id (setSelector,
   // getPage). One-way actions (setActive/setEditable/clear) skip this.
   #reqId = 0;
-  #pending = new Map<number, (data: unknown) => void>();
+  #pending = new Map<number, PendingRequest>();
 
   constructor() {
     chrome.tabs.onActivated.addListener(this.#rebind);
@@ -300,7 +311,19 @@ export class CanvasClient {
     const port = chrome.tabs.connect(tab.id, { name: CANVAS_PORT });
     port.onMessage.addListener(this.#onMessage);
     port.onDisconnect.addListener(() => {
-      if (this.#port === port) this.#port = null;
+      // The page hung up on its own — navigation replaced the document, the tab
+      // crashed, or the connect never reached a live listener. Drop the port and
+      // fail any in-flight requests so awaiting callers (#connect's getPage,
+      // navigateTab, setSelector) don't wedge. Guard on identity so a late
+      // disconnect from a superseded port can't drain a newer port's requests.
+      if (this.#port === port) {
+        console.debug(
+          "[klaxon] canvas port disconnected",
+          chrome.runtime.lastError?.message ?? "",
+        );
+        this.#port = null;
+        this.#drainPending();
+      }
     });
     this.#port = port;
     this.watchable = true;
@@ -326,7 +349,17 @@ export class CanvasClient {
       }
       this.#port = null;
     }
-    for (const resolve of this.#pending.values()) resolve(undefined);
+    this.#drainPending();
+  }
+
+  // Resolve every in-flight request (undefined) and clear its timeout. Called on
+  // explicit teardown and when a port disconnects on its own — otherwise an
+  // awaited request whose reply never arrives hangs forever.
+  #drainPending() {
+    for (const { resolve, timer } of this.#pending.values()) {
+      clearTimeout(timer);
+      resolve(undefined);
+    }
     this.#pending.clear();
   }
 
@@ -354,10 +387,11 @@ export class CanvasClient {
       return;
     }
     if (msg.type === "reply" && typeof msg.id === "number") {
-      const resolve = this.#pending.get(msg.id);
-      if (resolve) {
+      const pending = this.#pending.get(msg.id);
+      if (pending) {
+        clearTimeout(pending.timer);
         this.#pending.delete(msg.id);
-        resolve(msg.data);
+        pending.resolve(msg.data);
       }
     }
   };
@@ -377,7 +411,13 @@ export class CanvasClient {
         return;
       }
       const id = ++this.#reqId;
-      this.#pending.set(id, resolve);
+      // Backstop the reply: if the page never answers, resolve undefined so the
+      // caller proceeds (degraded) rather than hanging. The port-disconnect path
+      // drains pending too; this covers a live port that simply never replies.
+      const timer = setTimeout(() => {
+        if (this.#pending.delete(id)) resolve(undefined);
+      }, REQUEST_TIMEOUT_MS);
+      this.#pending.set(id, { resolve, timer });
       this.#post({ ...msg, id });
     });
   }
