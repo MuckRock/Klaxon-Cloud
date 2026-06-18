@@ -75,6 +75,13 @@ export interface FetchMessage {
   options: RequestInit;
 }
 
+// Sent by the side panel's CanvasClient to ask the service worker to inject the
+// page content script (page.js) into a tab on demand. Returns `{ ok }`.
+export interface EnsureMessage {
+  type: "canvas/ensure";
+  tabId: number;
+}
+
 export interface UserInfoResponse {
   sub: string; // This is the internal system identifier for the user, or “the subject”. You should use the UUID as the user’s identifier in your application.
   uuid: string; // A unique identifier for the user.

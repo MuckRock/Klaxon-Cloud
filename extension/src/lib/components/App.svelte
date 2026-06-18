@@ -11,18 +11,16 @@
   import ToastList from "./ToastList.svelte";
   import ViewAlert from "../views/ViewAlert.svelte";
 
-  import { initCanvas, setCanvas, type Canvas } from "../canvas.svelte.ts";
+  import { type CanvasClient, setCanvas } from "../canvas-client.svelte.ts";
   import { type View, router, setRouter } from "../router.svelte.ts";
   import { toaster, setToaster } from "../toaster.svelte.ts";
 
   interface Props {
-    host: HTMLElement;
-    shadow: ShadowRoot;
-    sidebarWidth: number;
-    onclose: () => void;
+    // The panel-side proxy for the on-page Canvas, created in src/sidepanel.ts.
+    canvas: CanvasClient;
   }
 
-  let { host, shadow, sidebarWidth, onclose }: Props = $props();
+  let { canvas }: Props = $props();
 
   router.views = {
     createAlert: CreateAlert,
@@ -38,18 +36,15 @@
 
   setRouter(router);
   setToaster(toaster);
+  // `canvas` is a stable instance for the panel's lifetime; untrack the read so
+  // it isn't flagged as only capturing the initial value.
+  setCanvas(untrack(() => canvas));
 
-  const canvas: Canvas = initCanvas(
-    untrack(() => host),
-    untrack(() => shadow),
-    untrack(() => sidebarWidth),
-  );
-  setCanvas(canvas);
-
-  // Views that display a selection. Leaving this set (e.g. clicking "Back" out
-  // to a list) clears the selection so it doesn't linger on the page. The pick
-  // views (createAlert/saveAlert) build a fresh selection that must survive the
-  // hop between them, so they can't just clear it on their own teardown.
+  // Views that display a selection. These are the "selection flow": while in
+  // one, the canvas is pinned to the tab the flow started on (so switching tabs
+  // doesn't disrupt an in-progress pick), and leaving the set clears the
+  // selection so it doesn't linger on the page. The panel itself is global —
+  // its view/form state is *not* tied to the active tab.
   const SELECTION_VIEWS: Set<View> = new Set([
     "createAlert",
     "saveAlert",
@@ -59,6 +54,7 @@
   ]);
 
   function handleRouteChange(view: View) {
+    const selecting = SELECTION_VIEWS.has(view);
     canvas.active = [
       "createAlert",
       "editAlert",
@@ -66,7 +62,10 @@
       "viewAlert",
     ].includes(view);
     canvas.editable = !["editAlert", "viewAlert"].includes(view);
-    if (!SELECTION_VIEWS.has(view)) canvas.clearSelection();
+    // Clear before unpinning, so the "clear" reaches the pinned tab rather than
+    // whatever tab tracking reconnects to.
+    if (!selecting) canvas.clearSelection();
+    canvas.pinned = selecting;
   }
 
   // Bind to a reactive variable so the view re-mounts on navigation.
@@ -81,7 +80,7 @@
 </script>
 
 <div class="sidebar">
-  <Header {onclose} />
+  <Header />
 
   <div class="body">
     <ToastList />
@@ -93,10 +92,10 @@
 </div>
 
 <style>
-  :host {
-    /* Klaxon design tokens. Defined on the shadow host so the whole
-       sidebar inherits them and host-page custom properties of the same
-       name can't leak in through the shadow boundary. */
+  :root {
+    /* Klaxon design tokens. The panel is its own extension-origin document, so
+       these live on :root (there's no shadow host to scope them to, and no
+       host-page styles to leak in). */
     --font-sans: "Source Sans Pro", sans-serif;
     --font-xs: 12px;
     --font-sm: 14px;
@@ -130,11 +129,15 @@
   }
 
   .sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 300px;
-    height: 100vh;
+    /* The native panel sizes the window; fill it. (Width is browser-controlled
+       and user-resizable — we no longer pin 300px.) */
+    width: 100%;
+    height: 100%;
+    /* Establish a stacking context so descendants using a negative z-index
+       (the Siren's beams in Welcome) sit above this background instead of
+       dropping behind it. The old page-injected sidebar got this for free from
+       its position:fixed + z-index; the panel needs it explicitly. */
+    isolation: isolate;
     background: var(--klaxon-bg);
     font-family: var(
       --font-sans,
@@ -149,10 +152,8 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     color: #333;
-    z-index: 2147483647;
     display: flex;
     flex-direction: column;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
   }
 
   .body {

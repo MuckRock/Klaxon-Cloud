@@ -3,6 +3,11 @@
     "scripts": ["background.js"],
     "type": "module"
   },
+  "sidebar_action": {
+    "default_panel": "sidepanel.html",
+    "default_title": "Klaxon Cloud",
+    "default_icon": "icon-128.png"
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "klaxon-cloud@muckrock.com"

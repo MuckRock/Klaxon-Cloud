@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ArrowRight } from "@lucide/svelte";
 
+  import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
   import SelectionPicker from "../components/SelectionPicker.svelte";
 
   import { getRouter } from "../router.svelte";
@@ -10,6 +11,7 @@
 
 <div class="container create-alert">
   <main class="section">
+    <PinnedTabNotice />
     <h3>Create an alert</h3>
     <p class="description">
       By default, Klaxon watches the entire page for changes. If that sounds

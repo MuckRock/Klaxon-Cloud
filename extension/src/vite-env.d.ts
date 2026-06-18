@@ -15,3 +15,14 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// Firefox-only sidebarAction API. @types/chrome (Chrome-only) doesn't declare
+// it, but the manifest's `sidebar_action` key makes it available at runtime in
+// Firefox. We only call toggle(); declare just that, behind optional chaining.
+declare namespace chrome {
+  const sidebarAction:
+    | {
+        toggle(): Promise<void>;
+      }
+    | undefined;
+}

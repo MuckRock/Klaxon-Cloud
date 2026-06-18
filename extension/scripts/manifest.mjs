@@ -2,7 +2,9 @@
 // browser overlay. Chrome and Firefox disagree on a few keys, and shipping a
 // single combined manifest makes each browser warn about the other's keys.
 // The overlay supplies the full `background` block plus its browser-only keys,
-// so a shallow merge over the base is all we need.
+// so a shallow merge over the base is all we need — except `permissions`, which
+// is unioned so an overlay can add a browser-only permission (e.g. Chrome's
+// `sidePanel`) without dropping the shared ones.
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -26,5 +28,10 @@ export function buildManifest(browser) {
       `Unknown browser "${browser}" — expected one of ${BROWSERS.join(", ")}.`,
     );
   }
-  return { ...read("base"), ...read(browser) };
+  const base = read("base");
+  const overlay = read(browser);
+  const permissions = [
+    ...new Set([...(base.permissions ?? []), ...(overlay.permissions ?? [])]),
+  ];
+  return { ...base, ...overlay, permissions };
 }

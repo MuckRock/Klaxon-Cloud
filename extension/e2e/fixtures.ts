@@ -74,25 +74,50 @@ export const TEST_PAGE_HTML = readFileSync(
 );
 
 /**
- * Navigate to the throwaway test page (fulfilled locally) and inject the
- * content script — replicating what the action-button click does in
- * background.ts, which Playwright can't trigger directly.
+ * Open the sidebar the way the new native-panel paradigm splits it across two
+ * realms, and hand back the panel page the UI lives in.
+ *
+ * The sidebar `<App>` is no longer injected into the host page — it's the
+ * extension-origin document `sidepanel.html`. The on-page Canvas (the element
+ * picker) is still a content script (`page.js`), injected into the host tab on
+ * demand by the service worker. So the harness runs two pages:
+ *
+ *   - `page`  — the host web page (the throwaway test page, fulfilled locally),
+ *               kept as the *active* tab so the panel's CanvasClient resolves
+ *               its `active` / `lastFocusedWindow` query to it (not to the panel
+ *               document). This is also where selection clicks land.
+ *   - panel   — a background tab navigated to `chrome-extension://<id>/
+ *               sidepanel.html`, where every UI assertion runs. Playwright drives
+ *               a background tab fine; what matters is that the *host* stays the
+ *               active tab so origin/watchable track the page being inspected.
+ *
+ * The panel can't be driven through the real browser side-panel chrome (it isn't
+ * a tab), but `sidepanel.html` is an ordinary extension page, so opening it
+ * directly renders the same `<App>` + `CanvasClient` it would in the panel.
  */
-export async function openSidebar(page: Page, serviceWorker: Worker) {
-  await page.route(`${TEST_PAGE_URL}**`, (route) =>
+export async function openPanel(
+  context: BrowserContext,
+  page: Page,
+  serviceWorker: Worker,
+): Promise<Page> {
+  // Fulfill every top-level http(s) document with the throwaway test page. The
+  // initial goto lands on TEST_PAGE_URL, but ViewAlert drives the tab to an
+  // alert's real `site` (issue #71) via CanvasClient.navigateTab — serving them
+  // all locally keeps that navigation off the network and on a page the Canvas
+  // can inject into. SW API calls are mocked separately (context.route).
+  await page.route(/^https?:\/\//, (route) =>
     route.fulfill({ contentType: "text/html", body: TEST_PAGE_HTML }),
   );
   await page.goto(TEST_PAGE_URL);
 
-  await serviceWorker.evaluate(async () => {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      lastFocusedWindow: true,
-    });
-    if (!tab?.id) throw new Error("no active tab to inject into");
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["content.js"],
-    });
-  });
+  const extensionId = new URL(serviceWorker.url()).host;
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+
+  // Opening the panel made it the active tab; hand activity back to the host so
+  // the CanvasClient connects to (and tracks) the page under inspection. The
+  // resulting `tabs.onActivated` is what drives the panel onto the host's origin.
+  await page.bringToFront();
+
+  return panel;
 }

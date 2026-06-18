@@ -1,54 +1,92 @@
+import type { Page } from "@playwright/test";
+
 import { expect, test } from "./fixtures";
-import { renderSignedOut } from "./support/render";
-import { hostTokenNames } from "./support/tokens";
+import { renderSignedIn } from "./support/render";
 
-// CSS isolation: the sidebar lives in an open shadow root, which blocks normal
-// style inheritance — but custom properties (CSS variables) DO inherit across
-// the shadow boundary. App.svelte defends against this by re-declaring every
-// design token on :host, so host-page tokens of the same name can't reach the
-// sidebar. support/test-page.html sets garish poison values for those same
-// tokens on :root; this spec fails if any of them reach the rendered sidebar.
+// CSS isolation for the on-page Canvas overlay.
+//
+// The sidebar UI is now its own document (the native side panel), so the host
+// page can't reach it at all. What still lives in the page is the Canvas
+// overlay, inside an open shadow root on #klaxon-host. canvas.svelte.ts styles
+// those overlays with literal inline values (the brand red #e1275f, hardcoded
+// dim/outline colors) precisely so page styles can't reach them — neither page
+// stylesheets (shadow DOM blocks page selectors from matching shadow content,
+// even with !important) nor inherited custom properties (the overlays use no
+// var()s, so support/test-page.html's poison :root tokens can't bleed in).
+//
+// This spec locks a real selection, then assaults the host page with both
+// vectors and asserts the overlay keeps its own brand styling.
 
-// Derived from App.svelte's :host block, so adding a token there automatically
-// extends this test (the sanity check below then requires a poison value for
-// it in support/test-page.html).
-const TOKENS = hostTokenNames();
+const BRAND_RED = "rgb(225, 39, 95)"; // #e1275f
 
-test("host-page custom properties don't leak into the sidebar", async ({
+/**
+ * Read the overlay's brand-styled surfaces from the shadow root: the locked
+ * selection outline (the 4px solid box) and the dismiss button's background.
+ * Both are written as literal #e1275f in canvas.svelte.ts.
+ */
+function readOverlayBrand(page: Page) {
+  return page.evaluate(() => {
+    const shadow = document.getElementById("klaxon-host")!.shadowRoot!;
+    const divs = Array.from(shadow.querySelectorAll("div"));
+    // The selection box is the only 4px-outlined div (see canvas.svelte.ts).
+    const selection = divs.find(
+      (d) => getComputedStyle(d).outlineWidth === "4px",
+    );
+    const dismiss = shadow.querySelector<HTMLButtonElement>(
+      'button[aria-label="Clear selection"]',
+    );
+    return {
+      selectionOutline: selection
+        ? getComputedStyle(selection).outlineColor
+        : "(no selection box)",
+      dismissBackground: dismiss
+        ? getComputedStyle(dismiss).backgroundColor
+        : "(no dismiss button)",
+    };
+  });
+}
+
+test("host-page CSS can't leak into the Canvas overlay", async ({
+  context,
   page,
   serviceWorker,
 }) => {
-  await renderSignedOut(page, serviceWorker);
-  await expect(page.locator(".sidebar")).toBeVisible();
+  const { panel } = await renderSignedIn(context, page, serviceWorker);
 
-  const tokens = await page.evaluate((names) => {
-    const host = document.getElementById("klaxon-host");
-    const sidebar = host?.shadowRoot?.querySelector(".sidebar");
-    if (!sidebar) throw new Error("sidebar not found in shadow root");
+  // Lock a selection so the overlay (selection box + dismiss button) renders.
+  await panel.getByRole("button", { name: "Create a new alert" }).click();
+  await expect(
+    panel.getByRole("heading", { name: "Create an alert" }),
+  ).toBeVisible();
+  await page.locator("h1").click();
 
-    // Read each token as it resolves on the host page (the poison) and as it
-    // resolves inside the sidebar (should be the extension's own value).
-    const onHostPage = getComputedStyle(document.documentElement);
-    const inSidebar = getComputedStyle(sidebar);
-    return names.map((name) => ({
-      name,
-      hostPage: onHostPage.getPropertyValue(name).trim(),
-      sidebar: inSidebar.getPropertyValue(name).trim(),
-    }));
-  }, TOKENS);
+  // Baseline: the overlay carries its own brand styling. (support/test-page.html
+  // already poisons the design tokens on :root — if inherited custom properties
+  // could reach the overlay, these would already be wrong here.)
+  const before = await readOverlayBrand(page);
+  expect(before.selectionOutline).toBe(BRAND_RED);
+  expect(before.dismissBackground).toBe(BRAND_RED);
 
-  // Sanity-check the trap actually loaded: every token must carry a poison
-  // value on the host page, otherwise a leak couldn't be detected.
-  const missingPoison = tokens.filter((t) => !t.hostPage);
+  // Now attack with page stylesheets, including !important, targeting the same
+  // element types the overlay uses. Shadow DOM blocks these from matching the
+  // overlay's nodes, so they must not change anything above.
+  await page.addStyleTag({
+    content: `
+      div, button {
+        outline-color: lime !important;
+        background-color: lime !important;
+        border-color: lime !important;
+      }
+    `,
+  });
+
+  const after = await readOverlayBrand(page);
   expect(
-    missingPoison.map((t) => t.name),
-    "test-page.html didn't define poison values for these tokens",
-  ).toEqual([]);
-
-  // A leak is any token whose sidebar value matches the host-page poison.
-  const leaked = tokens.filter((t) => t.sidebar === t.hostPage);
+    after.selectionOutline,
+    "host-page CSS leaked into the overlay's selection outline",
+  ).toBe(BRAND_RED);
   expect(
-    leaked,
-    "host-page tokens leaked into the sidebar (App.svelte :host doesn't define them)",
-  ).toEqual([]);
+    after.dismissBackground,
+    "host-page CSS leaked into the overlay's dismiss button",
+  ).toBe(BRAND_RED);
 });

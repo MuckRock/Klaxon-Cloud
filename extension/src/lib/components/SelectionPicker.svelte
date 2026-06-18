@@ -1,11 +1,14 @@
 <script lang="ts">
   import { ChevronRight } from "@lucide/svelte";
-  import { getCanvas } from "../canvas.svelte";
+  import { getCanvas } from "../canvas-client.svelte";
 
   const canvas = getCanvas();
 
   const locked = $derived(canvas.state.locked);
   const selector = $derived(canvas.state.selector);
+  // Pinned to a different tab than the one being viewed: the picker overlay
+  // isn't on this page, so editing the selector here would be meaningless.
+  const away = $derived(canvas.away);
 
   let editedSelector = $state("");
   let selectorError = $state("");
@@ -17,7 +20,7 @@
     selectorError = "";
   });
 
-  function handleSelectorInput(e: Event) {
+  async function handleSelectorInput(e: Event) {
     const value = (e.target as HTMLTextAreaElement).value;
     editedSelector = value;
 
@@ -27,9 +30,11 @@
       return;
     }
 
+    // setSelector round-trips to the page now: resolves found/not-found, throws
+    // on a malformed selector.
     try {
-      const el = canvas.setSelector(value);
-      selectorError = el ? "" : "No element found for this selector.";
+      const found = await canvas.setSelector(value);
+      selectorError = found ? "" : "No element found for this selector.";
     } catch {
       selectorError = "Invalid CSS selector.";
     }
@@ -208,6 +213,7 @@
         rows="4"
         value={editedSelector}
         oninput={handleSelectorInput}
+        disabled={away}
       ></textarea>
       {#if selectorError}
         <p class="selector-error">{selectorError}</p>
@@ -239,6 +245,7 @@
 
   .message-card-graphic {
     margin-left: 1em;
+    margin-top: 0.75em;
     height: 80px;
     width: auto;
   }
@@ -324,6 +331,11 @@
   .selector-input:focus {
     outline: 2px solid #5a9fd4;
     outline-offset: -1px;
+  }
+
+  .selector-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .selector-error {

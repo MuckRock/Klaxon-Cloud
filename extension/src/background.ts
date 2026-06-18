@@ -1,13 +1,15 @@
 // Klaxon Cloud service worker.
 //
-// Two responsibilities:
-//   1. Inject the content script when the action button is clicked.
-//   2. Handle OIDC auth messages from the content script (PKCE flow against
+// Responsibilities:
+//   1. Open the native side panel from the toolbar button, and inject the page
+//      content script (page.js) on demand when the panel asks ("canvas/ensure").
+//   2. Handle OIDC auth messages from the side panel (PKCE flow against
 //      Squarelet). All network + storage work lives here because
 //      chrome.identity.launchWebAuthFlow is not available to content scripts.
 import type {
   AuthConfig,
   AuthMessage,
+  EnsureMessage,
   FetchMessage,
   StoredAuth,
 } from "./lib/types";
@@ -27,13 +29,37 @@ import {
   refreshJwt,
 } from "./lib/oidc.ts";
 
-// Inject the content script when the extension is activated
-chrome.action.onClicked.addListener((tab) => {
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id! },
-    files: ["content.js"],
-  });
-});
+// Open the sidebar from the toolbar button.
+//   - Chrome: the side panel opens automatically on action click.
+//   - Firefox: there's no setPanelBehavior; toggle the native sidebar instead.
+// `chrome.sidePanel` / `chrome.sidebarAction` are each defined on only one
+// browser, so the optional chaining picks the right path at runtime.
+chrome.sidePanel
+  ?.setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((err) => console.debug("[klaxon] setPanelBehavior:", err));
+
+if (chrome.sidebarAction) {
+  chrome.action.onClicked.addListener(() =>
+    chrome.sidebarAction?.toggle().catch(() => {}),
+  );
+}
+
+// Inject the page content script on demand. The side panel's CanvasClient sends
+// "canvas/ensure" before connecting its port; re-injection is a no-op thanks to
+// the page script's `_klaxonInject` guard. Throws on restricted pages
+// (chrome://, the web store, PDFs, file://) — surfaced to the panel as ok:false.
+async function ensureCanvas(tabId: number): Promise<boolean> {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["page.js"],
+    });
+    return true;
+  } catch (err) {
+    console.debug("[klaxon] canvas/ensure failed:", err);
+    return false;
+  }
+}
 
 // Save auth data to local storage
 const STORAGE_KEY = "muckrock_auth";
@@ -231,17 +257,28 @@ async function signOut({ host }: Pick<AuthConfig, "host">): Promise<void> {
   }
 }
 
-function isAuthMessage(t: AuthMessage | FetchMessage): t is AuthMessage {
+type SWMessage = AuthMessage | FetchMessage | EnsureMessage;
+
+function isAuthMessage(t: SWMessage): t is AuthMessage {
   return t.type.startsWith("auth/");
 }
 
-function isFetchMessage(t: AuthMessage | FetchMessage): t is FetchMessage {
+function isFetchMessage(t: SWMessage): t is FetchMessage {
   return t.type === "api/fetch";
 }
 
+function isEnsureMessage(t: SWMessage): t is EnsureMessage {
+  return t.type === "canvas/ensure";
+}
+
 chrome.runtime.onMessage.addListener(
-  (msg: AuthMessage | FetchMessage, _sender, sendResponse) => {
+  (msg: SWMessage, _sender, sendResponse) => {
     if (!msg?.type) return false;
+
+    if (isEnsureMessage(msg)) {
+      ensureCanvas(msg.tabId).then((ok) => sendResponse({ ok }));
+      return true;
+    }
 
     if (isFetchMessage(msg)) {
       (async () => {

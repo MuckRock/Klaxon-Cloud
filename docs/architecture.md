@@ -9,7 +9,7 @@ model they all read and write. For step-by-step traces of specific flows, see
 ```mermaid
 flowchart TB
     subgraph browser["User's browser"]
-        ext["Klaxon Cloud extension<br/>(content script + service worker)"]
+        ext["Klaxon Cloud extension<br/>(side panel + content script + service worker)"]
     end
 
     subgraph squarelet["Squarelet (identity)"]
@@ -54,7 +54,7 @@ The numbered edges correspond to the lifecycle in [data-flow.md](./data-flow.md)
 
 ### 1. Browser extension — "Klaxon Cloud" (this repo)
 
-A Chrome/Firefox extension (Svelte 5 + Vite + TypeScript) that injects a sidebar into the current page. The user hovers/clicks/drags to pick a DOM region; the extension builds a CSS selector for it and lets the user save it as an **alert** with a schedule and notification options. It also lists the user's existing alerts for the current site and their recent changes.
+A Chrome/Firefox extension (Svelte 5 + Vite + TypeScript) that runs in the browser's native side panel and injects a Canvas content script into the current page to pick a region. The user hovers/clicks/drags to pick a DOM region; the extension builds a CSS selector for it and lets the user save it as an **alert** with a schedule and notification options. It also lists the user's existing alerts for the current site and their recent changes.
 
 It is purely a **client of the DocumentCloud API**. It holds no data of its own beyond auth tokens; everything it shows is fetched from DocumentCloud. See [extension.md](./extension.md).
 

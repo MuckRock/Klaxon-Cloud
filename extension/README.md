@@ -2,7 +2,7 @@
 
 An evolution of the existing Klaxon bookmarklet, for the modern internet browser. Built with Svelte 5 and Vite, packaged as a Chrome/Firefox extension (Manifest V3).
 
-When activated, Klaxon injects a sidebar into the current page. Hover over elements to highlight them, click to lock a selection, and the sidebar displays the CSS selector and matched text.
+When activated, Klaxon opens the browser's native sidebar (Chrome side panel / Firefox sidebar). To pick what to watch it injects a Canvas content script into the current page: hover over elements to highlight them, click to lock a selection, and the panel displays the CSS selector and matched text.
 
 ## Development
 
@@ -11,18 +11,20 @@ npm ci
 cp .env.example .env    # fill in MUCKROCK_CLIENT_ID from Squarelet admin
 ```
 
-Dev is two separate watch builds that both emit into `build/<browser>/` (a content script and a service worker), so run them in two terminals:
+Dev is three watch builds emitting into `build/<browser>/` (the Canvas content script, the side panel, and the service worker). Run them all at once:
 
 ```sh
-npm run dev:content     # content script → build/chrome/content.js
-npm run dev:service     # service worker → build/chrome/background.js
+npm run dev             # clean once, then all three watchers in parallel
 ```
 
-Both watchers default to the Chrome build (`build/chrome/`). To develop against
-Firefox instead, set `BROWSER=firefox` for both (e.g. `BROWSER=firefox npm run
-dev:content`), which emits into `build/firefox/`.
+…or run them individually in separate terminals: `npm run dev:page`,
+`npm run dev:sidepanel`, `npm run dev:service`.
 
-Environment variables (`MUCKROCK_*`) are baked into the bundle at build start — **restart both watchers after editing `.env`**, since vite only reads env files once at startup and will otherwise keep rebuilding with stale values. After a rebuild, reload the extension at `chrome://extensions`.
+All builds default to Chrome (`build/chrome/`). To develop against Firefox
+instead, set `BROWSER=firefox` (e.g. `BROWSER=firefox npm run dev`), which emits
+into `build/firefox/`.
+
+Environment variables (`MUCKROCK_*`) are baked into the bundle at build start — **restart the watchers after editing `.env`**, since vite only reads env files once at startup and will otherwise keep rebuilding with stale values. After a rebuild, reload the extension at `chrome://extensions`.
 
 The two that need real values (the rest default to the dev environment in `.env.example`):
 
@@ -53,7 +55,7 @@ single shared manifest makes each browser warn about the other's keys.
 3. Enable **Developer mode** (toggle in the top right)
 4. Click **Load unpacked** and select the `build/chrome/` directory
 5. Navigate to any webpage and click the Klaxon icon in the toolbar
-6. The sidebar should appear on the right side of the page
+6. The side panel should open; choose **Create a new alert** to start picking
 7. Hover over elements to see them highlighted; click to lock a selection
 
 ### End-to-end tests

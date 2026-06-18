@@ -12,6 +12,8 @@ import { getSiteLabel } from "../src/lib/utils";
 //    "Edit alert" opens the EditAlert form; and from there
 //    "Edit selection" opens the EditSelection picker.
 //    Both editors PATCH the alert.
+//
+//    UI runs against `panel`; re-picking a region happens on the host `page`.
 
 const ALERT = scheduled.results[0];
 const ALERT_LABEL = getSiteLabel(ALERT);
@@ -25,10 +27,12 @@ const DISABLED_ALERT = makeEvent({
 });
 
 /** List → ViewAlert → EditAlert for the given alert label. */
-async function openEditAlert(page: Page, label = ALERT_LABEL) {
-  await page.getByRole("button", { name: label }).click();
-  await page.getByRole("button", { name: "Edit alert" }).click();
-  await expect(page.getByRole("heading", { name: "Edit alert" })).toBeVisible();
+async function openEditAlert(panel: Page, label = ALERT_LABEL) {
+  await panel.getByRole("button", { name: label }).click();
+  await panel.getByRole("button", { name: "Edit alert" }).click();
+  await expect(
+    panel.getByRole("heading", { name: "Edit alert" }),
+  ).toBeVisible();
 }
 
 test("editing an alert's details saves the changes", async ({
@@ -36,17 +40,21 @@ test("editing an alert's details saves the changes", async ({
   page,
   serviceWorker,
 }) => {
-  const requests = await renderSignedIn(context, page, serviceWorker);
-  await openEditAlert(page);
+  const { panel, requests } = await renderSignedIn(
+    context,
+    page,
+    serviceWorker,
+  );
+  await openEditAlert(panel);
 
-  await page.locator("#alert-name").fill("Renamed alert");
-  await page.locator("#frequency").selectOption("hourly");
-  await page.getByRole("button", { name: "Update alert" }).click();
+  await panel.locator("#alert-name").fill("Renamed alert");
+  await panel.locator("#frequency").selectOption("hourly");
+  await panel.getByRole("button", { name: "Update alert" }).click();
 
   // Success returns to the list with a confirmation toast.
-  await expect(page.getByText("Alert saved successfully!")).toBeVisible();
+  await expect(panel.getByText("Alert saved successfully!")).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Create a new alert" }),
+    panel.getByRole("button", { name: "Create a new alert" }),
   ).toBeVisible();
 
   expect(requests.updated).toHaveLength(1);
@@ -60,21 +68,27 @@ test("editing an alert's selection saves and returns to the alert", async ({
   page,
   serviceWorker,
 }) => {
-  const requests = await renderSignedIn(context, page, serviceWorker);
-  await openEditAlert(page);
+  const { panel, requests } = await renderSignedIn(
+    context,
+    page,
+    serviceWorker,
+  );
+  await openEditAlert(panel);
 
-  await page.getByRole("button", { name: "Edit selection" }).click();
+  await panel.getByRole("button", { name: "Edit selection" }).click();
   await expect(
-    page.getByRole("heading", { name: "Edit selection" }),
+    panel.getByRole("heading", { name: "Edit selection" }),
   ).toBeVisible();
 
-  // Pick a region on the page, then save it.
+  // Pick a region on the host page, then save it from the panel.
   await page.locator("h1").click();
-  await page.getByRole("button", { name: "Save selection" }).click();
+  await panel.getByRole("button", { name: "Save selection" }).click();
 
-  await expect(page.getByText("Selection saved.")).toBeVisible();
+  await expect(panel.getByText("Selection saved.")).toBeVisible();
   // Saving returns to the originating editor (EditAlert), not the list.
-  await expect(page.getByRole("heading", { name: "Edit alert" })).toBeVisible();
+  await expect(
+    panel.getByRole("heading", { name: "Edit alert" }),
+  ).toBeVisible();
 
   expect(requests.updated).toHaveLength(1);
   expect(requests.updated[0].id).toBe(ALERT.id);
@@ -86,18 +100,21 @@ test("reactivating a disabled alert re-enables it on a weekly schedule", async (
   page,
   serviceWorker,
 }) => {
-  const requests = await renderSignedIn(context, page, serviceWorker, {
-    events: eventsPage([DISABLED_ALERT]),
-  });
-  await openEditAlert(page, "Disabled alert");
+  const { panel, requests } = await renderSignedIn(
+    context,
+    page,
+    serviceWorker,
+    { events: eventsPage([DISABLED_ALERT]) },
+  );
+  await openEditAlert(panel, "Disabled alert");
 
   // The disabled alert shows a Reactivate action in place of the schedule picker.
   await expect(
-    page.getByText("This alert is currently disabled."),
+    panel.getByText("This alert is currently disabled."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Reactivate" }).click();
+  await panel.getByRole("button", { name: "Reactivate" }).click();
 
-  await expect(page.getByText("Alert reactivated")).toBeVisible();
+  await expect(panel.getByText("Alert reactivated")).toBeVisible();
   expect(requests.updated).toHaveLength(1);
   expect(requests.updated[0].id).toBe(DISABLED_ALERT.id);
   expect(requests.updated[0].payload.event).toBe(scheduleValues.weekly);
@@ -109,10 +126,10 @@ test.describe("accessibility", () => {
     page,
     serviceWorker,
   }, testInfo) => {
-    await renderSignedIn(context, page, serviceWorker);
-    await openEditAlert(page);
+    const { panel } = await renderSignedIn(context, page, serviceWorker);
+    await openEditAlert(panel);
 
-    const { violations } = await scanSidebar(page, testInfo);
+    const { violations } = await scanSidebar(panel, testInfo);
     expect(violations.map((v) => `${v.id} (${v.impact})`)).toEqual([]);
   });
 
@@ -121,15 +138,15 @@ test.describe("accessibility", () => {
     page,
     serviceWorker,
   }, testInfo) => {
-    await renderSignedIn(context, page, serviceWorker, {
+    const { panel } = await renderSignedIn(context, page, serviceWorker, {
       events: eventsPage([DISABLED_ALERT]),
     });
-    await openEditAlert(page, "Disabled alert");
+    await openEditAlert(panel, "Disabled alert");
     await expect(
-      page.getByRole("button", { name: "Reactivate" }),
+      panel.getByRole("button", { name: "Reactivate" }),
     ).toBeVisible();
 
-    const { violations } = await scanSidebar(page, testInfo);
+    const { violations } = await scanSidebar(panel, testInfo);
     expect(violations.map((v) => `${v.id} (${v.impact})`)).toEqual([]);
   });
 
@@ -138,14 +155,14 @@ test.describe("accessibility", () => {
     page,
     serviceWorker,
   }, testInfo) => {
-    await renderSignedIn(context, page, serviceWorker);
-    await openEditAlert(page);
-    await page.getByRole("button", { name: "Edit selection" }).click();
+    const { panel } = await renderSignedIn(context, page, serviceWorker);
+    await openEditAlert(panel);
+    await panel.getByRole("button", { name: "Edit selection" }).click();
     await expect(
-      page.getByRole("heading", { name: "Edit selection" }),
+      panel.getByRole("heading", { name: "Edit selection" }),
     ).toBeVisible();
 
-    const { violations } = await scanSidebar(page, testInfo);
+    const { violations } = await scanSidebar(panel, testInfo);
     expect(violations.map((v) => `${v.id} (${v.impact})`)).toEqual([]);
   });
 });

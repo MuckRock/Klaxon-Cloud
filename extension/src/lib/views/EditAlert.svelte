@@ -7,7 +7,8 @@
     ValidationError,
   } from "../types";
 
-  import { getCanvas } from "../canvas.svelte";
+  import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
+  import { getCanvas } from "../canvas-client.svelte";
   import { getToaster } from "../toaster.svelte";
   import { getRouter } from "../router.svelte";
   import { eventValues, schedules, update } from "../api";
@@ -32,15 +33,22 @@
   let frequency: AddOnSchedule = $derived(schedules[event.event] ?? "weekly");
   let saving = $state(false);
 
+  // True when the canvas is pinned to a different tab than the one being viewed
+  // (PinnedTabNotice surfaces this). The alert's selection lives on its own page,
+  // so block updates/edits until the user returns to that tab.
+  let away = $derived(canvas.away);
+
   $effect(() => {
-    if (!wholePage) {
-      const el = canvas.setSelector(selector);
-      el?.scrollIntoView({
-        block: "start",
-        behavior: "smooth",
-        inline: "nearest",
-      });
-    }
+    // Drive the tab to the alert's page, then show (and scroll to) the existing
+    // selection there — the alert may live on a different path than the tab we
+    // opened from. (Captured up front; navigateTab is async.)
+    const site = event.parameters.site;
+    const sel = selector;
+    const whole = wholePage;
+    void (async () => {
+      await canvas.navigateTab(site);
+      if (!whole) void canvas.setSelector(sel);
+    })();
     return () => {
       canvas.clearSelection();
     };
@@ -103,6 +111,7 @@
   }}
 >
   <main class="section content">
+    <PinnedTabNotice />
     <div class="intro">
       <h3>Edit alert</h3>
       <p class="description">
@@ -113,6 +122,7 @@
       <button
         type="button"
         class="edit-selection-link"
+        disabled={away}
         onclick={() =>
           router.navigate("editSelection", { event, origin: "editAlert" })}
       >
@@ -124,7 +134,12 @@
     <div class="field">
       {#if frequency === "disabled"}
         <p class="description">This alert is currently disabled.</p>
-        <button type="button" class="btn-primary" onclick={reactivate}>
+        <button
+          type="button"
+          class="btn-primary"
+          disabled={away}
+          onclick={reactivate}
+        >
           Reactivate
         </button>
       {:else}
@@ -132,7 +147,12 @@
           How often should Klaxon check this page?
         </label>
         <div class="select-wrapper">
-          <select id="frequency" bind:value={frequency} name="schedule">
+          <select
+            id="frequency"
+            bind:value={frequency}
+            name="schedule"
+            disabled={away}
+          >
             <option value="hourly">Hourly</option>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -159,6 +179,7 @@
         placeholder="Title"
         name="title"
         value={event.parameters.title ?? ""}
+        disabled={away}
       />
     </div>
 
@@ -184,11 +205,12 @@
         placeholder="Webhook URL"
         name="slack_webhook"
         value={event.parameters.slack_webhook ?? ""}
+        disabled={away}
       />
     </div>
   </main>
   <footer class="button-row">
-    <button class="btn-primary" type="submit" disabled={saving}>
+    <button class="btn-primary" type="submit" disabled={saving || away}>
       {saving ? "Saving…" : "Update alert"}
     </button>
   </footer>
@@ -246,6 +268,12 @@
     font-size: var(--font-sm, 14px);
     font-weight: 700;
     text-decoration: underline;
+  }
+
+  .edit-selection-link:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: none;
   }
 
   .field {
@@ -315,5 +343,11 @@
 
   input::placeholder {
     color: #99a8b3;
+  }
+
+  input:disabled,
+  select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 </style>

@@ -5,22 +5,22 @@ import AxeBuilder from "@axe-core/playwright";
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 /**
- * Run an axe-core accessibility scan over the injected sidebar UI, attach the
- * full report, log each offending element, and return the results.
+ * Run an axe-core accessibility scan over the sidebar UI, attach the full
+ * report, log each offending element, and return the results.
  *
- * Scope is `#klaxon-host`; axe descends into its open shadow root, so this
- * audits only our UI, not the throwaway test page. Call it once the UI has
+ * `panel` is the side-panel page (sidepanel.html), whose entire document *is*
+ * our UI, so the scan is scoped to its `.sidebar` root. Call it once the UI has
  * rendered (e.g. after an `expect(...).toBeVisible()`), since axe scans a DOM
  * snapshot. Callers assert on the result, e.g.:
- *   const { violations } = await scanSidebar(page, testInfo);
+ *   const { violations } = await scanSidebar(panel, testInfo);
  *   expect(violations.map((v) => v.id)).toEqual([]);
  *
  * The per-element logging means a failing run names exactly what to fix without
  * having to open the attached report.
  */
-export async function scanSidebar(page: Page, testInfo: TestInfo) {
-  const results = await new AxeBuilder({ page })
-    .include("#klaxon-host")
+export async function scanSidebar(panel: Page, testInfo: TestInfo) {
+  const results = await new AxeBuilder({ page: panel })
+    .include(".sidebar")
     .withTags(WCAG_TAGS)
     .analyze();
 

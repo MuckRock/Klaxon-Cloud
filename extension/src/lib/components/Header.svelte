@@ -1,34 +1,36 @@
 <script lang="ts">
   import { getRouter } from "../router.svelte";
+  import { authState, logout } from "../auth.svelte.ts";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import Logotype from "./Logotype.svelte";
-  import X from "@lucide/svelte/icons/x";
-
-  interface Props {
-    onclose: () => void;
-  }
-
-  const { onclose }: Props = $props();
+  import UserInfo from "./UserInfo.svelte";
 
   const router = getRouter();
   const history = $derived(router.history);
+
+  const isLoggedIn = $derived(authState.status === "authenticated");
 </script>
 
 <header class="container">
   <div class="header">
     {#if history.length === 0}
-      <div title="Klaxon" class="logo">
-        <Logotype />
-      </div>
+      {#if isLoggedIn}
+        <div class="auth">
+          <UserInfo />
+          <button class="signOut link" onclick={() => logout()}>Sign out</button
+          >
+        </div>
+      {:else}
+        <div title="Klaxon" class="logo">
+          <Logotype />
+        </div>
+      {/if}
     {:else}
       <button class="back-link" type="button" onclick={() => router.back()}>
         <ArrowLeft size={16} />
         <span class="label">Back</span>
       </button>
     {/if}
-    <button onclick={onclose} aria-label="Close">
-      <X />
-    </button>
   </div>
 </header>
 
@@ -37,7 +39,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 3.25rem;
+    min-height: 2em;
     gap: 0.5em;
     padding: 0.75em 1em;
     border-top: 2px solid var(--red-3);
@@ -86,5 +88,25 @@
 
   .header button:hover {
     color: #000;
+  }
+
+  .auth {
+    flex: 1 1 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .signOut.link {
+    background: none;
+    border: none;
+    text-decoration: underline;
+    color: var(--klaxon-color-link);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: var(--font-xs);
+    cursor: pointer;
+    padding: 0;
   }
 </style>
