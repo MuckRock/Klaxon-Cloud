@@ -399,6 +399,29 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     client.destroy();
   });
 
+  it("refreshes the pinned tab's title after navigating it", async () => {
+    const client = new CanvasClient();
+    await flush();
+    client.pinned = true;
+    expect(client.pinnedTitle).toBe("Klaxon Test");
+
+    // The pinned tab is driven to the alert's page; its title changes with the
+    // new document.
+    mock.tab.url = "https://other.test/";
+    mock.tab.title = "Other Page";
+    mock.page.url = "https://other.test/";
+
+    const nav = client.navigateTab("https://other.test/");
+    await flush();
+    mock.onUpdated.emit(1, { status: "loading" }, mock.tab);
+    mock.onUpdated.emit(1, { status: "complete" }, mock.tab);
+    await nav;
+
+    expect(client.pinnedTitle).toBe("Other Page");
+
+    client.destroy();
+  });
+
   it("is a no-op when the tab is already showing the target url", async () => {
     const client = new CanvasClient();
     await flush();

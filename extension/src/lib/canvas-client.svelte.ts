@@ -370,6 +370,17 @@ export class CanvasClient {
       tab?.id != null
         ? { id: tab.id, windowId: tab.windowId, title: tab.title ?? "" }
         : null;
+    // While pinned we only (re)connect to the pinned tab itself — navigateTab
+    // drove it to the alert's page — so refresh the pinned ref to pick up the
+    // new title; otherwise the "jump back" affordance keeps showing the title
+    // captured when the flow began.
+    if (
+      this.#pinned &&
+      this.#pinnedTab &&
+      this.#connectedTab?.id === this.#pinnedTab.id
+    ) {
+      this.#pinnedTab = this.#connectedTab;
+    }
     if (!tab?.id) return;
 
     // chrome://, the web store, PDFs, file:// — nothing to pick on. Leave the
