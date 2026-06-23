@@ -85,6 +85,8 @@ function createChromeMock() {
   // from the raw tab so navigateTab can change it on reconnect.
   const page = { url: "https://klaxon.test/", title: "Klaxon Test" };
   const ensure = { ok: true };
+  // Whether chrome.permissions.request/contains report the host as granted.
+  const grant = { ok: true };
   const ports: FakePort[] = [];
 
   // Stable, mutable so tests can change one request's behaviour mid-flight and
@@ -111,6 +113,10 @@ function createChromeMock() {
       }),
     },
     windows: { update: vi.fn(async () => {}) },
+    permissions: {
+      request: vi.fn(async () => grant.ok),
+      contains: vi.fn(async () => grant.ok),
+    },
     runtime: {
       sendMessage: vi.fn(async (msg: any) =>
         msg?.type === "canvas/ensure" ? { ok: ensure.ok } : undefined,
@@ -124,6 +130,7 @@ function createChromeMock() {
     tab,
     page,
     ensure,
+    grant,
     ports,
     onActivated,
     onUpdated,
@@ -142,6 +149,19 @@ function flush() {
   return new Promise((r) => setTimeout(r, 0));
 }
 
+/**
+ * A client in an injected/connected state: tracking no longer opens a port, so
+ * tests that exercise the port pin the canvas (as a selection flow does) to
+ * trigger the on-demand inject + connect.
+ */
+async function pinnedClient() {
+  const client = new CanvasClient();
+  await flush();
+  client.pinned = true;
+  await flush();
+  return client;
+}
+
 let mock: ReturnType<typeof createChromeMock>;
 
 beforeEach(() => {
@@ -155,26 +175,44 @@ afterEach(() => {
 });
 
 describe("connect / tab mirroring", () => {
-  it("connects to the active tab and mirrors its origin, url, and title", async () => {
+  it("mirrors the active tab's origin and url and is watchable, without injecting", async () => {
     const client = new CanvasClient();
     await flush();
 
+    // Tracking mode reads the tab via `tabs` but does not inject the picker —
+    // no on-page access until the user explicitly starts a flow.
     expect(client.watchable).toBe(true);
     expect(client.origin).toBe("https://klaxon.test");
     expect(client.url).toBe("https://klaxon.test/");
-    expect(client.title).toBe("Klaxon Test");
-
-    // Opened the named port and replayed panel intent onto the fresh engine.
-    const port = mock.lastPort();
-    expect(port.name).toBe(CANVAS_PORT);
-    expect(port.types()).toEqual(
-      expect.arrayContaining(["getPage", "setActive", "setEditable"]),
-    );
+    expect(mock.ports).toHaveLength(0);
+    expect(mock.chrome.runtime.sendMessage).not.toHaveBeenCalled();
 
     client.destroy();
   });
 
-  it("stays unwatchable and never injects/connects on a restricted page", async () => {
+  it("injects and opens the port when a selection flow pins the tab", async () => {
+    const client = new CanvasClient();
+    await flush();
+    expect(mock.ports).toHaveLength(0);
+
+    client.pinned = true; // entering a selection flow
+    await flush();
+
+    expect(mock.chrome.runtime.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "canvas/ensure" }),
+    );
+    const port = mock.lastPort();
+    expect(port.name).toBe(CANVAS_PORT);
+    // Replayed panel intent and resolved the canonical title onto the engine.
+    expect(port.types()).toEqual(
+      expect.arrayContaining(["getPage", "setActive", "setEditable"]),
+    );
+    expect(client.title).toBe("Klaxon Test");
+
+    client.destroy();
+  });
+
+  it("stays unwatchable and never injects on a restricted page", async () => {
     mock.tab.url = "chrome://extensions/";
     const client = new CanvasClient();
     await flush();
@@ -186,17 +224,54 @@ describe("connect / tab mirroring", () => {
     client.destroy();
   });
 
-  it("reconnects to the new page on a tab switch, tearing down the old port", async () => {
+  it("re-mirrors the new page on a tab switch (tracking) without opening a port", async () => {
     const client = new CanvasClient();
     await flush();
-    const first = mock.lastPort();
 
+    mock.tab.url = "https://other.test/page";
     mock.onActivated.emit({ tabId: 1 });
     await flush();
 
-    expect(first.disconnected).toBe(true);
-    expect(mock.ports).toHaveLength(2);
+    expect(client.origin).toBe("https://other.test");
+    expect(client.url).toBe("https://other.test/page");
     expect(client.watchable).toBe(true);
+    expect(mock.ports).toHaveLength(0);
+
+    client.destroy();
+  });
+});
+
+describe("requestWatch (per-origin host gate)", () => {
+  it("requests host access for the active tab's origin and returns the grant", async () => {
+    const client = new CanvasClient();
+    await flush();
+
+    await expect(client.requestWatch()).resolves.toBe(true);
+    expect(mock.chrome.permissions.request).toHaveBeenCalledWith({
+      origins: ["https://klaxon.test/*"],
+    });
+
+    client.destroy();
+  });
+
+  it("resolves false when the user declines the prompt", async () => {
+    const client = new CanvasClient();
+    await flush();
+    mock.grant.ok = false;
+
+    await expect(client.requestWatch()).resolves.toBe(false);
+
+    client.destroy();
+  });
+
+  it("requests the explicit origin when one is passed", async () => {
+    const client = new CanvasClient();
+    await flush();
+
+    await client.requestWatch("https://other.test");
+    expect(mock.chrome.permissions.request).toHaveBeenCalledWith({
+      origins: ["https://other.test/*"],
+    });
 
     client.destroy();
   });
@@ -204,8 +279,7 @@ describe("connect / tab mirroring", () => {
 
 describe("setSelector request/reply", () => {
   it("resolves true when an element matched and false when none did", async () => {
-    const client = new CanvasClient();
-    await flush();
+    const client = await pinnedClient();
 
     await expect(client.setSelector("p#hit")).resolves.toBe(true);
 
@@ -216,8 +290,7 @@ describe("setSelector request/reply", () => {
   });
 
   it("throws on a malformed selector (valid: false)", async () => {
-    const client = new CanvasClient();
-    await flush();
+    const client = await pinnedClient();
 
     mock.setReply("setSelector", () => ({ found: false, valid: false }));
     await expect(client.setSelector("::nonsense")).rejects.toThrow(
@@ -232,9 +305,12 @@ describe("resilience: a request never wedges the caller", () => {
   it("resolves (degraded) when the page never replies, via the timeout", async () => {
     vi.useFakeTimers();
     const client = new CanvasClient();
-    // Settle the connect chain (query/ensure awaits + the getPage microtask reply).
     await vi.advanceTimersByTimeAsync(1);
     expect(client.watchable).toBe(true);
+
+    // A selection flow pins + injects, opening the port (settle its getPage).
+    client.pinned = true;
+    await vi.advanceTimersByTimeAsync(1);
 
     // The page stops answering setSelector.
     mock.removeReply("setSelector");
@@ -256,8 +332,7 @@ describe("resilience: a request never wedges the caller", () => {
 
   it("drains in-flight requests when the port disconnects on its own", async () => {
     const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
-    const client = new CanvasClient();
-    await flush();
+    const client = await pinnedClient();
 
     mock.removeReply("setSelector");
     const port = mock.lastPort();
@@ -283,8 +358,9 @@ describe("pinned / away (multi-tab affordance)", () => {
     await flush();
     expect(client.away).toBe(false);
 
-    // Entering a selection flow pins the canvas to the current tab.
+    // Entering a selection flow pins the canvas to the current tab and injects.
     client.pinned = true;
+    await flush();
     expect(client.pinnedTitle).toBe("Klaxon Test");
 
     // Switching tabs while pinned must NOT chase the new tab (no reconnect)...
@@ -323,6 +399,7 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     const client = new CanvasClient();
     await flush();
     client.pinned = true; // selection flows pin on entry
+    await flush();
     const portsBefore = mock.ports.length;
 
     // The alert lives on a different page than the one we opened from.
@@ -349,6 +426,7 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     const client = new CanvasClient();
     await flush();
     client.pinned = true;
+    await flush();
     mock.tab.url = "https://other.test/";
     mock.page.url = "https://other.test/";
 
@@ -377,6 +455,7 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     const client = new CanvasClient();
     await vi.advanceTimersByTimeAsync(1);
     client.pinned = true;
+    await vi.advanceTimersByTimeAsync(1);
     const portsBefore = mock.ports.length;
     mock.tab.url = "https://slow.test/";
     mock.page.url = "https://slow.test/";
@@ -403,6 +482,7 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     const client = new CanvasClient();
     await flush();
     client.pinned = true;
+    await flush();
     expect(client.pinnedTitle).toBe("Klaxon Test");
 
     // The pinned tab is driven to the alert's page; its title changes with the
@@ -426,6 +506,7 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     const client = new CanvasClient();
     await flush();
     client.pinned = true;
+    await flush();
     mock.chrome.tabs.update.mockClear();
 
     await client.navigateTab("https://klaxon.test/");
@@ -478,8 +559,7 @@ describe("navigateTab url normalization", () => {
 
 describe("wire protocol", () => {
   it("posts one-way actions (active/editable/clear) over the port", async () => {
-    const client = new CanvasClient();
-    await flush();
+    const client = await pinnedClient();
     const port = mock.lastPort();
     port.posted.length = 0; // drop the connect handshake
 
@@ -497,8 +577,7 @@ describe("wire protocol", () => {
   });
 
   it("mirrors streamed engine `state` messages into `state`", async () => {
-    const client = new CanvasClient();
-    await flush();
+    const client = await pinnedClient();
 
     mock.lastPort().onMessage.emit({
       type: "state",
