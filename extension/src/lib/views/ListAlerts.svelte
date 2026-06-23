@@ -238,7 +238,13 @@
               />
               <div class="row-body">
                 <p class="row-title">
-                  <Link view="viewAlert" {event}>{getSiteLabel(event)}</Link>
+                  <Link
+                    view="viewAlert"
+                    {event}
+                    guard={() => canvas.requestWatch()}
+                  >
+                    {getSiteLabel(event)}
+                  </Link>
                 </p>
                 <p class="row-meta">
                   {#if run}
@@ -275,7 +281,9 @@
     <button
       class="btn-primary"
       disabled={!canvas.watchable}
-      onclick={() => router.navigate("createAlert")}
+      onclick={async () => {
+        if (await canvas.requestWatch()) router.navigate("createAlert");
+      }}
     >
       Create a new alert
       <ArrowRight />

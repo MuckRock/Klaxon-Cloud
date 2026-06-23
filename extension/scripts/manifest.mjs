@@ -22,7 +22,10 @@ function read(name) {
   return JSON.parse(readFileSync(join(MANIFEST_DIR, `${name}.json`), "utf8"));
 }
 
-export function buildManifest(browser, { omitKey = false } = {}) {
+export function buildManifest(
+  browser,
+  { omitKey = false, grantHost = false } = {},
+) {
   if (!BROWSERS.includes(browser)) {
     throw new Error(
       `Unknown browser "${browser}" — expected one of ${BROWSERS.join(", ")}.`,
@@ -40,5 +43,15 @@ export function buildManifest(browser, { omitKey = false } = {}) {
   // still derives the production redirect URI from it.
   // The published ID matches because the key is the public key the Web Store assigned this item.
   if (omitKey) delete manifest.key;
+  // e2e ONLY: loads the extension unpacked and can't drive the native optional-
+  // permission prompt, so promote optional host access to install-time
+  // host_permissions (auto-granted for unpacked loads). requestWatch() then
+  // sees the origin already granted and resolves true without a prompt, so the
+  // real flow still runs. Never set for shipped builds — that's the whole point
+  // of the optional split (see plans/optional-host-permissions.md).
+  if (grantHost && manifest.optional_host_permissions) {
+    manifest.host_permissions = manifest.optional_host_permissions;
+    delete manifest.optional_host_permissions;
+  }
   return manifest;
 }

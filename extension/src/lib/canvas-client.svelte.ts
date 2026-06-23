@@ -216,7 +216,11 @@ export class CanvasClient {
     // Snapshot the connected tab so the views can label/return to it; clear on
     // unpin and resume tracking the active tab.
     this.#pinnedTab = v ? this.#connectedTab : null;
-    if (!v) void this.#connect();
+    // Entering a flow: inject the picker into the pinned tab (host access was
+    // granted by the requestWatch() in the originating gesture). Leaving: drop
+    // the port and resume metadata-only tracking.
+    if (v) void this.#connectInjected(this.#connectedTab?.id);
+    else void this.#connect();
   }
 
   /** True when pinned to a tab other than the one currently being viewed. */
@@ -258,6 +262,24 @@ export class CanvasClient {
   }
 
   /**
+   * Request host access for `origin` (defaults to the active tab's origin) so
+   * the picker can be injected there. MUST be called from within a user-gesture
+   * handler, before any other await — chrome.permissions.request consumes the
+   * user activation. Granted origins persist, so this prompts at most once per
+   * site (and resolves true immediately when already granted). Returns whether
+   * access is held afterward.
+   */
+  async requestWatch(origin?: string): Promise<boolean> {
+    const o = origin ?? this.origin;
+    if (!o) return false;
+    try {
+      return await chrome.permissions.request({ origins: [`${o}/*`] });
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Point the canvas's tab at `url` (an alert's watched page) and reconnect once
    * it finishes loading, so the on-page selection lands on the right document.
    * Targets the pinned tab (selection flows pin on entry); a no-op when the tab
@@ -280,7 +302,7 @@ export class CanvasClient {
     // Drive the navigation and wait for the new document to finish loading
     // before reconnecting — the content script we inject must land on it.
     await this.#awaitTabComplete(tabId, url);
-    await this.#connect(tabId);
+    await this.#connectInjected(tabId);
   }
 
   /**
@@ -347,25 +369,27 @@ export class CanvasClient {
     return tab;
   }
 
-  async #connect(tabId?: number) {
-    const seq = ++this.#connectSeq;
-    this.#disconnect();
-    // Selection is per-page; drop any mirrored state from the previous tab and
-    // assume unwatchable until we've actually connected.
-    this.#mirror = { ...EMPTY_MIRROR };
-    this.watchable = false;
-
+  /**
+   * Resolve the active (or a specific) tab and mirror its URL / origin / title
+   * and tab refs into panel state. Shared by tracking #connect and the
+   * inject-and-connect path. Returns the resolved tab (undefined when there's
+   * none, or the connect was already superseded). Callers re-check `seq` after
+   * any further await.
+   */
+  async #resolve(
+    seq: number,
+    tabId?: number,
+  ): Promise<chrome.tabs.Tab | undefined> {
     // A specific tab id (after navigateTab) is authoritative; otherwise resolve
     // the active tab by query (initial connect / unpin / tab tracking).
     const tab =
       tabId != null
         ? await chrome.tabs.get(tabId).catch(() => undefined)
         : await this.#activeTab();
-    if (seq !== this.#connectSeq) return; // superseded by a newer connect
+    if (seq !== this.#connectSeq) return undefined; // superseded
     this.url = tab?.url ?? "";
     this.origin = originOf(tab?.url);
     this.title = "";
-    this.#activeTabId = tab?.id ?? null;
     this.#connectedTab =
       tab?.id != null
         ? { id: tab.id, windowId: tab.windowId, title: tab.title ?? "" }
@@ -381,6 +405,45 @@ export class CanvasClient {
     ) {
       this.#pinnedTab = this.#connectedTab;
     }
+    return tab ?? undefined;
+  }
+
+  /**
+   * Tracking-mode connect: mirror the active tab's URL / origin / title, but do
+   * NOT inject. The picker is added only when the user explicitly starts a watch
+   * flow (#connectInjected), so we never touch a page without a user action and
+   * need no standing host access. `watchable` reflects whether the page *could*
+   * be watched (an ordinary http/https document), not whether we've injected.
+   */
+  async #connect(tabId?: number) {
+    const seq = ++this.#connectSeq;
+    this.#disconnect();
+    // Selection is per-page; drop any mirrored state from the previous tab.
+    this.#mirror = { ...EMPTY_MIRROR };
+    const tab = await this.#resolve(seq, tabId);
+    if (seq !== this.#connectSeq) return;
+    // Tracking owns the active-tab ref (so `away` is right while pinned); the
+    // injected connect targets a specific tab and must not clobber it.
+    this.#activeTabId = tab?.id ?? null;
+    this.watchable = injectable(tab?.url);
+  }
+
+  /**
+   * Inject the picker into `tabId` (or the active tab) and open the port, then
+   * round-trip getPage and replay active/editable. Used on selection-flow entry
+   * (set pinned) and by navigateTab. Assumes host access for the tab's origin is
+   * already granted — requestWatch() runs in the gesture that starts the flow.
+   */
+  async #connectInjected(tabId?: number) {
+    const seq = ++this.#connectSeq;
+    this.#disconnect();
+    // Selection is per-page; drop any mirrored state from the previous tab and
+    // assume unwatchable until we've actually connected.
+    this.#mirror = { ...EMPTY_MIRROR };
+    this.watchable = false;
+
+    const tab = await this.#resolve(seq, tabId);
+    if (seq !== this.#connectSeq) return;
     if (!tab?.id) return;
 
     // chrome://, the web store, PDFs, file:// — nothing to pick on. Leave the
@@ -397,8 +460,8 @@ export class CanvasClient {
     port.onDisconnect.addListener(() => {
       // The page hung up on its own — navigation replaced the document, the tab
       // crashed, or the connect never reached a live listener. Drop the port and
-      // fail any in-flight requests so awaiting callers (#connect's getPage,
-      // navigateTab, setSelector) don't wedge. Guard on identity so a late
+      // fail any in-flight requests so awaiting callers (getPage, navigateTab,
+      // setSelector) don't wedge. Guard on identity so a late
       // disconnect from a superseded port can't drain a newer port's requests.
       if (this.#port === port) {
         console.debug(
@@ -502,7 +565,10 @@ export class CanvasClient {
       const timer = setTimeout(() => {
         if (this.#pending.delete(id)) resolve(undefined);
       }, REQUEST_TIMEOUT_MS);
-      this.#pending.set(id, { resolve: resolve as (d: unknown) => void, timer });
+      this.#pending.set(id, {
+        resolve: resolve as (d: unknown) => void,
+        timer,
+      });
       try {
         port.postMessage({ ...msg, id } satisfies PanelRequest);
       } catch {

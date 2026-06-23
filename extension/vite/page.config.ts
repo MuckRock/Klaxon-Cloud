@@ -29,15 +29,25 @@ const outDir = `build/${browser}`;
 // OMIT_KEY=true drops the Chrome `key` from the emitted manifest for
 // Web Store uploads. The key stays in manifest/chrome.json for dev and
 // sideloaded test builds (stable ID → matching OAuth redirect URI).
+//
+// E2E_GRANT_HOST=true promotes optional host access to install-time
+// host_permissions so the unpacked e2e build is granted up front (the native
+// optional-permission prompt can't be driven in automation). Set only by the
+// e2e global-setup — never for shipped builds.
 function manifestPlugin() {
   const omitKey = process.env.OMIT_KEY === "true";
+  const grantHost = process.env.E2E_GRANT_HOST === "true";
   return {
     name: "klaxon-manifest",
     closeBundle() {
       mkdirSync(outDir, { recursive: true });
       writeFileSync(
         join(outDir, "manifest.json"),
-        JSON.stringify(buildManifest(browser, { omitKey }), null, 2) + "\n",
+        JSON.stringify(
+          buildManifest(browser, { omitKey, grantHost }),
+          null,
+          2,
+        ) + "\n",
       );
     },
   };

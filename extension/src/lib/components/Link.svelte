@@ -7,17 +7,23 @@
   interface Props {
     view: View;
     children: Snippet;
+    /** Optional async gate run on click; navigation is skipped if it returns
+     *  false (e.g. the user declined a host-permission prompt). */
+    guard?: () => boolean | Promise<boolean>;
     [key: string]: any;
   }
 
-  const { view, children, ...rest }: Props = $props();
+  const { view, children, guard, ...rest }: Props = $props();
 </script>
 
 <button
   class="link"
   type="button"
   data-view={view}
-  onclick={() => router.navigate(view, rest)}
+  onclick={async () => {
+    if (guard && !(await guard())) return;
+    router.navigate(view, rest);
+  }}
 >
   {@render children()}
 </button>
