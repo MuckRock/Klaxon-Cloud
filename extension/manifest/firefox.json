@@ -10,7 +10,10 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "klaxon-cloud@muckrock.com"
+      "id": "klaxon-cloud@muckrock.com",
+      "data_collection_permissions": {
+        "required": ["websiteContent", "personallyIdentifyingInfo"]
+      }
     }
   }
 }
