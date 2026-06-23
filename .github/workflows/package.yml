@@ -88,11 +88,29 @@ jobs:
               zip -r "../../klaxon-cloud-extension-$browser-${{ steps.stage.outputs.short_sha }}.zip" .)
           done
 
+      - name: Build Chrome Web Store package
+        # The zips above are keyed test builds for sideloading (the `key` pins a
+        # stable extension ID whose OAuth redirect URI is registered on
+        # Squarelet, so tester sign-in works). The Web Store, however, rejects
+        # any manifest containing `key`, so rebuild Chrome with the key stripped
+        # for upload. The `key` stays in manifest/chrome.json; Google re-applies
+        # the same public key on publish, so the published ID — and its redirect
+        # URI — still match the test builds.
+        run: OMIT_KEY=true npm run build:chrome
+
+      - name: Zip Chrome Web Store package
+        run: |
+          # Drop the dev-only robots.txt vite copies from static/; ship only the
+          # extension files the store needs.
+          rm -f build/chrome/robots.txt
+          (cd build/chrome && \
+            zip -r "../../klaxon-cloud-extension-chrome-webstore-${{ steps.stage.outputs.short_sha }}.zip" .)
+
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
           tag: build-${{ steps.stage.outputs.build_date }}-${{ steps.stage.outputs.short_sha }}
           name: Klaxon Cloud build ${{ steps.stage.outputs.build_date }} (${{ steps.stage.outputs.short_sha }})
-          artifacts: "extension/klaxon-cloud-extension-chrome-${{ steps.stage.outputs.short_sha }}.zip,extension/klaxon-cloud-extension-firefox-${{ steps.stage.outputs.short_sha }}.zip"
+          artifacts: "extension/klaxon-cloud-extension-chrome-${{ steps.stage.outputs.short_sha }}.zip,extension/klaxon-cloud-extension-chrome-webstore-${{ steps.stage.outputs.short_sha }}.zip,extension/klaxon-cloud-extension-firefox-${{ steps.stage.outputs.short_sha }}.zip"
           allowUpdates: true
           generateReleaseNotes: true
