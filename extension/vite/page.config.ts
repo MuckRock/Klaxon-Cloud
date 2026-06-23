@@ -25,14 +25,19 @@ const outDir = `build/${browser}`;
 // Generate the browser-specific manifest.json into the output dir. publicDir
 // only copies the shared static assets (icons, fonts); the manifest is merged
 // here so each browser gets the keys it expects and nothing else.
+//
+// OMIT_KEY=true drops the Chrome `key` from the emitted manifest for
+// Web Store uploads. The key stays in manifest/chrome.json for dev and
+// sideloaded test builds (stable ID → matching OAuth redirect URI).
 function manifestPlugin() {
+  const omitKey = process.env.OMIT_KEY === "true";
   return {
     name: "klaxon-manifest",
     closeBundle() {
       mkdirSync(outDir, { recursive: true });
       writeFileSync(
         join(outDir, "manifest.json"),
-        JSON.stringify(buildManifest(browser), null, 2) + "\n",
+        JSON.stringify(buildManifest(browser, { omitKey }), null, 2) + "\n",
       );
     },
   };

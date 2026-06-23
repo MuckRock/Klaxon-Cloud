@@ -22,7 +22,7 @@ function read(name) {
   return JSON.parse(readFileSync(join(MANIFEST_DIR, `${name}.json`), "utf8"));
 }
 
-export function buildManifest(browser) {
+export function buildManifest(browser, { omitKey = false } = {}) {
   if (!BROWSERS.includes(browser)) {
     throw new Error(
       `Unknown browser "${browser}" — expected one of ${BROWSERS.join(", ")}.`,
@@ -33,5 +33,12 @@ export function buildManifest(browser) {
   const permissions = [
     ...new Set([...(base.permissions ?? []), ...(overlay.permissions ?? [])]),
   ];
-  return { ...base, ...overlay, permissions };
+  const manifest = { ...base, ...overlay, permissions };
+  // The Chrome Web Store rejects any manifest carrying a `key`, so store-bound
+  // builds omit it. The source key stays in manifest/chrome.json, so that
+  // dev/unpacked loads keep a pinned, stable extension ID, and redirect-uris.mjs
+  // still derives the production redirect URI from it.
+  // The published ID matches because the key is the public key the Web Store assigned this item.
+  if (omitKey) delete manifest.key;
+  return manifest;
 }
