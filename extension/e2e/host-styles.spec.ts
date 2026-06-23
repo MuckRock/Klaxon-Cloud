@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { renderSignedOut } from "./support/render";
+import { renderSignedIn } from "./support/render";
 
 // Regression test for the host page collapsing the on-page Canvas overlay.
 //
@@ -17,9 +17,13 @@ test("host-page `div:empty` rule can't hide the Canvas overlay host", async ({
   page,
   serviceWorker,
 }) => {
-  // The CanvasClient injects page.js into the active tab on connect (to read the
-  // page's canonical URL), so #klaxon-host appears without entering a flow.
-  await renderSignedOut(context, page, serviceWorker);
+  // The picker (page.js) is injected only when the user explicitly starts a
+  // selection flow, so enter one — that's when #klaxon-host appears on the page.
+  const { panel } = await renderSignedIn(context, page, serviceWorker);
+  await panel.getByRole("button", { name: "Create a new alert" }).click();
+  await expect(
+    panel.getByRole("heading", { name: "Create an alert" }),
+  ).toBeVisible();
   await page.waitForSelector("#klaxon-host", { state: "attached" });
 
   const displayBefore = await page.evaluate(

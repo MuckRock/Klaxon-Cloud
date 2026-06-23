@@ -17,5 +17,14 @@ export default function globalSetup() {
       "e2e build needs extension/.env (MUCKROCK_* values are baked in at build time). Copy .env.example and fill it in.",
     );
   }
-  execSync("npm run build:chrome", { cwd: extensionRoot, stdio: "inherit" });
+  // E2E_GRANT_HOST promotes optional host access to install-time host_permissions
+  // so the unpacked test extension is granted up front — automation can't drive
+  // the native optional-permission prompt that requestWatch() triggers in
+  // production. With the origin already granted, requestWatch() resolves true
+  // without a prompt, so the create/view/edit flows run as a user's would.
+  execSync("npm run build:chrome", {
+    cwd: extensionRoot,
+    stdio: "inherit",
+    env: { ...process.env, E2E_GRANT_HOST: "true" },
+  });
 }
