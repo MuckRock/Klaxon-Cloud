@@ -22,9 +22,13 @@ function read(name) {
   return JSON.parse(readFileSync(join(MANIFEST_DIR, `${name}.json`), "utf8"));
 }
 
+/**
+ * @param {string} browser
+ * @param {{ omitKey?: boolean, grantHost?: boolean, hosts?: string[] }} [options]
+ */
 export function buildManifest(
   browser,
-  { omitKey = false, grantHost = false } = {},
+  { omitKey = false, grantHost = false, hosts = [] } = {},
 ) {
   if (!BROWSERS.includes(browser)) {
     throw new Error(
@@ -52,6 +56,18 @@ export function buildManifest(
   if (grantHost && manifest.optional_host_permissions) {
     manifest.host_permissions = manifest.optional_host_permissions;
     delete manifest.optional_host_permissions;
+  } else if (hosts.length) {
+    // Backend hosts the service worker fetches directly (Squarelet OIDC/JWT and
+    // the DocumentCloud API). A host permission matching the request URL exempts
+    // the extension's cross-origin fetch from CORS, so the SW can read the
+    // response even when the server sends no Access-Control-Allow-Origin (the
+    // Squarelet /openid/token endpoint doesn't). These are narrow, named hosts —
+    // they don't trigger the Web Store broad-host review the way the optional
+    // `*://*/*` page access would. Derived from env at build time so each
+    // environment's manifest carries only the backend it actually talks to.
+    manifest.host_permissions = [
+      ...new Set([...(manifest.host_permissions ?? []), ...hosts]),
+    ];
   }
   return manifest;
 }
