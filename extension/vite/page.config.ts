@@ -1,5 +1,5 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildManifest, BROWSERS } from "../scripts/manifest.mjs";
@@ -34,7 +34,7 @@ const outDir = `build/${browser}`;
 // host_permissions so the unpacked e2e build is granted up front (the native
 // optional-permission prompt can't be driven in automation). Set only by the
 // e2e global-setup — never for shipped builds.
-function manifestPlugin() {
+function manifestPlugin(hosts: string[]) {
   const omitKey = process.env.OMIT_KEY === "true";
   const grantHost = process.env.E2E_GRANT_HOST === "true";
   return {
@@ -44,7 +44,7 @@ function manifestPlugin() {
       writeFileSync(
         join(outDir, "manifest.json"),
         JSON.stringify(
-          buildManifest(browser, { omitKey, grantHost }),
+          buildManifest(browser, { omitKey, grantHost, hosts }),
           null,
           2,
         ) + "\n",
@@ -53,34 +53,45 @@ function manifestPlugin() {
   };
 }
 
-export default defineConfig({
-  resolve: {
-    conditions: ["browser"],
-  },
-  plugins: [
-    svelte({
-      compilerOptions: {
-        // Inject CSS into JS so it works inside shadow DOM
-        css: "injected",
-      },
-    }),
-    manifestPlugin(),
-  ],
-  publicDir: "static",
-  build: {
-    rolldownOptions: {
-      input: "src/page.svelte.ts",
-      output: {
-        // Single IIFE bundle for content script injection
-        format: "iife",
-        entryFileNames: "page.js",
-        dir: outDir,
-      },
+export default defineConfig(({ mode }) => {
+  // Backend hosts the service worker fetches directly (Squarelet OIDC/JWT and
+  // the DocumentCloud API). They become install-time host_permissions so those
+  // cross-origin fetches are exempt from CORS — see scripts/manifest.mjs.
+  // Derived from env so each environment's build only requests its own backend.
+  const env = loadEnv(mode, process.cwd(), "MUCKROCK_");
+  const hosts = [env.MUCKROCK_ACCOUNTS_HOST, env.MUCKROCK_DOCUMENTCLOUD_API]
+    .filter(Boolean)
+    .map((url) => new URL(url).origin + "/*");
+
+  return {
+    resolve: {
+      conditions: ["browser"],
     },
-    // No asset hashing — Chrome extension files need stable names
-    cssCodeSplit: false,
-    // The `clean` script owns emptying build/<browser>/ (see header).
-    emptyOutDir: false,
-  },
-  envPrefix: "MUCKROCK_",
+    plugins: [
+      svelte({
+        compilerOptions: {
+          // Inject CSS into JS so it works inside shadow DOM
+          css: "injected",
+        },
+      }),
+      manifestPlugin(hosts),
+    ],
+    publicDir: "static",
+    build: {
+      rolldownOptions: {
+        input: "src/page.svelte.ts",
+        output: {
+          // Single IIFE bundle for content script injection
+          format: "iife",
+          entryFileNames: "page.js",
+          dir: outDir,
+        },
+      },
+      // No asset hashing — Chrome extension files need stable names
+      cssCodeSplit: false,
+      // The `clean` script owns emptying build/<browser>/ (see header).
+      emptyOutDir: false,
+    },
+    envPrefix: "MUCKROCK_",
+  };
 });
