@@ -32,13 +32,19 @@ import {
 // Open the sidebar from the toolbar button.
 //   - Chrome: the side panel opens automatically on action click.
 //   - Firefox: there's no setPanelBehavior; toggle the native sidebar instead.
-// `chrome.sidePanel` / `chrome.sidebarAction` are each defined on only one
-// browser, so the optional chaining picks the right path at runtime.
-chrome.sidePanel
-  ?.setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((err) => console.debug("[klaxon] setPanelBehavior:", err));
+// `__FIREFOX__` is a build-time constant (see vite/background.config.ts) so each
+// browser only ships the branch it can use. Gating the Chrome path this way also
+// keeps `sidePanel.setPanelBehavior` out of the Firefox bundle entirely — the
+// AMO validator flags it as an unimplemented API even behind optional chaining.
+declare const __FIREFOX__: boolean;
 
-if (chrome.sidebarAction) {
+if (!__FIREFOX__) {
+  chrome.sidePanel
+    ?.setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((err) => console.debug("[klaxon] setPanelBehavior:", err));
+}
+
+if (__FIREFOX__) {
   chrome.action.onClicked.addListener(() =>
     chrome.sidebarAction?.toggle().catch(() => {}),
   );

@@ -65,7 +65,13 @@ const HOST_ID = "klaxon-host";
             selector: s.selector,
             matchText: s.matchText,
             locked: s.locked,
-            structured: s.structured,
+            // `structured` is a $state value, so Svelte hands back a Proxy.
+            // Firefox's port messaging serializes with structured clone, which
+            // throws DataCloneError on a Proxy and (because postMessage throws)
+            // silently drops every state update — the panel never sees the
+            // selection. Chrome serializes via JSON and tolerates the Proxy.
+            // Snapshot to a plain object so the message clones in both browsers.
+            structured: $state.snapshot(s.structured),
           });
         } catch {
           /* port closed mid-flush */
