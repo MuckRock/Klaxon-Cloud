@@ -21,9 +21,9 @@ The session secrets stay in the httpOnly cookie; only a slim user payload is han
 
 To authenticate against an Accounts (Squarelet) host you need to **register an OIDC client for the web app** and then point the app's environment at it.
 
-### 1. Register an OIDC client on Squarelet
+This can share the same OIDC client used by the browser extension—the client supports multiple redirect URIs, so it can handle logins from multiple consumers from one shared config.
 
-Create a client that is **separate** from the browser extension's — it has its own redirect URIs.
+### 1. Register an OIDC client on Squarelet
 
 - **Client type:** Public (PKCE, **no client secret**).
 - **Redirect URI:** `${MUCKROCK_PUBLIC_ORIGIN}/auth/callback`, registered verbatim. For local dev that's `http://localhost:5173/auth/callback`; in production something like `https://klaxon.muckrock.com/auth/callback`.
