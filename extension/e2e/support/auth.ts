@@ -1,4 +1,4 @@
-import type { StoredAuth, UserInfoResponse } from "../../src/lib/types";
+import type { StoredAuth, UserInfoResponse } from "@klaxon/lib/types";
 
 // base64url-encode a JSON object (Node side). Matches what decodeJwtPayload in
 // src/lib/oidc.ts expects: it converts -/_ back to +// and re-pads before atob.

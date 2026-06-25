@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 import { scanSidebar } from "./support/a11y";
 import { scheduleValues } from "./support/api";
 import { renderSignedIn, renderSignedOut } from "./support/render";
-import { scheduled } from "../src/test/fixtures/events";
+import { scheduled } from "@klaxon/lib/fixtures/events";
 
 // ListAlerts is the app's home view. These tests render the side-panel page
 // (sidepanel.html, where <App> now lives) and drive it through real clicks,
