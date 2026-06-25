@@ -34,8 +34,10 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			// Klaxon Cloud is served from its own root (no base path), so wrapping
+			// every internal href in resolve() buys nothing but noise.
+			'svelte/no-navigation-without-resolve': 'off'
+		}
 	}
 );
