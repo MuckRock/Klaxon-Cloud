@@ -28,7 +28,8 @@ Create a client that is **separate** from the browser extension's — it has its
 - **Client type:** Public (PKCE, **no client secret**).
 - **Redirect URI:** `${MUCKROCK_PUBLIC_ORIGIN}/auth/callback`, registered verbatim. For local dev that's `http://localhost:5173/auth/callback`; in production something like `https://klaxon.muckrock.com/auth/callback`.
 - **Post-logout redirect URI:** `${MUCKROCK_PUBLIC_ORIGIN}/` (the app's home page).
-- **Scopes:** `openid profile email uuid organizations`.
+- **Requested scopes:** `openid profile email uuid organizations`.
+- **First-party scope (required):** the client's own **Scopes** field in Squarelet's admin must include `read_auth_token` — e.g. `read_user read_organization read_auth_token`. This is what marks the client as "first party" and lets it exchange an OIDC token for a DocumentCloud JWT. Without it, sign-in fails at the JWT-exchange step with `403 {"error":"first party clients only"}`. (This is the client's _configured_ scope set, separate from the scopes the app requests at sign-in above.)
 
 Note the generated **client id** — that's `MUCKROCK_WEB_CLIENT_ID` below.
 
