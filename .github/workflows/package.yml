@@ -33,12 +33,14 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: extension/package-lock.json
+          cache-dependency-path: package-lock.json
 
+      # One install at the workspace root links @klaxon/lib into each package.
       - name: Install
         run: npm ci
+        working-directory: ${{ github.workspace }}
 
       - name: Build
         run: npm run build

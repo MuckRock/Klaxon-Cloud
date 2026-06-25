@@ -5,8 +5,8 @@ import { getAccessToken } from "../auth.svelte";
 import {
   event as eventFixture,
   scheduled as scheduledFixture,
-} from "../../test/fixtures/events";
-import { runs } from "../../test/fixtures/runs";
+} from "@klaxon/lib/fixtures/events";
+import { runs } from "@klaxon/lib/fixtures/runs";
 
 vi.mock("../auth.svelte", () => ({
   getAccessToken: vi.fn(async () => "test-token"),

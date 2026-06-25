@@ -1,4 +1,4 @@
-import type { Event, Page } from "../../lib/types";
+import type { Event, Page } from "../../src/types";
 
 export const event: Event = {
   id: 6,

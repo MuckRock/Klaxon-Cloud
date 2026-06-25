@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isWholePage, parseTimestamp } from "../utils";
+import { isWholePage, parseTimestamp } from "../src/utils";
 
 describe("isWholePage", () => {
   it("treats the '*' selector as whole-page", () => {

@@ -5,10 +5,6 @@ on:
   push:
     branches: [main]
 
-defaults:
-  run:
-    working-directory: extension
-
 # Environment variables are imported, but tests mock the actual values, so these are placeholders
 env:
   MUCKROCK_DOCUMENTCLOUD_API: https://api.dev.documentcloud.org/api/
@@ -22,33 +18,44 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: extension/package-lock.json
+          cache-dependency-path: package-lock.json
 
+      # One install at the workspace root links @klaxon/lib into each package.
       - name: Install
         run: npm ci
 
-      - name: Check
-        run: npm run check
+      - name: Check (lib)
+        run: npm run check -w @klaxon/lib
 
-      - name: Test
-        run: npm test
+      - name: Check (extension)
+        run: npm run check -w klaxon-browser-extension
+
+      - name: Test (lib)
+        run: npm test -w @klaxon/lib
+
+      - name: Test (extension)
+        run: npm test -w klaxon-browser-extension
 
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: extension
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: extension/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install
         run: npm ci
+        working-directory: ${{ github.workspace }}
 
       # The suite loads the built extension into a persistent Chromium context.
       - name: Install Playwright with Chromium

@@ -1,4 +1,4 @@
-import type { Page, Run } from "../../lib/types";
+import type { Page, Run } from "../../src/types";
 
 export const emptyRuns: Page<Run> = {
   next: null,

@@ -1,4 +1,4 @@
-import type { Event, Page, Run } from "./types";
+import type { Event, Page, Run } from "@klaxon/lib/types";
 
 // In-memory, per-origin cache of the alert list. The side panel is one document
 // shared across every tab, so switching tabs re-keys the list by the active

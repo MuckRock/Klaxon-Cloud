@@ -1,5 +1,5 @@
 // Pure OIDC/PKCE/OAuth helpers
-import {
+import type {
   JwtTokenResponse,
   OidcTokenResponse,
   StoredAuth,

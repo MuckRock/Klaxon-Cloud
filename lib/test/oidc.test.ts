@@ -13,7 +13,7 @@ import {
   randomBase64Url,
   refreshJwt,
   sha256,
-} from "../oidc.ts";
+} from "../src/oidc.ts";
 
 // Build a syntactically valid JWT with the given payload. The signature is
 // a placeholder — these tests only exercise decode/expiry, never verification.

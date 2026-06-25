@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Event, Page, Run } from "../types";
+  import type { Event, Page, Run } from "@klaxon/lib/types";
 
   import { ArrowRight, BellOff } from "@lucide/svelte";
 
@@ -14,7 +14,7 @@
   import { getCanvas } from "../canvas-client.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
-  import { emptyPage, getSiteLabel, isEvent } from "../utils";
+  import { emptyPage, getSiteLabel, isEvent } from "@klaxon/lib/utils";
 
   const router = getRouter();
   const toaster = getToaster();

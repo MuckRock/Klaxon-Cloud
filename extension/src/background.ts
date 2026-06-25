@@ -12,7 +12,7 @@ import type {
   EnsureMessage,
   FetchMessage,
   StoredAuth,
-} from "./lib/types";
+} from "@klaxon/lib/types";
 import {
   buildAuthorizeUrl,
   buildLoginUrl,
@@ -27,7 +27,7 @@ import {
   pkceChallenge,
   randomBase64Url,
   refreshJwt,
-} from "./lib/oidc.ts";
+} from "@klaxon/lib/oidc";
 
 // Open the sidebar from the toolbar button.
 //   - Chrome: the side panel opens automatically on action click.
