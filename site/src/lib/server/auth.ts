@@ -28,6 +28,27 @@ import {
 } from './session';
 
 /**
+ * Sanitize a post-login redirect target. Resolve it against our own origin with
+ * the same WHATWG URL parser the browser uses to navigate, then keep it only if
+ * it stays on that origin. This rejects absolute URLs and every protocol-
+ * relative trick (`//host`, the `/\host` backslash variant, and embedded
+ * tab/newline like `/\t/host` that the parser strips back into `//host`) that a
+ * naive prefix check would miss — so a crafted `?returnTo=` can't become an
+ * open redirect once the authenticated flow completes.
+ */
+export function safeReturnTo(returnTo: string | null | undefined): string {
+	if (!returnTo) return '/';
+	const origin = requireConfig().publicOrigin.replace(/\/$/, '');
+	try {
+		const url = new URL(returnTo, origin);
+		if (url.origin !== new URL(origin).origin) return '/';
+		return url.pathname + url.search + url.hash;
+	} catch {
+		return '/';
+	}
+}
+
+/**
  * Begin sign-in: generate PKCE + state, stash them in a short-lived cookie, and
  * return the URL to redirect the browser to. `action: "create"` opens the
  * signup page first; both resume the same OIDC handshake.
@@ -53,7 +74,7 @@ export async function beginLogin(
 		codeChallenge: challenge
 	});
 
-	await writePkce(cookies, { state, nonce, verifier, returnTo });
+	await writePkce(cookies, { state, nonce, verifier, returnTo: safeReturnTo(returnTo) });
 
 	return action === 'create'
 		? buildSignupUrl(accountsHost, authorizeUrl)

@@ -1,5 +1,5 @@
 import { error, redirect, type RequestHandler } from '@sveltejs/kit';
-import { completeLogin } from '$lib/server/auth';
+import { completeLogin, safeReturnTo } from '$lib/server/auth';
 import { clearPkce, readPkce } from '$lib/server/session';
 import { USER_KEY, slimUser } from '$lib/user';
 
@@ -30,12 +30,17 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	const userinfo = await completeLogin(cookies, code, pkce);
 	clearPkce(cookies);
 
-	const returnTo = pkce.returnTo?.startsWith('/') ? pkce.returnTo : '/';
+	// Re-validate even though beginLogin already sanitized it: the cookie is our
+	// own, but this keeps the open-redirect guard local to where returnTo is used.
+	const returnTo = safeReturnTo(pkce.returnTo);
 
 	// Render a tiny handoff page: write the user payload to localStorage, then
 	// navigate. Escape "<" so the JSON can't break out of the inline <script>.
 	const escape = (value: string) => JSON.stringify(value).replace(/</g, '\\u003c');
 	const userValue = escape(JSON.stringify(slimUser(userinfo)));
+	// Encode for the noscript href too — returnTo is always a same-site path here,
+	// but encoding prevents any quote from breaking out of the attribute.
+	const returnToHref = returnTo.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 	const html = `<!doctype html>
 <meta charset="utf-8" />
 <title>Signing in…</title>
@@ -45,7 +50,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	} catch (e) {}
 	location.replace(${escape(returnTo)});
 </script>
-<noscript>Signed in. <a href="${returnTo}">Continue</a>.</noscript>`;
+<noscript>Signed in. <a href="${returnToHref}">Continue</a>.</noscript>`;
 
 	return new Response(html, {
 		headers: { 'content-type': 'text/html; charset=utf-8' }
