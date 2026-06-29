@@ -1,4 +1,4 @@
-import type { StoredAuth } from "../src/lib/types";
+import type { StoredAuth } from "@klaxon/lib/types";
 import {
   test as base,
   chromium,

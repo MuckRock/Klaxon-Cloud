@@ -5,9 +5,9 @@ import type {
   KlaxonParams,
   Page,
   Run,
-} from "../../src/lib/types";
-import { scheduled } from "../../src/test/fixtures/events";
-import { emptyRuns, runs as runsFixture } from "../../src/test/fixtures/runs";
+} from "@klaxon/lib/types";
+import { scheduled } from "@klaxon/lib/fixtures/events";
+import { emptyRuns, runs as runsFixture } from "@klaxon/lib/fixtures/runs";
 
 // The DocumentCloud API the *service worker* talks to. Calls originate in the
 // SW (api/fetch proxy), so these are mocked with context.route, not page.route.
