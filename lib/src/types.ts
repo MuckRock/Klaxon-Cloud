@@ -24,7 +24,14 @@ export interface APIError<E> {
 }
 
 // copied from SvelteKit
-type NumericRange<TStart extends number, TEnd extends number> = Exclude<
+type LessThan<
+  TNumber extends number,
+  TArray extends unknown[] = [],
+> = TNumber extends TArray["length"]
+  ? TArray[number]
+  : LessThan<TNumber, [...TArray, TArray["length"]]>;
+
+export type NumericRange<TStart extends number, TEnd extends number> = Exclude<
   TEnd | LessThan<TEnd>,
   LessThan<TStart>
 >;
@@ -296,6 +303,6 @@ export interface AddOnPayload {
   event?: number;
   documents?: number[] | string[];
   query?: string;
-  errors?: OutputUnit[];
+  errors?: unknown[];
   valid?: boolean;
 }

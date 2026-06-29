@@ -4,8 +4,8 @@ import { expect, test } from "./fixtures";
 import { scanSidebar } from "./support/a11y";
 import { eventsPage, makeEvent, scheduleValues } from "./support/api";
 import { renderSignedIn } from "./support/render";
-import { scheduled } from "../src/test/fixtures/events";
-import { getSiteLabel } from "../src/lib/utils";
+import { scheduled } from "@klaxon/lib/fixtures/events";
+import { getSiteLabel } from "@klaxon/lib/utils";
 
 // Flow: edit an existing alert and its selection.
 //    From the list, an alert's title opens ViewAlert;

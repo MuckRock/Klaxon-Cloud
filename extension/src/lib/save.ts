@@ -1,4 +1,4 @@
-import type { APIError } from "./types";
+import type { APIError } from "@klaxon/lib/types";
 import type { CanvasClient } from "./canvas-client.svelte";
 import { invalidateAlerts } from "./alerts-cache";
 import { getRouter } from "./router.svelte";

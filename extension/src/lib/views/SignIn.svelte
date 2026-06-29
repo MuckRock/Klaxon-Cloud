@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AddOnSchedule, KlaxonParams } from "../types";
+  import type { AddOnSchedule, KlaxonParams } from "@klaxon/lib/types";
 
   import { authState } from "../auth.svelte.ts";
   import { dispatch } from "../api";

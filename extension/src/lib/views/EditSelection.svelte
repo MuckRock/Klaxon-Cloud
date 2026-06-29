@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { APIResponse, Event, ValidationError } from "../types";
+  import type { APIResponse, Event, ValidationError } from "@klaxon/lib/types";
   import { onMount } from "svelte";
 
   import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
@@ -8,7 +8,7 @@
   import { getToaster } from "../toaster.svelte";
   import { schedules, update } from "../api";
   import { getCanvas } from "../canvas-client.svelte";
-  import { WHOLE_PAGE_SELECTOR, isWholePage } from "../utils";
+  import { WHOLE_PAGE_SELECTOR, isWholePage } from "@klaxon/lib/utils";
 
   interface Props {
     event: Event;

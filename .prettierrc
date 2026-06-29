@@ -7,7 +7,6 @@
   "svelteAllowShorthand": true,
   "svelteIndentScriptAndStyle": true,
   "svelteSortOrder": "options-scripts-markup-styles",
-  "svelteStrictMode": false,
   "tabWidth": 2,
   "trailingComma": "all",
   "useTabs": false,

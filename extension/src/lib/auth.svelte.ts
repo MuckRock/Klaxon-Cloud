@@ -3,7 +3,7 @@
 // All heavy lifting (PKCE, token exchange, storage) happens in the service
 // worker at static/background.js. This module sends messages to the SW and
 // mirrors the stored auth record into a reactive $state for the UI.
-import type { StoredAuth, UserInfoResponse } from "./types";
+import type { StoredAuth, UserInfoResponse } from "@klaxon/lib/types";
 
 const STORAGE_KEY = "muckrock_auth";
 const DEFAULT_SCOPES = "openid profile email uuid organizations";

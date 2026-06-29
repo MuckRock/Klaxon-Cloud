@@ -1,11 +1,16 @@
 <script lang="ts">
-  import type { AddOnSchedule, Event, Run } from "../types";
+  import type { AddOnSchedule, Event, Run } from "@klaxon/lib/types";
 
   import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
   import { getRouter } from "../router.svelte";
   import { history, schedules } from "../api";
-  import { getRunLabel, getSiteLabel, isEvent, isWholePage } from "../utils";
+  import {
+    getRunLabel,
+    getSiteLabel,
+    isEvent,
+    isWholePage,
+  } from "@klaxon/lib/utils";
   import { getCanvas } from "../canvas-client.svelte";
 
   interface Props {

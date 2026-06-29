@@ -7,8 +7,8 @@ import {
   scheduleValues,
 } from "./support/api";
 import { renderSignedIn } from "./support/render";
-import { scheduled } from "../src/test/fixtures/events";
-import { getSiteLabel } from "../src/lib/utils";
+import { scheduled } from "@klaxon/lib/fixtures/events";
+import { getSiteLabel } from "@klaxon/lib/utils";
 import type { Page } from "@playwright/test";
 
 // Flow: view an alert.

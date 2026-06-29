@@ -5,7 +5,7 @@
     Event,
     KlaxonParams,
     ValidationError,
-  } from "../types";
+  } from "@klaxon/lib/types";
 
   import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
   import { getCanvas } from "../canvas-client.svelte";
@@ -13,7 +13,7 @@
   import { getRouter } from "../router.svelte";
   import { eventValues, schedules, update } from "../api";
   import { completeSave, reportSaveError } from "../save";
-  import { isWholePage } from "../utils";
+  import { isWholePage } from "@klaxon/lib/utils";
 
   interface Props {
     event: Event;

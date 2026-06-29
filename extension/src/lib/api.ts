@@ -1,5 +1,11 @@
 /**
- * Klaxon is a DocumentCloud add-on, so methods here use the API
+ * Klaxon is a DocumentCloud add-on, so methods here use the API.
+ *
+ * The fundamental request shaping (endpoint URLs, payloads, the schedule maps)
+ * lives in the shared `@klaxon/lib/api` builders. This module is the
+ * extension's transport layer: it routes every request through the service
+ * worker (to bypass CORS), attaches the DocumentCloud bearer token, and parses
+ * the response.
  *
  * Key operations:
  * Listing scheduled jobs for a specific URL
@@ -9,8 +15,6 @@
  */
 
 import type {
-  AddOnPayload,
-  AddOnSchedule,
   APIResponse,
   Event,
   FetchMessage,
@@ -18,14 +22,28 @@ import type {
   Page,
   Run,
   ValidationError,
-} from "./types";
+} from "@klaxon/lib/types";
+import type { AddOnSchedule } from "@klaxon/lib/types";
+
+import {
+  eventPayload,
+  eventsCreateUrl,
+  eventsUrl,
+  eventUrl,
+  runsUrl,
+  type EventQuery,
+  type RunQuery,
+} from "@klaxon/lib/api";
+import { getApiResponse } from "@klaxon/lib/utils";
 
 import { getAccessToken } from "./auth.svelte";
-import { getApiResponse } from "./utils";
+
+// Re-export the schedule maps so existing view imports (`from "../api"`)
+// keep working.
+export { eventValues, schedules } from "@klaxon/lib/api";
 
 const API_URL = import.meta.env.MUCKROCK_DOCUMENTCLOUD_API;
 const KLAXON_ID = import.meta.env.MUCKROCK_KLAXON_ID; // this will change between environments
-const CHANGED = "Change detected";
 
 /**
  * Route fetch through the service worker to avoid CORS restrictions.
@@ -66,70 +84,26 @@ async function swFetch(
   } as Response;
 }
 
-// schedules and eventValues are the inverse of each other, so store them together
-export const schedules: AddOnSchedule[] = [
-  "disabled",
-  "hourly",
-  "daily",
-  "weekly",
-];
-
-export const eventValues: Record<AddOnSchedule, number> = {
-  disabled: 0,
-  hourly: 1,
-  daily: 2,
-  weekly: 3,
-};
-
-// for history and scheduled
-interface SearchParams {
-  site?: string;
-  domain?: string;
-  cursor?: string;
-  per_page?: number;
-  event?: number;
+function authHeaders(token: string): HeadersInit {
+  return {
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+  };
 }
 
 /**
  * List Klaxon runs by site
  */
-export async function history({
-  cursor,
-  per_page,
-  event,
-  site,
-  domain,
-}: SearchParams): Promise<APIResponse<Page<Run>, unknown>> {
+export async function history(
+  query: RunQuery,
+): Promise<APIResponse<Page<Run>, unknown>> {
   const token = await getAccessToken().catch(console.warn);
   if (!token) {
     return { error: { status: 401, message: "Not authenticated" } };
   }
-  const endpoint = new URL(
-    `addon_runs/?expand=addon,event&addon=${KLAXON_ID}`,
-    API_URL,
-  );
-  endpoint.searchParams.set("message", CHANGED); // filter out noop runs
-  if (site) {
-    endpoint.searchParams.set("site", site);
-  }
-  if (domain) {
-    endpoint.searchParams.set("domain", domain);
-  }
-  if (event) {
-    endpoint.searchParams.set("event", event.toString());
-  }
-  if (cursor) {
-    endpoint.searchParams.set("cursor", cursor);
-  }
-  if (per_page) {
-    endpoint.searchParams.set("per_page", per_page.toString());
-  }
 
-  const resp = await swFetch(endpoint, {
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+  const resp = await swFetch(runsUrl(API_URL, KLAXON_ID, query), {
+    headers: authHeaders(token),
   });
 
   return getApiResponse<Page<Run>>(resp);
@@ -138,42 +112,16 @@ export async function history({
 /**
  * List scheduled add-on events
  */
-export async function scheduled({
-  site,
-  domain: domain,
-  cursor,
-  per_page,
-  event,
-}: SearchParams): Promise<APIResponse<Page<Event>, unknown>> {
+export async function scheduled(
+  query: EventQuery,
+): Promise<APIResponse<Page<Event>, unknown>> {
   const token = await getAccessToken().catch(console.warn);
   if (!token) {
     return { error: { status: 401, message: "Not authenticated" } };
   }
-  const endpoint = new URL(
-    `addon_events/?expand=addon&addon=${KLAXON_ID}`,
-    API_URL,
-  );
-  if (site) {
-    endpoint.searchParams.set("site", site); // so it's encoded
-  }
-  if (domain) {
-    endpoint.searchParams.set("domain", domain);
-  }
-  if (event) {
-    endpoint.searchParams.set("event", event.toString());
-  }
-  if (cursor) {
-    endpoint.searchParams.set("cursor", cursor);
-  }
-  if (per_page) {
-    endpoint.searchParams.set("per_page", per_page.toString());
-  }
 
-  const resp = await swFetch(endpoint, {
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+  const resp = await swFetch(eventsUrl(API_URL, KLAXON_ID, query), {
+    headers: authHeaders(token),
   });
 
   return getApiResponse<Page<Event>>(resp);
@@ -192,20 +140,10 @@ export async function dispatch(
   if (!token) {
     return { error: { status: 401, message: "Not authenticated" } };
   }
-  const endpoint = new URL("addon_events/", API_URL);
-  const payload: AddOnPayload = {
-    addon: +KLAXON_ID,
-    event: eventValues[schedule],
-    parameters,
-  };
 
-  const resp = await swFetch(endpoint, {
-    body: JSON.stringify(payload),
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-      "Content-type": "application/json",
-    },
+  const resp = await swFetch(eventsCreateUrl(API_URL), {
+    body: JSON.stringify(eventPayload(KLAXON_ID, schedule, parameters)),
+    headers: { ...authHeaders(token), "Content-type": "application/json" },
     method: "POST",
   });
 
@@ -224,20 +162,10 @@ export async function update(
   if (!token) {
     return { error: { status: 401, message: "Not authenticated" } };
   }
-  const endpoint = new URL(`addon_events/${event_id}/?expand=addon`, API_URL);
-  const payload: AddOnPayload = {
-    addon: +KLAXON_ID,
-    event: eventValues[schedule],
-    parameters,
-  };
 
-  const resp = await swFetch(endpoint, {
-    body: JSON.stringify(payload),
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-      "Content-type": "application/json",
-    },
+  const resp = await swFetch(eventUrl(API_URL, event_id), {
+    body: JSON.stringify(eventPayload(KLAXON_ID, schedule, parameters)),
+    headers: { ...authHeaders(token), "Content-type": "application/json" },
     method: "PATCH",
   });
 

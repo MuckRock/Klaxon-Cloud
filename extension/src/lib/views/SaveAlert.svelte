@@ -5,7 +5,7 @@
     Event,
     KlaxonParams,
     ValidationError,
-  } from "../types";
+  } from "@klaxon/lib/types";
 
   import { untrack } from "svelte";
 
@@ -16,7 +16,7 @@
   import { getToaster } from "../toaster.svelte";
   import { dispatch } from "../api";
   import { completeSave, reportSaveError } from "../save";
-  import { WHOLE_PAGE_SELECTOR } from "../utils";
+  import { WHOLE_PAGE_SELECTOR } from "@klaxon/lib/utils";
 
   interface Props {
     // Seed values, carried back from the sign-in interstitial OR restored from a

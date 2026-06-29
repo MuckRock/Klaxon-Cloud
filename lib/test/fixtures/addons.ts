@@ -1,4 +1,4 @@
-import type { AddOn } from "../../lib/types";
+import type { AddOn } from "../../src/types";
 
 export const klaxon: AddOn = {
   id: 436,

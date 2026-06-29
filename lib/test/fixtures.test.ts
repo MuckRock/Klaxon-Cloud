@@ -1,4 +1,4 @@
-import type { AddOn, Event, Page, Run } from "../lib/types";
+import type { AddOn, Event, Page, Run } from "../src/types";
 
 import { describe, it, expect } from "vitest";
 import { klaxon } from "./fixtures/addons";
