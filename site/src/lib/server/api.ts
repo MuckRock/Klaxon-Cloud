@@ -3,16 +3,6 @@
 // session's DocumentCloud JWT. Request shaping comes from the shared
 // @klaxon/lib/api builders.
 import type { RequestEvent } from "@sveltejs/kit";
-import {
-  eventPayload,
-  eventsCreateUrl,
-  eventsUrl,
-  eventUrl,
-  runsUrl,
-  type EventQuery,
-  type RunQuery,
-} from "@klaxon/lib/api";
-import { getApiResponse } from "@klaxon/lib/utils";
 import type {
   AddOnSchedule,
   APIResponse,
@@ -23,21 +13,15 @@ import type {
   ValidationError,
 } from "@klaxon/lib/types";
 import { requireConfig } from "./env";
-
-/** A Klaxon API client bound to one request's session + fetch. */
-export interface KlaxonApi {
-  history(query: RunQuery): Promise<APIResponse<Page<Run>, unknown>>;
-  scheduled(query: EventQuery): Promise<APIResponse<Page<Event>, unknown>>;
-  dispatch(
-    schedule: AddOnSchedule,
-    parameters: KlaxonParams,
-  ): Promise<APIResponse<Event, ValidationError>>;
-  update(
-    eventId: number,
-    schedule: AddOnSchedule,
-    parameters: Partial<KlaxonParams>,
-  ): Promise<APIResponse<Event, ValidationError>>;
-}
+import {
+  eventPayload,
+  eventsCreateUrl,
+  eventsUrl,
+  eventUrl,
+  runsUrl,
+  type KlaxonApi,
+} from "@klaxon/lib/api";
+import { getApiResponse } from "@klaxon/lib/utils";
 
 const UNAUTHENTICATED = {
   error: { status: 401, message: "Not authenticated" },

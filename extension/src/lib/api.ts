@@ -15,6 +15,7 @@
  */
 
 import type {
+  AddOnSchedule,
   APIResponse,
   Event,
   FetchMessage,
@@ -23,7 +24,6 @@ import type {
   Run,
   ValidationError,
 } from "@klaxon/lib/types";
-import type { AddOnSchedule } from "@klaxon/lib/types";
 
 import {
   eventPayload,
@@ -32,6 +32,7 @@ import {
   eventUrl,
   runsUrl,
   type EventQuery,
+  type KlaxonApi,
   type RunQuery,
 } from "@klaxon/lib/api";
 import { getApiResponse } from "@klaxon/lib/utils";
@@ -171,3 +172,7 @@ export async function update(
 
   return getApiResponse<Event, ValidationError>(resp);
 }
+
+// Verify the exported functions match the shared client contract, so a
+// signature change in @klaxon/lib is caught here too.
+({ history, scheduled, dispatch, update }) satisfies KlaxonApi;
