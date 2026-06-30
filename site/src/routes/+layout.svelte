@@ -21,6 +21,8 @@
 
 <svelte:head>
   <link rel="icon" href={favicon} />
+
+  <title>Klaxon Cloud</title>
 </svelte:head>
 
 <div class="app">

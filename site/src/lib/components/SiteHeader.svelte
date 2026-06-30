@@ -18,8 +18,8 @@
 
     <nav>
       {#if authenticated}
-        <a class="nav-link" href="/alerts">Alerts</a>
-        <a class="nav-link" href="/activity">Activity</a>
+        <a class="nav-link" href="/alerts/">Alerts</a>
+        <a class="nav-link" href="/activity/">Activity</a>
         <span class="user">{label}</span>
         <form method="POST" action="/auth/logout">
           <button type="submit" class="link">Sign out</button>
