@@ -18,6 +18,28 @@ We are building a companion **web app** in `/site` (freshly scaffolded SvelteKit
 
 ---
 
+## Implementation status (as of 2026-06-29, PR #84 / branch `84-site-alerts`)
+
+**Phase 1 — DONE** (workspaces, shared lib, server-side auth, app shell). `npm test -w lib` (72) and `-w extension` (88) green; `npm run check -w site` clean; `npm run build -w site` emits the Cloudflare worker. **Phase 2 — NOT STARTED. Phase 3 — NOT STARTED.**
+
+Notable deviations from the plan as written (all intentional, captured here so the plan matches reality):
+
+- **Userinfo is not in the session cookie.** The sealed `httpOnly` cookie holds only `{ oidc, jwt }`; the slim user (`uuid/name/email/picture`) is handed to the client via a callback page and kept in `localStorage` (`lib/user.ts` + `lib/user.svelte.ts`). The cookie-chunking code in `session.ts` remains as defensive headroom but is largely unexercised now that userinfo is out of the cookie.
+- **Adapter is configured in `vite.config.ts`** (passed to `sveltekit()`), not `svelte.config.js` — supported since SvelteKit 2.62, and `svelte.config.js` is intentionally absent.
+- **Signed-in `/` renders a "Welcome back" panel** instead of `redirect(303, "/alerts")` (the target route doesn't exist until Phase 2).
+- **ID token is decoded, not signature-verified** (nonce + aud checked); acceptable for a code flow over TLS, matches the extension.
+- **Open-redirect hardening added beyond the plan:** `safeReturnTo()` in `auth.ts` resolves `returnTo` against `publicOrigin` via the WHATWG URL parser and rejects off-origin targets (incl. `//host`, `/\host`, and the `/\t/host` whitespace trick); covered by `auth.test.ts`.
+
+### Work remaining
+
+- **Phase 2** (alerts + activity routes) and **Phase 3** (extension discovery / create-alert handoff) — not begun. Note: `site/src/lib/server/api.ts` already exposes the `history/scheduled/dispatch/update` client Phase 2 needs.
+- **`wrangler.jsonc`/`wrangler.toml` not added** (plan 1e called for it). The adapter builds without it, but `wrangler dev`/deploy and the `wrangler secret put` workflow need it.
+- **No `site` job in CI** — `test.yml` was moved to Node 24 + workspaces with lib/extension jobs, but `npm run check -w site` / `build -w site` aren't run in CI, so site regressions go uncaught.
+- **`localStorage` user can desync from the cookie** — on a fresh browser/cleared storage the header shows "Account" with no repopulation short of re-login. Consider exposing the slim user from `+layout.server.ts` as a server-rendered fallback and treating `localStorage` as a cache.
+- **OPS BLOCKER (unchanged):** the Squarelet OIDC web client + redirect URIs must be registered before auth works against a real environment.
+
+---
+
 ## Phase 1 — Workspaces, shared `lib`, server-side auth, app shell
 
 ### 1a. Convert repo to npm workspaces
@@ -47,6 +69,7 @@ lib/
 ```
 
 `lib/package.json` exports point straight at raw `.ts` (both consumers use Vite/bundler resolution, no build step):
+
 ```json
 "exports": {
   ".": "./src/index.ts", "./oidc": "./src/oidc.ts", "./api": "./src/api.ts",
@@ -62,21 +85,50 @@ lib/
 Split [extension/src/lib/api.ts](extension/src/lib/api.ts) along a clean seam: the **fundamental, transport-free logic** (endpoint URL construction, query-param assembly, request payload building, the schedule maps, response parsing) moves into `lib/src/api.ts`; the **implementation-specific calling code** (chrome `swFetch`, `getAccessToken`, `import.meta.env` config, the `history/scheduled/dispatch/update` orchestration) stays in `extension/src/lib/api.ts`. Each workspace is allowed its own transport-specific layer — the site has its own equivalent server-side.
 
 `lib/src/api.ts` exports pure builders + constants (no fetch, no token, no env):
-```ts
-export const schedules: AddOnSchedule[] = ["disabled","hourly","daily","weekly"];
-export const eventValues: Record<AddOnSchedule, number> = { disabled:0, hourly:1, daily:2, weekly:3 };
 
-export interface RunQuery   { site?: string; domain?: string; event?: number; cursor?: string; per_page?: number; changesOnly?: boolean; }
-export interface EventQuery { site?: string; domain?: string; event?: number; cursor?: string; per_page?: number; }
+```ts
+export const schedules: AddOnSchedule[] = [
+  "disabled",
+  "hourly",
+  "daily",
+  "weekly",
+];
+export const eventValues: Record<AddOnSchedule, number> = {
+  disabled: 0,
+  hourly: 1,
+  daily: 2,
+  weekly: 3,
+};
+
+export interface RunQuery {
+  site?: string;
+  domain?: string;
+  event?: number;
+  cursor?: string;
+  per_page?: number;
+  changesOnly?: boolean;
+}
+export interface EventQuery {
+  site?: string;
+  domain?: string;
+  event?: number;
+  cursor?: string;
+  per_page?: number;
+}
 
 // URL builders take the env-derived config as plain args (caller owns env)
-export function runsUrl(apiUrl: string, klaxonId: string, q: RunQuery): URL;     // addon_runs/?expand=...&addon=..., sets message="Change detected" unless changesOnly===false
-export function eventsUrl(apiUrl: string, klaxonId: string, q: EventQuery): URL;  // addon_events/?expand=addon&addon=...
-export function eventUrl(apiUrl: string, eventId: number): URL;                   // addon_events/<id>/?expand=addon
+export function runsUrl(apiUrl: string, klaxonId: string, q: RunQuery): URL; // addon_runs/?expand=...&addon=..., sets message="Change detected" unless changesOnly===false
+export function eventsUrl(apiUrl: string, klaxonId: string, q: EventQuery): URL; // addon_events/?expand=addon&addon=...
+export function eventUrl(apiUrl: string, eventId: number): URL; // addon_events/<id>/?expand=addon
 
 // Payload builder for dispatch/update
-export function eventPayload(klaxonId: string, schedule: AddOnSchedule, parameters: Partial<KlaxonParams>): AddOnPayload;
+export function eventPayload(
+  klaxonId: string,
+  schedule: AddOnSchedule,
+  parameters: Partial<KlaxonParams>,
+): AddOnPayload;
 ```
+
 - **`changesOnly` lives in `runsUrl`** (default true → sets `message="Change detected"`; `false` omits it) so the web app's `?filter=all` just passes `changesOnly:false`. Extension callers omit it, so behavior is unchanged.
 - `getApiResponse` stays in `@klaxon/lib/utils` (already pure) and both workspaces use it to parse.
 
@@ -100,6 +152,7 @@ Swap `adapter-auto`→`@sveltejs/adapter-cloudflare` in `site/svelte.config.js`.
 **Token storage:** stateless **encrypted `httpOnly` `Secure` `SameSite=Lax` cookie** (`jose` `EncryptJWT`/`jwtDecrypt`, keyed by `MUCKROCK_SESSION_SECRET`). Session payload reuses the extension's `StoredAuth` shape `{ oidc, jwt, userinfo }`. PKCE flow state carried in a separate short-lived (`Max-Age` ~600s) encrypted cookie `{ state, nonce, verifier, returnTo }`. If userinfo+tokens exceed ~4KB, trim userinfo to `{ sub, uuid, name, email, picture }`.
 
 **Files:**
+
 ```
 site/src/
   hooks.server.ts                 # unseal session → locals.user/locals.session; refresh expired JWT; guard /(app)
@@ -154,11 +207,13 @@ routes/(app)/
 Cross-browser bridge via a content script + `window.postMessage` (Chrome `externally_connectable` is unreliable in Firefox).
 
 **`/extension` changes:**
+
 - New content script `src/web-bridge.ts` injected on the web-app origin(s): origin-checked `postMessage` ping/pong to announce presence, and relays a "create alert" request (URL) to `background.ts`.
 - `background.ts`: new `web/create-alert` handler — opens the side panel and opens the provided URL in a new tab.
 - `manifest/base.json`: add `content_scripts` matching the web-app origin(s) per environment; add a vite build config to emit `web-bridge.js`.
 
 **`/site` changes:**
+
 - `src/lib/extension-bridge.ts` — `detectExtension()` (ping + timeout) and `createAlert(url)` (postMessage).
 - `routes/(app)/new/+page.svelte` — if detected: URL input + "Create new alert" button (opens extension, then opens URL in new tab); if not: browser-specific install CTA (Chrome Web Store / Firefox Add-ons link based on UA).
 

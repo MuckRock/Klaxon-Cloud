@@ -9,7 +9,18 @@
  * own env-derived config (`apiUrl`, `klaxonId`).
  */
 
-import type { AddOnPayload, AddOnSchedule, KlaxonParams } from "./types";
+import type {
+  AddOnPayload,
+  AddOnSchedule,
+  APIError,
+  APIResponse,
+  Event,
+  KlaxonParams,
+  Page,
+  PageParams,
+  Run,
+  ValidationError,
+} from "./types";
 
 // schedules and eventValues are the inverse of each other, so store them together
 export const schedules: AddOnSchedule[] = [
@@ -111,4 +122,54 @@ export function eventPayload(
     event: eventValues[schedule],
     parameters,
   };
+}
+
+/**
+ * Follow a paginated endpoint's cursor to completion, concatenating every
+ * page's results into one response. A page-level error short-circuits.
+ */
+export async function loadAll<T, Q extends PageParams, E>(
+  fetchPage: (query: Q) => Promise<APIResponse<Page<T>, E>>,
+  query: Q,
+  { maxResults = 1000 }: { maxResults?: number } = {},
+): Promise<APIResponse<Page<T>, E>> {
+  const results: T[] = [];
+
+  async function next(cursor?: string): Promise<APIError<E> | undefined> {
+    const { data, error } = await fetchPage({ ...query, cursor });
+    if (error) return error;
+    if (!data) return undefined;
+
+    results.push(...data.results);
+
+    const nextCursor = data.next
+      ? new URL(data.next).searchParams.get("cursor")
+      : null;
+    if (nextCursor && results.length < maxResults) return next(nextCursor);
+    return undefined;
+  }
+
+  const error = await next(query.cursor);
+  if (error) return { error };
+  return { data: { next: null, previous: null, results } };
+}
+
+/**
+ * The Klaxon API client contract, shared by every workspace's transport layer.
+ * Each environment composes the builders above with its own fetch and auth, but
+ * exposes this same surface (the extension's `swFetch` client, the web app's
+ * request-scoped `klaxonApi`). The bodies differ; the shape doesn't.
+ */
+export interface KlaxonApi {
+  history(query: RunQuery): Promise<APIResponse<Page<Run>, unknown>>;
+  scheduled(query: EventQuery): Promise<APIResponse<Page<Event>, unknown>>;
+  dispatch(
+    schedule: AddOnSchedule,
+    parameters: KlaxonParams,
+  ): Promise<APIResponse<Event, ValidationError>>;
+  update(
+    eventId: number,
+    schedule: AddOnSchedule,
+    parameters: Partial<KlaxonParams>,
+  ): Promise<APIResponse<Event, ValidationError>>;
 }

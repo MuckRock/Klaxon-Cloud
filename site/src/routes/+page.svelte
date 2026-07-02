@@ -1,8 +1,8 @@
 <script lang="ts">
+  import type { PageProps } from "./$types";
   import { userState } from "$lib/user.svelte";
-  import type { PageData } from "./$types";
 
-  let { data }: { data: PageData } = $props();
+  let { data }: PageProps = $props();
 
   const name = $derived(
     userState.user?.name || userState.user?.email || "there",
@@ -18,7 +18,7 @@
     <h1>Welcome back, {name}.</h1>
     <p>Jump into your alerts and recent activity.</p>
     <div class="actions">
-      <a class="btn-primary" href="/alerts">View your alerts</a>
+      <a class="btn-primary" href="/alerts/">View your alerts</a>
       <a class="nav-link" href="/activity">Recent activity</a>
     </div>
   </section>

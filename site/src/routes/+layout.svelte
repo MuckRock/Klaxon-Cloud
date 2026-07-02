@@ -1,14 +1,15 @@
 <script lang="ts">
-  import "../app.css";
-  import favicon from "$lib/assets/favicon.svg";
-  import SiteHeader from "$lib/components/SiteHeader.svelte";
-  import { loadUser, clearUser } from "$lib/user.svelte";
   import type { LayoutData } from "./$types";
+  import type { Snippet } from "svelte";
 
-  let {
-    children,
-    data,
-  }: { children: import("svelte").Snippet; data: LayoutData } = $props();
+  import "../app.css";
+
+  import SiteHeader from "$lib/components/SiteHeader.svelte";
+
+  import favicon from "$lib/assets/favicon.svg";
+  import { loadUser, clearUser } from "$lib/user.svelte";
+
+  let { children, data }: { children: Snippet; data: LayoutData } = $props();
 
   // Keep the cached user (localStorage) in sync with the server's view of the
   // session: hydrate it when authenticated, purge it on logout / expiry.
@@ -20,6 +21,8 @@
 
 <svelte:head>
   <link rel="icon" href={favicon} />
+
+  <title>Klaxon Cloud</title>
 </svelte:head>
 
 <div class="app">
