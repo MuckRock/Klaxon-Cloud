@@ -12,10 +12,12 @@
 import type {
   AddOnPayload,
   AddOnSchedule,
+  APIError,
   APIResponse,
   Event,
   KlaxonParams,
   Page,
+  PageParams,
   Run,
   ValidationError,
 } from "./types";
@@ -120,6 +122,36 @@ export function eventPayload(
     event: eventValues[schedule],
     parameters,
   };
+}
+
+/**
+ * Follow a paginated endpoint's cursor to completion, concatenating every
+ * page's results into one response. A page-level error short-circuits.
+ */
+export async function loadAll<T, Q extends PageParams, E>(
+  fetchPage: (query: Q) => Promise<APIResponse<Page<T>, E>>,
+  query: Q,
+  { maxResults = 1000 }: { maxResults?: number } = {},
+): Promise<APIResponse<Page<T>, E>> {
+  const results: T[] = [];
+
+  async function next(cursor?: string): Promise<APIError<E> | undefined> {
+    const { data, error } = await fetchPage({ ...query, cursor });
+    if (error) return error;
+    if (!data) return undefined;
+
+    results.push(...data.results);
+
+    const nextCursor = data.next
+      ? new URL(data.next).searchParams.get("cursor")
+      : null;
+    if (nextCursor && results.length < maxResults) return next(nextCursor);
+    return undefined;
+  }
+
+  const error = await next(query.cursor);
+  if (error) return { error };
+  return { data: { next: null, previous: null, results } };
 }
 
 /**
