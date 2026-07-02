@@ -91,14 +91,18 @@ export function getRunLabel(run: Run): string {
   return run.addon.name;
 }
 
-export function getSiteLabel(event: Event): string {
-  if (event.parameters.title) return event.parameters.title;
+export function getSite(event: Event): string {
   try {
     const { pathname, search, hash } = new URL(event.parameters.site);
     return `${pathname}${search}${hash}`;
   } catch {
     return event.parameters.site;
   }
+}
+
+export function getSiteLabel(event: Event): string {
+  if (event.parameters.title) return event.parameters.title;
+  return getSite(event);
 }
 
 /** The selector value that means "watch the whole page". */

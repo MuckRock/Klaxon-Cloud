@@ -1,9 +1,9 @@
 <script lang="ts">
+  import { SvelteMap } from "svelte/reactivity";
   import type { Event } from "@klaxon/lib/types";
   import type { PageProps } from "./$types";
 
-  import { schedules } from "@klaxon/lib/api";
-  import { getSiteLabel } from "@klaxon/lib/utils";
+  import AlertListItem from "$lib/components/AlertListItem.svelte";
 
   let { data }: PageProps = $props();
 
@@ -25,7 +25,7 @@
   // Group alerts by domain, then sort the domains alphabetically so the list is
   // stable and scannable.
   let groups = $derived.by(() => {
-    const byDomain = new Map<string, Event[]>();
+    const byDomain = new SvelteMap<string, Event[]>();
     for (const event of alerts) {
       const domain = getDomain(event);
       const list = byDomain.get(domain);
@@ -58,17 +58,7 @@
         <ul class="rows">
           {#each events as event (event.id)}
             <li class="row">
-              <a
-                class="row-title"
-                href={event.parameters.site}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {getSiteLabel(event)}
-              </a>
-              <span class="schedule {schedules[event.event]}">
-                {schedules[event.event]}
-              </span>
+              <AlertListItem {event} />
             </li>
           {/each}
         </ul>
@@ -105,8 +95,6 @@
     font-size: var(--font-md);
     font-weight: 600;
     color: var(--gray-4);
-    border-bottom: 1px solid var(--gray-2);
-    padding-bottom: 0.25rem;
   }
 
   .rows {
@@ -120,32 +108,10 @@
   }
 
   .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
     padding: 0.625rem 0.75rem;
   }
 
   .row + .row {
     border-top: 1px solid var(--gray-2);
-  }
-
-  .row-title {
-    min-width: 0;
-    overflow-wrap: anywhere;
-    font-size: var(--font-sm);
-    font-weight: 600;
-  }
-
-  .schedule {
-    flex: none;
-    font-size: var(--font-xs);
-    color: var(--gray-4);
-    text-transform: capitalize;
-  }
-
-  .schedule.disabled {
-    opacity: 0.7;
   }
 </style>
