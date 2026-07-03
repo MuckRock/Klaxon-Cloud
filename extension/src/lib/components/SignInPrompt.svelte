@@ -1,6 +1,6 @@
 <script lang="ts">
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
-  import Loading from "./Loading.svelte";
+  import Loading from "@klaxon/lib/components/Loading.svelte";
   import { authState, login, createAccount } from "../auth.svelte.ts";
 
   const loading = $derived(authState.status === "authenticating");
