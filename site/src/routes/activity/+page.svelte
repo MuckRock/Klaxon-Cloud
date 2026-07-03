@@ -1,28 +1,32 @@
 <script lang="ts">
-  import type { Run } from "@klaxon/lib/types";
-  import type { PageProps } from "./$types";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
+  import type { Page, Run } from "@klaxon/lib/types";
+  import ActivityListItem from "$lib/components/ActivityListItem.svelte";
+  import CursorPaginator from "$lib/components/CursorPager.svelte";
+  import Loading from "@klaxon/lib/components/Loading.svelte";
 
-  import { isEvent } from "@klaxon/lib/utils";
-
-  let { data }: PageProps = $props();
-
-  let changes = $derived(data.changes?.results ?? []);
-
-  // The URL of the page this run was watching, if the event is expanded.
-  function getSite(run: Run): string | undefined {
-    return isEvent(run.event) ? run.event.parameters.site : undefined;
+  interface Props {
+    data: {
+      changes: Promise<Page<Run>>;
+      showAll: boolean;
+    };
   }
 
-  // The user-given alert title, if they set one.
-  function getTitle(run: Run): string | undefined {
-    return isEvent(run.event) ? run.event.parameters.title : undefined;
-  }
+  let { data }: Props = $props();
 
-  function formatDate(date: string): string {
-    return new Date(date).toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
+  // Drive the filter through the URL so it plays nicely with the cursor-based
+  // pager and SSR. Toggling drops the cursor to land back on the first page.
+  function toggleShowAll(event: Event) {
+    const checked = (event.currentTarget as HTMLInputElement).checked;
+    const url = new URL(page.url);
+    if (checked) {
+      url.searchParams.set("all", "true");
+    } else {
+      url.searchParams.delete("all");
+    }
+    url.searchParams.delete("cursor");
+    goto(`${url.pathname}${url.search}`, { keepFocus: true });
   }
 </script>
 
@@ -31,53 +35,42 @@
 </svelte:head>
 
 <div class="activity">
-  <h1>Recent changes</h1>
+  <div class="header">
+    <h1>Recent changes</h1>
 
-  {#if changes.length === 0}
-    <p class="empty">No changes detected yet.</p>
-  {:else}
-    <ul class="rows">
-      {#each changes as run (run.uuid)}
-        {@const site = getSite(run)}
-        {@const title = getTitle(run)}
-        <li class="row">
-          <div class="row-body">
-            {#if title}
-              <p class="row-title">{title}</p>
-            {/if}
-            <p class="row-url">
-              {#if site}
-                <!-- Link to the archived snapshot of this change when we have
-                     one, so the link matches the version that actually changed;
-                     fall back to the live page otherwise. -->
-                <a
-                  href={run.data?.snapshot ?? site}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {site}
-                </a>
-              {:else}
-                {run.addon.name}
-              {/if}
-            </p>
-            <p class="row-meta">{formatDate(run.created_at)}</p>
-          </div>
-          <div class="links">
-            {#if run.data?.compare}
-              <a
-                href={run.data.compare}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View change
-              </a>
-            {/if}
-          </div>
-        </li>
-      {/each}
-    </ul>
-  {/if}
+    <label class="toggle">
+      <input
+        type="checkbox"
+        checked={data.showAll}
+        onchange={toggleShowAll}
+      />
+      Show runs without changes
+    </label>
+  </div>
+
+  {#await data.changes}
+    <Loading message="Loading changes…" />
+  {:then page}
+    {@const changes = page?.results ?? []}
+    {#if changes.length === 0}
+      <p class="empty">No changes detected yet.</p>
+    {:else}
+      <ul class="rows">
+        {#each changes as run (run.uuid)}
+          <li class="row">
+            <ActivityListItem {run} />
+          </li>
+        {/each}
+      </ul>
+
+      <CursorPaginator
+        prev={page?.previous}
+        next={page?.next}
+      />
+    {/if}
+  {:catch}
+    <p class="empty">Couldn’t load changes. Try again.</p>
+  {/await}
 </div>
 
 <style>
@@ -87,10 +80,30 @@
     gap: 1.5rem;
   }
 
+  .header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
   h1 {
     margin: 0;
     font-size: var(--font-xl);
     font-weight: 700;
+  }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--gray-4);
+    cursor: pointer;
+  }
+
+  .toggle input {
+    cursor: pointer;
   }
 
   .empty {
@@ -117,36 +130,5 @@
 
   .row + .row {
     border-top: 1px solid var(--gray-2);
-  }
-
-  .row-body {
-    min-width: 0;
-  }
-
-  .row-title {
-    margin: 0;
-    overflow-wrap: anywhere;
-    font-size: var(--font-sm);
-    font-weight: 600;
-  }
-
-  .row-url {
-    margin: 0.125rem 0 0;
-    overflow-wrap: anywhere;
-    font-size: var(--font-sm);
-  }
-
-  .row-meta {
-    margin: 0.125rem 0 0;
-    font-size: var(--font-xs);
-    color: var(--gray-4);
-  }
-
-  .links {
-    flex: none;
-    display: flex;
-    gap: 1rem;
-    font-size: var(--font-sm);
-    font-weight: 600;
   }
 </style>
