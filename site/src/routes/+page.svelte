@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
   import { userState } from "$lib/user.svelte";
+  import ExtensionGuidance from "$lib/components/ExtensionGuidance.svelte";
 
   let { data }: PageProps = $props();
 
@@ -13,6 +14,7 @@
   <title>Klaxon Cloud — get notified when web pages change</title>
 </svelte:head>
 
+<ExtensionGuidance />
 {#if data.authenticated}
   <section class="welcome">
     <h1>Welcome back, {name}.</h1>

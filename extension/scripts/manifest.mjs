@@ -24,11 +24,11 @@ function read(name) {
 
 /**
  * @param {string} browser
- * @param {{ omitKey?: boolean, grantHost?: boolean, hosts?: string[] }} [options]
+ * @param {{ omitKey?: boolean, grantHost?: boolean, hosts?: string[], webOrigin?: string }} [options]
  */
 export function buildManifest(
   browser,
-  { omitKey = false, grantHost = false, hosts = [] } = {},
+  { omitKey = false, grantHost = false, hosts = [], webOrigin = "" } = {},
 ) {
   if (!BROWSERS.includes(browser)) {
     throw new Error(
@@ -67,6 +67,21 @@ export function buildManifest(
     // environment's manifest carries only the backend it actually talks to.
     manifest.host_permissions = [
       ...new Set([...(manifest.host_permissions ?? []), ...hosts]),
+    ];
+  }
+  // Declared content script for the companion web app. The match pattern is the
+  // web app's own origin (env-driven at build time so each environment injects
+  // only into its own site). A declared content script grants its own injection
+  // on the matched origin, so no extra host permission is needed. web-bridge.js
+  // announces the extension's presence and relays "create alert" handoffs.
+  if (webOrigin) {
+    manifest.content_scripts = [
+      ...(manifest.content_scripts ?? []),
+      {
+        matches: [`${webOrigin.replace(/\/$/, "")}/*`],
+        js: ["web-bridge.js"],
+        run_at: "document_idle",
+      },
     ];
   }
   return manifest;
