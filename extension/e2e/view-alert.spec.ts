@@ -27,8 +27,8 @@ const DISABLED_ALERT = makeEvent({
 
 /** Render the list with change history for the first alert, then open it. */
 async function openAlert(panel: Page) {
-  await panel.getByRole("button", { name: ALERT_LABEL }).click();
-  await expect(panel.getByRole("heading", { name: ALERT_LABEL })).toBeVisible();
+  await panel.getByRole("button", { name: ALERT_LABEL! }).click();
+  await expect(panel.getByRole("heading", { name: ALERT_LABEL! })).toBeVisible();
 }
 
 test("opening an alert shows its details and recent changes", async ({

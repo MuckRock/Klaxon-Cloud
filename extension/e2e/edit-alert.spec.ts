@@ -28,7 +28,7 @@ const DISABLED_ALERT = makeEvent({
 
 /** List → ViewAlert → EditAlert for the given alert label. */
 async function openEditAlert(panel: Page, label = ALERT_LABEL) {
-  await panel.getByRole("button", { name: label }).click();
+  await panel.getByRole("button", { name: label! }).click();
   await panel.getByRole("button", { name: "Edit alert" }).click();
   await expect(
     panel.getByRole("heading", { name: "Edit alert" }),
