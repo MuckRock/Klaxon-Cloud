@@ -4,7 +4,7 @@
   import { ArrowRight, BellOff } from "@lucide/svelte";
 
   import Link from "../components/Link.svelte";
-  import Loading from "../components/Loading.svelte";
+  import Loading from "@klaxon/lib/components/Loading.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
   import Siren from "../components/Siren.svelte";
   import Welcome from "../components/Welcome.svelte";

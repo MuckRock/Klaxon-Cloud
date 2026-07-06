@@ -81,17 +81,67 @@ export function emptyPage<T>(): Page<T> {
   };
 }
 
-export function getRunLabel(run: Run): string {
-  if (run.data?.timestamp) {
-    return (
-      parseTimestamp(run.data.timestamp)?.toLocaleString() ?? run.data.timestamp
-    );
+export function getRelativeTime(date: Date): string {
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const seconds = (date.getTime() - Date.now()) / 1000;
+
+  const divisions: [number, Intl.RelativeTimeFormatUnit][] = [
+    [60, "second"],
+    [60, "minute"],
+    [24, "hour"],
+    [7, "day"],
+    [4.34524, "week"],
+    [12, "month"],
+    [Infinity, "year"],
+  ];
+
+  let value = seconds;
+  for (const [amount, unit] of divisions) {
+    if (Math.abs(value) < amount) {
+      return rtf.format(Math.round(value), unit);
+    }
+    value /= amount;
   }
+  return rtf.format(Math.round(value), "year");
+}
+
+export function formatTime(date: Date | string): string {
+  return new Date(date).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export function getRunLabel(run?: Run): string | null {
+  if (!run) return null;
   if (isEvent(run.event)) return getSiteLabel(run.event);
   return run.addon.name;
 }
 
-export function getSite(event: Event): string {
+export function getRunTime(run?: Run): Date | null {
+  if (!run) return null;
+  if (run.data?.timestamp) {
+    // Our API returns timestamps in YYYYMMDDHHMMSS format
+    const date = parseTimestamp(run.data.timestamp);
+    if (date) return date;
+    // Data in unexpected format, try to parse into a Date
+    try {
+      return new Date(run.data.timestamp);
+    } catch {
+      // Failed to parse the date, return null
+      return null;
+    }
+  }
+  // Fallback to date the run was created
+  try {
+    return new Date(run.created_at);
+  } catch {
+    return null;
+  }
+}
+
+export function getSite(event?: Event | null | number): string | null {
+  if (!event || !isEvent(event)) return null;
   try {
     const { pathname, search, hash } = new URL(event.parameters.site);
     return `${pathname}${search}${hash}`;
@@ -100,7 +150,8 @@ export function getSite(event: Event): string {
   }
 }
 
-export function getSiteLabel(event: Event): string {
+export function getSiteLabel(event?: Event | null | number): string | null {
+  if (!event || !isEvent(event)) return null;
   if (event.parameters.title) return event.parameters.title;
   return getSite(event);
 }
