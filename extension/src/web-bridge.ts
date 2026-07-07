@@ -21,7 +21,10 @@ const EXT_SOURCE = "klaxon-extension";
 const version = chrome.runtime.getManifest().version;
 
 function announce(type: "klaxon/hello" | "klaxon/pong"): void {
-  window.postMessage({ source: EXT_SOURCE, type, version }, window.location.origin);
+  window.postMessage(
+    { source: EXT_SOURCE, type, version },
+    window.location.origin,
+  );
 }
 
 window.addEventListener("message", (event: MessageEvent) => {
