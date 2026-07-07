@@ -39,11 +39,7 @@
     <h1>Recent changes</h1>
 
     <label class="toggle">
-      <input
-        type="checkbox"
-        checked={data.showAll}
-        onchange={toggleShowAll}
-      />
+      <input type="checkbox" checked={data.showAll} onchange={toggleShowAll} />
       Show runs without changes
     </label>
   </div>
@@ -63,10 +59,7 @@
         {/each}
       </ul>
 
-      <CursorPaginator
-        prev={page?.previous}
-        next={page?.next}
-      />
+      <CursorPaginator prev={page?.previous} next={page?.next} />
     {/if}
   {:catch}
     <p class="empty">Couldn’t load changes. Try again.</p>

@@ -34,7 +34,7 @@ const outDir = `build/${browser}`;
 // host_permissions so the unpacked e2e build is granted up front (the native
 // optional-permission prompt can't be driven in automation). Set only by the
 // e2e global-setup — never for shipped builds.
-function manifestPlugin(hosts: string[]) {
+function manifestPlugin(hosts: string[], webOrigin: string) {
   const omitKey = process.env.OMIT_KEY === "true";
   const grantHost = process.env.E2E_GRANT_HOST === "true";
   return {
@@ -44,7 +44,7 @@ function manifestPlugin(hosts: string[]) {
       writeFileSync(
         join(outDir, "manifest.json"),
         JSON.stringify(
-          buildManifest(browser, { omitKey, grantHost, hosts }),
+          buildManifest(browser, { omitKey, grantHost, hosts, webOrigin }),
           null,
           2,
         ) + "\n",
@@ -62,6 +62,12 @@ export default defineConfig(({ mode }) => {
   const hosts = [env.MUCKROCK_ACCOUNTS_HOST, env.MUCKROCK_DOCUMENTCLOUD_API]
     .filter(Boolean)
     .map((url) => new URL(url).origin + "/*");
+  // The companion web app's origin — the web-bridge content script is injected
+  // only here (see scripts/manifest.mjs). Empty when unset, which omits the
+  // content script entirely (e.g. extension-only builds).
+  const webOrigin = env.MUCKROCK_WEB_ORIGIN
+    ? new URL(env.MUCKROCK_WEB_ORIGIN).origin
+    : "";
 
   return {
     resolve: {
@@ -74,7 +80,7 @@ export default defineConfig(({ mode }) => {
           css: "injected",
         },
       }),
-      manifestPlugin(hosts),
+      manifestPlugin(hosts, webOrigin),
     ],
     publicDir: "static",
     build: {
