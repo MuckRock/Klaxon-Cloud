@@ -90,7 +90,9 @@ export type Browser = "chrome" | "firefox" | "safari" | "other";
  * never blocks a user who actually has the extension. `ua` defaults to the real
  * user agent (empty during SSR → "other"); it's a parameter so it's testable.
  */
-export function detectBrowser(ua: string = browser ? navigator.userAgent : ""): Browser {
+export function detectBrowser(
+  ua: string = browser ? navigator.userAgent : "",
+): Browser {
   if (/firefox\//i.test(ua)) return "firefox";
   if (/chrome\//i.test(ua)) return "chrome";
   if (/safari\//i.test(ua)) return "safari";

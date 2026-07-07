@@ -28,7 +28,6 @@
         return null;
     }
   });
-  
 
   $effect(() => {
     browser = detectBrowser();
@@ -39,12 +38,14 @@
 </script>
 
 <section class="guidance">
-  
   {#if status === "detecting"}
-  <Loading message="Looking for the Klaxon extension…" />
+    <Loading message="Looking for the Klaxon extension…" />
   {:else if status === "installed"}
     <h2>The Klaxon Cloud extension is installed!</h2>
-    <p class="lede">Alerts are created right from the page you want to watch. Visit a webpage, trigger the <strong>Klaxon Cloud</strong> extension and create a new alert.</p>
+    <p class="lede">
+      Alerts are created right from the page you want to watch. Visit a webpage,
+      trigger the <strong>Klaxon Cloud</strong> extension and create a new alert.
+    </p>
     <p class="hint">
       Don't see the Klaxon icon? Open your browser's extensions menu and pin
       Klaxon to the toolbar.
@@ -53,8 +54,16 @@
     <h2>Create new alerts with the Klaxon browser extension.</h2>
     <p class="lede">Follow these steps to install:</p>
     <ol class="steps">
-      <li>Install the extension from <a href={store.url} target="_blank" rel="noopener">your browser&rsquo;s store</a>.</li>
-      <li>Pin the <strong>Klaxon Cloud</strong> icon to your browser toolbar.</li>
+      <li>
+        Install the extension from <a
+          href={store.url}
+          target="_blank"
+          rel="noopener">your browser&rsquo;s store</a
+        >.
+      </li>
+      <li>
+        Pin the <strong>Klaxon Cloud</strong> icon to your browser toolbar.
+      </li>
       <li>
         Open a page you want to watch, click the icon, and choose
         <strong>Create a new alert</strong>.
@@ -69,10 +78,20 @@
       Chrome and Firefox. Safari isn't supported at this time.
     </p>
     <div class="store-links">
-      <a class="nav-link" href={STORE_URLS.chrome} target="_blank" rel="noopener">
+      <a
+        class="nav-link"
+        href={STORE_URLS.chrome}
+        target="_blank"
+        rel="noopener"
+      >
         Get it for Chrome
       </a>
-      <a class="nav-link" href={STORE_URLS.firefox} target="_blank" rel="noopener">
+      <a
+        class="nav-link"
+        href={STORE_URLS.firefox}
+        target="_blank"
+        rel="noopener"
+      >
         Get it for Firefox
       </a>
     </div>

@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { getRunLabel, getRunTime, formatTime, getSite, type Run } from "@klaxon/lib";
+  import {
+    getRunLabel,
+    getRunTime,
+    formatTime,
+    getSite,
+    type Run,
+  } from "@klaxon/lib";
   import { ExternalLink } from "@lucide/svelte";
 
   interface Props {
@@ -16,18 +22,18 @@
 <div class="row-body">
   <div class="details">
     {#if timestamp}
-    <p class="row-meta">
-      <a
-        title="View snapshot"
-        href={run.data?.snapshot ?? site}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <time datetime={timestamp.toISOString()}>
-          {formatTime(timestamp)}
-        </time>
-      </a>
-    </p>
+      <p class="row-meta">
+        <a
+          title="View snapshot"
+          href={run.data?.snapshot ?? site}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <time datetime={timestamp.toISOString()}>
+            {formatTime(timestamp)}
+          </time>
+        </a>
+      </p>
     {/if}
     <p class="row-title">
       {title}
@@ -48,7 +54,6 @@
     {/if}
   </div>
 </div>
-
 
 <style>
   .row-body {
@@ -72,7 +77,8 @@
     color: var(--gray-4);
   }
 
-  .details, .links {
+  .details,
+  .links {
     display: flex;
     flex-direction: column;
     font-size: var(--font-sm);
