@@ -27,6 +27,9 @@ const UNAUTHENTICATED = {
   error: { status: 401, message: "Not authenticated" },
 } as const;
 
+// Identifies server-side requests in DocumentCloud's logs
+const USER_AGENT = "Klaxon-Cloud (+https://github.com/MuckRock/Klaxon-Cloud)";
+
 /**
  * Build a Klaxon API client for the current request. Reads the DocumentCloud
  * JWT from `locals.session` (already refreshed in hooks) and uses the event's
@@ -50,6 +53,7 @@ export function klaxonApi(event: RequestEvent): KlaxonApi {
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
+          "User-Agent": USER_AGENT,
           ...init.headers,
         },
       });
