@@ -6,7 +6,6 @@
 
   import SiteHeader from "$lib/components/SiteHeader.svelte";
 
-  import favicon from "$lib/assets/favicon.svg";
   import { loadUser, clearUser } from "$lib/user.svelte";
 
   let { children, data }: { children: Snippet; data: LayoutData } = $props();
@@ -20,8 +19,6 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href={favicon} />
-
   <title>Klaxon Cloud</title>
 </svelte:head>
 
