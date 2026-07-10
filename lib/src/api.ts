@@ -75,9 +75,16 @@ function applyListParams(
  * Build the URL for listing Klaxon runs. Filters to changed runs unless
  * `changesOnly` is explicitly false.
  */
-export function runsUrl(apiUrl: string, klaxonId: string, query: RunQuery): URL {
+export function runsUrl(
+  apiUrl: string,
+  klaxonId: string,
+  query: RunQuery,
+): URL {
   const { changesOnly = true, ...rest } = query;
-  const url = new URL(`addon_runs/?expand=addon,event&addon=${klaxonId}`, apiUrl);
+  const url = new URL(
+    `addon_runs/?expand=addon,event&addon=${klaxonId}`,
+    apiUrl,
+  );
   if (changesOnly) url.searchParams.set("message", CHANGED);
   return applyListParams(url, rest);
 }

@@ -11,16 +11,12 @@ export default defineConfig({
         runes: ({ filename }) =>
           filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
       },
-
-      // Hosted on Cloudflare Workers. See https://svelte.dev/docs/kit/adapter-cloudflare
       adapter: adapter(),
     }),
   ],
   // @klaxon/lib ships raw .ts (no build step); inline it so SSR and vitest
   // transpile it rather than treating the workspace package as built ESM.
-  ssr: {
-    noExternal: ["@klaxon/lib"],
-  },
+  ssr: { noExternal: ["@klaxon/lib"] },
   test: {
     expect: { requireAssertions: true },
     projects: [
