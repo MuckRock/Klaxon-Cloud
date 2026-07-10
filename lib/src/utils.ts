@@ -160,6 +160,14 @@ export function getSiteLabel(event?: Event | null | number): string | null {
 export const WHOLE_PAGE_SELECTOR = "*";
 
 /**
+ * Identifies Klaxon's requests in Squarelet/DocumentCloud logs and our own
+ * observability. Note: browser `fetch` strips User-Agent as a forbidden
+ * header, so this only takes effect in server/Worker contexts.
+ */
+export const USER_AGENT =
+  "Klaxon-Cloud (+https://github.com/MuckRock/Klaxon-Cloud)";
+
+/**
  * Whether an alert watches the whole page rather than a specific region.
  *
  * Whole-page alerts are saved with the "*" selector — the value the Add-On's

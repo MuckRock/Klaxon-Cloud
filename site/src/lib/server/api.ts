@@ -21,14 +21,11 @@ import {
   runsUrl,
   type KlaxonApi,
 } from "@klaxon/lib/api";
-import { getApiResponse } from "@klaxon/lib/utils";
+import { getApiResponse, USER_AGENT } from "@klaxon/lib/utils";
 
 const UNAUTHENTICATED = {
   error: { status: 401, message: "Not authenticated" },
 } as const;
-
-// Identifies server-side requests in DocumentCloud's logs
-const USER_AGENT = "Klaxon-Cloud (+https://github.com/MuckRock/Klaxon-Cloud)";
 
 /**
  * Build a Klaxon API client for the current request. Reads the DocumentCloud

@@ -5,6 +5,7 @@ import type {
   StoredAuth,
   UserInfoResponse,
 } from "./types";
+import { USER_AGENT } from "./utils";
 
 export function base64UrlEncode(bytes: Uint8Array): string {
   let s = "";
@@ -124,7 +125,10 @@ export async function getAuthToken(
 ): Promise<OidcTokenResponse> {
   const tokenResp = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": USER_AGENT,
+    },
     body: params,
   });
   if (!tokenResp.ok) {
@@ -144,7 +148,10 @@ export async function getUserInfo(
   token: string,
 ): Promise<UserInfoResponse> {
   const userResp = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "User-Agent": USER_AGENT,
+    },
   });
   if (!userResp.ok) {
     throw new Error(
@@ -172,7 +179,10 @@ export async function exchangeOidcForJwt(
     // side would otherwise trigger DRF's CSRF Origin check against
     // chrome-extension:// (which isn't in CSRF_TRUSTED_ORIGINS).
     credentials: "omit",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT,
+    },
     body: JSON.stringify({ oidc_token: oidcAccessToken }),
   });
   if (!resp.ok) {
@@ -194,7 +204,10 @@ export async function refreshJwt(
   const resp = await fetch(url, {
     method: "POST",
     credentials: "omit", // see exchangeOidcForJwt
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT,
+    },
     body: JSON.stringify({ refresh: refreshToken }),
   });
   if (!resp.ok) {
