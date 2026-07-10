@@ -21,9 +21,9 @@
   "vars": {
     // Canonical deployed origin (scheme + host, no trailing slash).
     // Must match the OIDC client's registered redirect URI exactly.
-    "MUCKROCK_PUBLIC_ORIGIN": "https://accounts.muckrock.com/",
+    "MUCKROCK_PUBLIC_ORIGIN": "https://klaxon-cloud.muckrock.workers.dev",
     // Production Squarelet (MuckRock Accounts) OIDC host.
-    "MUCKROCK_ACCOUNTS_HOST": "https://api.www.documentcloud.org/api/",
+    "MUCKROCK_ACCOUNTS_HOST": "https://accounts.muckrock.com/",
     // OIDC public web-app client ID registered on production Squarelet.
     "MUCKROCK_WEB_CLIENT_ID": "287887",
     // Klaxon add-on's numeric id in production DocumentCloud.
@@ -31,6 +31,7 @@
     // Production DocumentCloud API base.
     "MUCKROCK_DOCUMENTCLOUD_API": "https://api.www.documentcloud.org/api/",
     // OAuth scopes requested at sign-in (environment-independent).
-    "MUCKROCK_SCOPES": "openid profile email uuid organizations"
+    "MUCKROCK_SCOPES": "openid profile email uuid organizations",
+    "MUCKROCK_WEB_ORIGIN": "https://klaxon-cloud.muckrock.workers.dev"
   }
 }
