@@ -7,6 +7,7 @@ import {
   decodeJwtPayload,
   endpoints,
   exchangeOidcForJwt,
+  getUserInfo,
   hasJwtExpired,
   isValidStoredAuth,
   pkceChallenge,
@@ -14,6 +15,7 @@ import {
   refreshJwt,
   sha256,
 } from "../src/oidc.ts";
+import { USER_AGENT } from "../src/utils.ts";
 
 // Build a syntactically valid JWT with the given payload. The signature is
 // a placeholder — these tests only exercise decode/expiry, never verification.
@@ -207,7 +209,10 @@ describe("exchangeOidcForJwt", () => {
     expect(globalThis.fetch).toHaveBeenCalledWith("https://x.test/api/jwt/", {
       method: "POST",
       credentials: "omit",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+      },
       body: JSON.stringify({ oidc_token: "oidc-access" }),
     });
     expect(result.access_token).toBe("jwt-a");
@@ -225,6 +230,44 @@ describe("exchangeOidcForJwt", () => {
     await expect(
       exchangeOidcForJwt("https://x.test/api/jwt/", "bad"),
     ).rejects.toThrow(/400.*invalid token/);
+  });
+});
+
+describe("getUserInfo", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("GETs /openid/userinfo with the Klaxon User-Agent and bearer token", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ sub: "u", uuid: "u", name: "n" }),
+    });
+    await getUserInfo("https://x.test/openid/userinfo", "oidc-access");
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://x.test/openid/userinfo",
+      {
+        headers: {
+          Authorization: "Bearer oidc-access",
+          "User-Agent": USER_AGENT,
+        },
+      },
+    );
+  });
+
+  it("throws with the response body on non-2xx", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      text: async () => '{"detail":"Forbidden"}',
+    });
+    await expect(
+      getUserInfo("https://x.test/openid/userinfo", "bad"),
+    ).rejects.toThrow(/403.*Forbidden/);
   });
 });
 
@@ -251,7 +294,10 @@ describe("refreshJwt", () => {
       {
         method: "POST",
         credentials: "omit",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": USER_AGENT,
+        },
         body: JSON.stringify({ refresh: "old-refresh" }),
       },
     );
