@@ -21,7 +21,7 @@ import {
   runsUrl,
   type KlaxonApi,
 } from "@klaxon/lib/api";
-import { getApiResponse } from "@klaxon/lib/utils";
+import { getApiResponse, USER_AGENT } from "@klaxon/lib/utils";
 
 const UNAUTHENTICATED = {
   error: { status: 401, message: "Not authenticated" },
@@ -50,6 +50,7 @@ export function klaxonApi(event: RequestEvent): KlaxonApi {
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
+          "User-Agent": USER_AGENT,
           ...init.headers,
         },
       });

@@ -31,7 +31,7 @@ export async function getApiResponse<T, E = unknown>(
       response.error = {
         status: resp.status,
         message: resp.statusText,
-        errors: resp.json ? await resp.json() : null,
+        errors: resp.json ? ((await resp.json()) as E) : undefined,
       };
     } catch (error) {
       console.warn(error);
@@ -56,7 +56,7 @@ export async function getApiResponse<T, E = unknown>(
 
   try {
     // redactions return an empty 200 response
-    response.data = resp.json ? await resp.json() : {};
+    response.data = resp.json ? ((await resp.json()) as T) : ({} as T);
   } catch (e) {
     if (e instanceof SyntaxError) {
       response.error = {
@@ -158,6 +158,14 @@ export function getSiteLabel(event?: Event | null | number): string | null {
 
 /** The selector value that means "watch the whole page". */
 export const WHOLE_PAGE_SELECTOR = "*";
+
+/**
+ * Identifies Klaxon's requests in Squarelet/DocumentCloud logs and our own
+ * observability. Note: browser `fetch` strips User-Agent as a forbidden
+ * header, so this only takes effect in server/Worker contexts.
+ */
+export const USER_AGENT =
+  "Klaxon-Cloud (+https://github.com/MuckRock/Klaxon-Cloud)";
 
 /**
  * Whether an alert watches the whole page rather than a specific region.

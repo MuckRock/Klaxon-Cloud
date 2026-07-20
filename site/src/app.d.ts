@@ -9,13 +9,14 @@ declare global {
       /** Auth tokens (OIDC + DC JWT), refreshed in hooks; null when signed out. */
       session: SessionTokens | null;
     }
+
     interface PageData {
       /** Whether the request has a valid session. The user payload itself
        * lives in localStorage on the client, not in page data. */
       authenticated?: boolean;
     }
+
     // interface PageState {}
-    // interface Platform {}
   }
 }
 

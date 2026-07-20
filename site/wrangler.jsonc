@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "klaxon-cloud",
+  "compatibility_date": "2026-07-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": ".svelte-kit/cloudflare/_worker.js",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".svelte-kit/cloudflare"
+  },
+  "workers_dev": true,
+  "preview_urls": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  // Generate + upload source maps on deploy so Workers Logs / Tail show
+  // stack traces against your TypeScript source, not minified output.
+  "upload_source_maps": true,
+  // Non-secret server config, read at runtime via $env/dynamic/private.
+  "vars": {
+    // Canonical deployed origin (scheme + host, no trailing slash).
+    // Must match the OIDC client's registered redirect URI exactly.
+    "MUCKROCK_PUBLIC_ORIGIN": "https://klaxon-cloud.muckrock.workers.dev",
+    // Production Squarelet (MuckRock Accounts) OIDC host.
+    "MUCKROCK_ACCOUNTS_HOST": "https://accounts.muckrock.com/",
+    // OIDC public web-app client ID registered on production Squarelet.
+    "MUCKROCK_WEB_CLIENT_ID": "287887",
+    // Klaxon add-on's numeric id in production DocumentCloud.
+    "MUCKROCK_KLAXON_ID": "436",
+    // Production DocumentCloud API base.
+    "MUCKROCK_DOCUMENTCLOUD_API": "https://api.www.documentcloud.org/api/",
+    // OAuth scopes requested at sign-in (environment-independent).
+    "MUCKROCK_SCOPES": "openid profile email uuid organizations",
+    "MUCKROCK_WEB_ORIGIN": "https://klaxon-cloud.muckrock.workers.dev"
+  }
+}
