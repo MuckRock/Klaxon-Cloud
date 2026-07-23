@@ -12,6 +12,10 @@
     {
       "pattern": "www.klaxoncloud.org",
       "custom_domain": true
+    },
+    {
+      "pattern": "klaxoncloud.org",
+      "custom_domain": true
     }
   ],
   "workers_dev": true,
