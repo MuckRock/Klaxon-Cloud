@@ -8,6 +8,12 @@
     "binding": "ASSETS",
     "directory": ".svelte-kit/cloudflare"
   },
+  "routes": [
+    {
+      "pattern": "www.klaxoncloud.org",
+      "custom_domain": true
+    }
+  ],
   "workers_dev": true,
   "preview_urls": true,
   "observability": {
