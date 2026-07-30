@@ -231,7 +231,7 @@
   }
 
   .status {
-    flex: 1 1 16rem;
+    flex: 1 1 8rem;
     margin: 0;
     font-weight: 600;
     line-height: 1.3;

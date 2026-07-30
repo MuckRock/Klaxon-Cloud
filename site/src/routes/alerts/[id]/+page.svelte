@@ -24,10 +24,17 @@
 </svelte:head>
 
 <div class="alert-page">
-  <a class="back" href="/alerts/">
-    <ArrowLeft size={16} />
-    All alerts
-  </a>
+  <nav class="nav">
+    <a class="back" href="/alerts/">
+      <ArrowLeft size={16} />
+      All alerts
+    </a>
+
+    <a class="edit" href="/alerts/{alert.id}/edit/">
+      <Pencil size={16} />
+      Edit
+    </a>
+  </nav>
 
   <header class="head">
     <div class="identity">
@@ -37,10 +44,6 @@
     <div class="actions">
       <span class="schedule {schedule}">{schedule}</span>
       <OpenPageLink href={alert.parameters.site} label="Open watched page" />
-      <a class="edit" href="/alerts/{alert.id}/edit/">
-        <Pencil size={16} />
-        Edit
-      </a>
     </div>
   </header>
 
@@ -92,7 +95,7 @@
     text-decoration: underline;
   }
 
-  .head {
+  .head, .nav {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
