@@ -50,6 +50,10 @@
   <title>Klaxon Cloud — get notified when web pages change</title>
 </svelte:head>
 
+<div class="guidance-slot">
+  <ExtensionGuidance />
+</div>
+
 {#if data.authenticated}
   <section class="dashboard">
     <h1>Welcome back, {name}.</h1>
@@ -143,15 +147,9 @@
   </section>
 {/if}
 
-<!-- Alerts can only be created from the extension, so both the dashboard and
-     the signed-out pitch end with the install/how-to card. -->
-<div class="guidance-slot">
-  <ExtensionGuidance />
-</div>
-
 <style>
   .guidance-slot {
-    margin-top: 2rem;
+    margin: 1rem 0 2rem 0;
   }
 
   .hero {

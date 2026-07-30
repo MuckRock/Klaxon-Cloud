@@ -24,10 +24,12 @@
       </nav>
 
       <div class="account">
-        {#if userState.user?.picture}
-          <img class="avatar" src={userState.user.picture} alt="" />
-        {/if}
-        <span class="user">{label}</span>
+        <a class="user nav-link" href="">
+          {#if userState.user?.picture}
+            <img class="avatar" src={userState.user.picture} alt="" />
+          {/if}
+          {label}
+        </a>
         <form method="POST" action="/auth/logout">
           <button type="submit" class="link">Sign out</button>
         </form>
@@ -64,7 +66,7 @@
 
   .brand img {
     display: block;
-    height: 1.5rem;
+    height: 2rem;
     width: auto;
   }
 
@@ -78,13 +80,13 @@
   .account {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     margin-left: auto;
   }
 
   .avatar {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1.75rem;
+    height: 1.75rem;
     border-radius: 50%;
     object-fit: cover;
   }
@@ -93,16 +95,21 @@
     color: var(--klaxon-color-link);
     text-decoration: none;
     font-weight: 600;
-    font-size: var(--font-sm);
+    font-size: var(--font-md);
   }
 
   .nav-link:hover {
     text-decoration: underline;
+    color: var(--black);
   }
 
   .user {
-    font-size: var(--font-sm);
-    color: var(--gray-4);
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: var(--font-md);
+    font-weight: 600;
+    margin-right: 1rem;
   }
 
   form {
@@ -113,12 +120,14 @@
     background: none;
     border: none;
     padding: 0;
-    text-decoration: underline;
     color: var(--klaxon-color-link);
     font-family: var(--font-sans);
     font-weight: 600;
     font-size: var(--font-sm);
     cursor: pointer;
+    &:hover {
+      color: var(--black);
+    }
   }
 
   /* Narrow screens get three centered rows: logo, sections, account. */
