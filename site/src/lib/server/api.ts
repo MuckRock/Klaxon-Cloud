@@ -28,11 +28,20 @@ const UNAUTHENTICATED = {
 } as const;
 
 /**
+ * The shared contract plus the one read only the web app needs: a single alert
+ * by id, for the per-alert changes page. (The extension always has the alert in
+ * hand from a list it just fetched, so `KlaxonApi` doesn't carry this.)
+ */
+export interface SiteKlaxonApi extends KlaxonApi {
+  alert(eventId: number): Promise<APIResponse<Event>>;
+}
+
+/**
  * Build a Klaxon API client for the current request. Reads the DocumentCloud
  * JWT from `locals.session` (already refreshed in hooks) and uses the event's
  * `fetch` so SvelteKit can track the dependency.
  */
-export function klaxonApi(event: RequestEvent): KlaxonApi {
+export function klaxonApi(event: RequestEvent): SiteKlaxonApi {
   const { apiUrl, klaxonId } = requireConfig();
   const token = event.locals.session?.jwt.access_token ?? null;
 
@@ -87,6 +96,10 @@ export function klaxonApi(event: RequestEvent): KlaxonApi {
       return getApiResponse<Page<Event>>(
         await send(eventsUrl(apiUrl, klaxonId, query)),
       );
+    },
+    async alert(eventId) {
+      if (!token) return UNAUTHENTICATED;
+      return getApiResponse<Event>(await send(eventUrl(apiUrl, eventId)));
     },
     dispatch(schedule, parameters) {
       return writeEvent(eventsCreateUrl(apiUrl), "POST", schedule, parameters);

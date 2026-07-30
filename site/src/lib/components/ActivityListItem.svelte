@@ -12,9 +12,11 @@
 
   interface Props {
     run: Run;
+    // Off on a single alert's page, where every row shares the same address.
+    showSite?: boolean;
   }
 
-  const { run }: Props = $props();
+  const { run, showSite = true }: Props = $props();
 
   const timestamp = $derived(getRunTime(run));
 
@@ -53,7 +55,7 @@
       <p class="row-title" title={alert?.parameters.site}>
         {label}
       </p>
-      {#if subtitle}
+      {#if showSite && subtitle}
         <p class="row-site">{subtitle}</p>
       {/if}
     </div>
