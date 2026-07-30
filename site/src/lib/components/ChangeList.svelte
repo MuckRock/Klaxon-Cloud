@@ -6,15 +6,18 @@
     changes: Run[];
     // Off on a single alert's page, where every row shares the same address.
     showSite?: boolean;
+    // Off on a single alert's page too, where the link would point at the page
+    // the row is already on.
+    linkAlert?: boolean;
   }
 
-  const { changes, showSite = true }: Props = $props();
+  const { changes, showSite = true, linkAlert = true }: Props = $props();
 </script>
 
 <ul class="rows">
   {#each changes as run (run.uuid)}
     <li class="row">
-      <ActivityListItem {run} {showSite} />
+      <ActivityListItem {run} {showSite} {linkAlert} />
     </li>
   {/each}
 </ul>

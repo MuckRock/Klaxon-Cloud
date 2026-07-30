@@ -55,8 +55,8 @@
         </p>
       {:else}
         <!-- Every run here belongs to this one alert, so don't repeat its
-             address on each row. -->
-        <ChangeList {changes} showSite={false} />
+             address on each row, and don't link each title back to this page. -->
+        <ChangeList {changes} showSite={false} linkAlert={false} />
 
         <CursorPager prev={page?.previous} next={page?.next} />
       {/if}

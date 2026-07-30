@@ -2,27 +2,37 @@
   import {
     formatTime,
     getDomain,
+    getRelativeTime,
     getRunLabel,
     getRunTime,
     getSite,
     isEvent,
     type Run,
   } from "@klaxon/lib";
-  import { ExternalLink } from "@lucide/svelte";
+  import { Camera, Diff } from "@lucide/svelte";
 
   interface Props {
     run: Run;
     // Off on a single alert's page, where every row shares the same address.
     showSite?: boolean;
+    // Off on a single alert's page too, where the link would point at the page
+    // the row is already on.
+    linkAlert?: boolean;
   }
 
-  const { run, showSite = true }: Props = $props();
+  const { run, showSite = true, linkAlert = true }: Props = $props();
 
   const timestamp = $derived(getRunTime(run));
 
   // The alert that scheduled this run. Runs are fetched with `expand=event`, so
   // it's normally the full object — fall back gracefully when it isn't.
   const alert = $derived(isEvent(run.event) ? run.event : null);
+
+  // Enough to link back to the alert even when `event` came through unexpanded,
+  // since then it's the id itself. It's optional on a run, so it can be absent.
+  const alertId = $derived(
+    isEvent(run.event) ? run.event.id : (run.event ?? null),
+  );
   const label = $derived(getRunLabel(run));
   const domain = $derived(getDomain(run.event));
   const site = $derived(getSite(run.event));
@@ -41,28 +51,48 @@
 
 <div class="row-body">
   {#if timestamp}
+    <!-- Two lines, so this column fills the same height as the label and
+         address beside it: when the change landed, then exactly when. One
+         `datetime` covers both renderings, and the snapshot link that used to
+         sit here now lives with the other actions. -->
     <p class="row-meta">
-      <a
-        title="View snapshot"
-        href={run.data?.snapshot ?? alert?.parameters.site}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <time datetime={timestamp.toISOString()}>
-          {formatTime(timestamp)}
-        </time>
-      </a>
+      <time datetime={timestamp.toISOString()}>
+        <span class="ago">{getRelativeTime(timestamp)}</span>
+        <span class="exact">{formatTime(timestamp)}</span>
+      </time>
     </p>
   {/if}
   <div class="alert">
-    <p class="row-title" title={alert?.parameters.site}>
-      {label}
-    </p>
+    <!-- The label leads to the alert that scheduled this run, matching
+         AlertListItem; the timestamp and diff links go out to the watched page
+         and the snapshot instead. -->
+    {#if linkAlert && alertId !== null}
+      <a
+        class="row-title"
+        href="/alerts/{alertId}/"
+        title={alert?.parameters.site}
+      >
+        {label}
+      </a>
+    {:else}
+      <p class="row-title" title={alert?.parameters.site}>
+        {label}
+      </p>
+    {/if}
     {#if showSite && subtitle}
       <p class="row-site">{subtitle}</p>
     {/if}
   </div>
   <div class="links">
+    <a
+      title="View snapshot"
+      href={run.data?.snapshot ?? alert?.parameters.site}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <Camera size={16} />
+      View snapshot
+    </a>
     {#if run.data?.compare}
       <a
         class="compare"
@@ -71,8 +101,8 @@
         rel="noopener noreferrer"
         title="Show differences"
       >
-        Show differences
-        <ExternalLink size={16} />
+        <Diff size={16} />
+        View changes
       </a>
     {/if}
   </div>
@@ -92,17 +122,37 @@
 
   .row-title {
     margin: 0;
-    font-size: var(--font-sm);
+    font-size: var(--font-md);
     font-weight: 600;
     overflow-wrap: anywhere;
   }
 
   .row-meta {
     grid-column: 1;
-    margin: 0.125rem 0 0;
+    /* No top nudge: `.ago` is the label's size, so the two columns' first lines
+       share the row's baseline on their own. */
+    margin: 0;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .row-meta time {
+    display: block;
+  }
+
+  /* Lead with how long ago the change landed — the half worth scanning — at the
+     label's size. The exact stamp sits under it, sized like the address. */
+  .ago {
+    display: block;
+    font-size: var(--font-md);
+    color: var(--black);
+    line-height: 1.6;
+  }
+
+  .exact {
+    display: block;
     font-size: var(--font-xs);
     color: var(--gray-4);
-    white-space: nowrap;
   }
 
   .row-site {
@@ -123,16 +173,22 @@
   .links {
     grid-column: 3;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 1.5rem;
+    padding: 0 1rem;
+    align-items: center;
+    align-self: center;
     font-size: var(--font-sm);
     font-weight: 600;
   }
 
-  .compare {
+  .links a {
     display: inline-flex;
-    gap: 0.25em;
+    flex-direction: row;
+    gap: 0.25rem;
     align-items: center;
-    text-decoration: underline;
+    align-self: center;
+    text-decoration: none;
     &:hover {
       color: var(--black);
     }
