@@ -362,6 +362,19 @@ export class CanvasClient {
   };
 
   async #activeTab(): Promise<chrome.tabs.Tab | undefined> {
+    // Resolve the active tab of the last-focused *normal* browser window. In the
+    // native side panel this is just the window we live in, so the result is the
+    // same as a plain `lastFocusedWindow` query. But in the popup-window fallback
+    // (Arc — see background.ts), the panel is its own popup window; scoping to
+    // normal windows keeps us tracking the real page under inspection rather than
+    // resolving to the popup's own extension page when it holds focus.
+    const win = await chrome.windows
+      .getLastFocused({ windowTypes: ["normal"] })
+      .catch(() => null);
+    if (win?.id != null) {
+      const [tab] = await chrome.tabs.query({ active: true, windowId: win.id });
+      if (tab) return tab;
+    }
     const [tab] = await chrome.tabs.query({
       active: true,
       lastFocusedWindow: true,

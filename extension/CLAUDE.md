@@ -59,6 +59,15 @@ Chrome and Firefox disagree on a few manifest keys (and on sidebar APIs), and a 
 
 `scripts/manifest.mjs` exports `buildManifest(browser)`, which shallow-merges `base` + the browser overlay **but unions the `permissions` arrays** (so an overlay can add a browser-only permission like `sidePanel` without dropping the shared ones). It's the single source of truth, reused by the vite plugin, `scripts/clean.mjs`, and `scripts/redirect-uris.mjs`. **There is no `static/manifest.json`** — edit the fragments under `manifest/`.
 
+### Opening the panel, and the Arc fallback (#91)
+
+The toolbar action opens the sidebar. Per browser (the `__FIREFOX__` build constant gates the branch in both `background.ts` and `sidepanel.ts`, so each bundle ships only its own path — it's defined by `vite/background.config.ts` and `vite/sidepanel.config.ts`):
+
+- **Firefox** — `chrome.action.onClicked` → `sidebarAction.toggle()`.
+- **Chrome** — `onClicked` → `chrome.sidePanel.open({ windowId })` (called synchronously in the click gesture, as the API requires).
+
+Some Chromium browsers — notably **Arc** — _define_ `chrome.sidePanel` and let `open()` resolve (it even creates a `SIDE_PANEL` `getContexts` entry), but never actually render the panel, so the extension used to fail silently. We can't detect this from the service worker (`open()` doesn't reject; the phantom context is real), so **the panel page detects it**: `src/sidepanel.ts` polls its own layout size after load, and if it never lays out to a non-zero size within ~1.5s (a real panel does within a few hundred ms; Arc's phantom stays `0×0`) it messages the worker `panel/fallback`. The worker then opens `sidepanel.html?fallback=1` in a standalone **popup window** (`chrome.windows.create({ type: "popup" })`). That window keeps a slim address bar Chrome's security model won't let us hide, but unlike an anchored action popup (which is chromeless in Arc but **closes on blur** — fatal to the picker) it stays open while the user clicks the page. The `fallback=1` marker makes the panel page skip the phantom check (so the real window can't loop), and the worker remembers the window id: once it exists, later clicks just focus it instead of opening another phantom. `#activeTab()` in `canvas-client.svelte.ts` resolves the active tab of the last-focused **normal** window so the picker still targets the real page, not the popup window's own document.
+
 ### Two realms, joined by a port
 
 The sidebar UI and the picker run in **separate JS realms** that can't import each other; they communicate over a `chrome.tabs` port.

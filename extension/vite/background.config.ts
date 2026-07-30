@@ -13,7 +13,7 @@ if (!BROWSERS.includes(browser)) {
 export default defineConfig({
   // Build-time browser flag. Lets the worker ship only the sidebar path the
   // target browser implements; the minifier drops the dead branch (and, for
-  // Firefox, the `sidePanel.setPanelBehavior` call the AMO validator warns on).
+  // Firefox, the `sidePanel` calls the AMO validator warns on).
   define: {
     __FIREFOX__: JSON.stringify(browser === "firefox"),
   },

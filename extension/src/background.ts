@@ -30,24 +30,82 @@ import {
 } from "@klaxon/lib/oidc";
 
 // Open the sidebar from the toolbar button.
-//   - Chrome: the side panel opens automatically on action click.
-//   - Firefox: there's no setPanelBehavior; toggle the native sidebar instead.
+//   - Firefox: toggle the native _sidebar_.
+//   - Chrome: open the native _side panel_.
+//
+//     Some Chromium browsers (I'm looking at you, Arc) define chrome.sidePanel
+//     and resolve sidePanel.open(), but never actually render a panel! We can't
+//     trust open()'s promise; instead we check for a real SIDE_PANEL extension
+//     context afterward (runtime.getContexts). If none appears, fall back to
+//     hosting the same sidepanel.html in a standalone popup window (#91). Unlike
+//     an anchored action popup, a window stays open while the user clicks the page,
+//     so the element-picker flow keeps working.
 // `__FIREFOX__` is a build-time constant (see vite/background.config.ts) so each
 // browser only ships the branch it can use. Gating the Chrome path this way also
-// keeps `sidePanel.setPanelBehavior` out of the Firefox bundle entirely — the
-// AMO validator flags it as an unimplemented API even behind optional chaining.
+// keeps `sidePanel` out of the Firefox bundle entirely — the AMO validator flags
+// it as an unimplemented API even behind optional chaining.
 declare const __FIREFOX__: boolean;
-
-if (!__FIREFOX__) {
-  chrome.sidePanel
-    ?.setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((err) => console.debug("[klaxon] setPanelBehavior:", err));
-}
 
 if (__FIREFOX__) {
   chrome.action.onClicked.addListener(() =>
     chrome.sidebarAction?.toggle().catch(() => {}),
   );
+} else {
+  // Repeated clicks focus the existing window instead of spawning duplicates.
+  let fallbackWindowId: number | null = null;
+
+  // Open the standalone popup window when the side panel API silently fails.
+  // The `fallback=1` marker tells the panel page it's already the fallback,
+  // so it skips side panel detaction and can't ask for yet another window.
+  // A windows.create popup keeps a slim address bar, but unlike an anchored
+  // action popup it will stay open when the user clicks the page.
+  async function openFallbackWindow(): Promise<void> {
+    if (fallbackWindowId !== null) {
+      try {
+        await chrome.windows.update(fallbackWindowId, { focused: true });
+        return;
+      } catch {
+        fallbackWindowId = null; // it was closed out from under us; recreate
+      }
+    }
+    try {
+      const win = await chrome.windows.create({
+        url: chrome.runtime.getURL("sidepanel.html?fallback=1"),
+        type: "popup",
+        width: 256,
+        height: 768,
+      });
+      fallbackWindowId = win?.id ?? null;
+    } catch (err) {
+      console.debug("[klaxon] popup window fallback failed:", err);
+    }
+  }
+
+  chrome.action.onClicked.addListener((tab) => {
+    // If we've rendered a fallback window to replace the sidebar,
+    // just focus it — don't open another sidepanel.
+    if (fallbackWindowId !== null) {
+      void openFallbackWindow();
+      return;
+    }
+    // Open the native side panel (must be called synchronously in the click).
+    // In Chrome, this shows the panel like you'd expect.
+    // In Arc, the call resolves and even creates a SIDE_PANEL context,
+    // but the panel is never rendered. Instead we measure whether it
+    // laid out to a real size and, if not, messages us back (panel/fallback).
+    chrome.sidePanel?.open({ windowId: tab.windowId })?.catch(() => {});
+  });
+
+  // If the side panel fails to open, open the extension in a popup window, instead.
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg?.type === "panel/fallback") void openFallbackWindow();
+    return false;
+  });
+
+  // Cleanup when the fallback window is closed
+  chrome.windows.onRemoved.addListener((id) => {
+    if (id === fallbackWindowId) fallbackWindowId = null;
+  });
 }
 
 // Inject the page content script on demand. The side panel's CanvasClient sends
