@@ -1,14 +1,20 @@
 <script lang="ts">
   import logotype from "@klaxon/lib/assets/logotype.svg";
   import { userState } from "$lib/user.svelte";
+  import { profileUrl } from "$lib/user";
 
-  let { authenticated }: { authenticated: boolean } = $props();
+  let {
+    authenticated,
+    accountsHost,
+  }: { authenticated: boolean; accountsHost: string } = $props();
 
   // The name comes from the client-side store (localStorage); fall back to a
   // neutral label if it isn't cached yet.
   const label = $derived(
     userState.user?.name || userState.user?.email || "Account",
   );
+
+  const accountUrl = $derived(profileUrl(accountsHost, userState.user));
 </script>
 
 <header class="site-header">
@@ -24,7 +30,12 @@
       </nav>
 
       <div class="account">
-        <a class="user nav-link" href="">
+        <a
+          class="user nav-link"
+          href={accountUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {#if userState.user?.picture}
             <img class="avatar" src={userState.user.picture} alt="" />
           {/if}
