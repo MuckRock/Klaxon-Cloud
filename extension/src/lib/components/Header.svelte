@@ -2,7 +2,7 @@
   import { getRouter } from "../router.svelte";
   import { authState, logout } from "../auth.svelte.ts";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
-  import Logotype from "./Logotype.svelte";
+  import logotype from "@klaxon/lib/assets/logotype.svg";
   import UserInfo from "./UserInfo.svelte";
 
   const router = getRouter();
@@ -21,8 +21,8 @@
           >
         </div>
       {:else}
-        <div title="Klaxon" class="logo">
-          <Logotype />
+        <div class="logo">
+          <img src={logotype} alt="Klaxon" />
         </div>
       {/if}
     {:else}
@@ -57,6 +57,12 @@
     max-width: 9em;
     display: flex;
     align-items: center;
+  }
+
+  .header .logo img {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 
   .header button {

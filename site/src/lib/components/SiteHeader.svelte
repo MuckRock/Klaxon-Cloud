@@ -1,4 +1,5 @@
 <script lang="ts">
+  import logotype from "@klaxon/lib/assets/logotype.svg";
   import { userState } from "$lib/user.svelte";
 
   let { authenticated }: { authenticated: boolean } = $props();
@@ -12,22 +13,30 @@
 
 <header class="site-header">
   <div class="inner">
-    <a class="wordmark" href="/">
-      <span class="mark">Klaxon</span><span class="cloud">Cloud</span>
+    <a class="brand" href="/">
+      <img src={logotype} alt="Klaxon" />
     </a>
 
-    <nav>
-      {#if authenticated}
+    {#if authenticated}
+      <nav class="sections" aria-label="Sections">
         <a class="nav-link" href="/alerts/">Alerts</a>
         <a class="nav-link" href="/activity/">Activity</a>
+      </nav>
+
+      <div class="account">
+        {#if userState.user?.picture}
+          <img class="avatar" src={userState.user.picture} alt="" />
+        {/if}
         <span class="user">{label}</span>
         <form method="POST" action="/auth/logout">
           <button type="submit" class="link">Sign out</button>
         </form>
-      {:else}
+      </div>
+    {:else}
+      <div class="account">
         <a class="nav-link" href="/auth/login">Sign in</a>
-      {/if}
-    </nav>
+      </div>
+    {/if}
   </div>
 </header>
 
@@ -37,34 +46,47 @@
     background: var(--klaxon-bg-dark);
   }
 
+  /* The logo and the section links share the left side; the auto margins push
+     the account block to the right. */
   .inner {
     max-width: 64rem;
     margin: 0 auto;
     padding: 0.75rem 1.5rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: 1.5rem;
   }
 
-  .wordmark {
-    text-decoration: none;
-    font-weight: 700;
-    font-size: var(--font-lg);
-    color: var(--red-4);
-    display: inline-flex;
-    gap: 0.25em;
+  .brand {
+    display: flex;
+    align-items: center;
   }
 
-  .wordmark .cloud {
-    color: var(--gray-4);
-    font-weight: 600;
+  .brand img {
+    display: block;
+    height: 1.5rem;
+    width: auto;
   }
 
-  nav {
+  .sections {
     display: flex;
     align-items: center;
     gap: 1.25rem;
+    margin-right: auto;
+  }
+
+  .account {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+  }
+
+  .avatar {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    object-fit: cover;
   }
 
   .nav-link {
@@ -97,5 +119,21 @@
     font-weight: 600;
     font-size: var(--font-sm);
     cursor: pointer;
+  }
+
+  /* Narrow screens get three centered rows: logo, sections, account. */
+  @media (max-width: 32rem) {
+    .inner {
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+    }
+
+    .sections,
+    .account {
+      margin: 0;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
   }
 </style>
