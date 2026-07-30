@@ -10,6 +10,18 @@
   // Detects whether the Klaxon extension is installed and shows the matching
   // guidance: how to use it when present, how to install it when not. Alerts
   // can only be created from the extension, so this is the entry point.
+  //
+  // Two contexts share the detection and the install call-to-action, and differ
+  // only in the copy: "create" (the homepage) explains starting a new alert,
+  // while "edit" (an alert's edit page) explains re-picking the watched region,
+  // which also only the extension's canvas picker can do.
+  interface Props {
+    context?: "create" | "edit";
+    // The watched page, named in the "edit" copy so the steps are concrete.
+    site?: string;
+  }
+
+  const { context = "create", site }: Props = $props();
 
   // "detecting" until the ping round-trip settles, then installed / not.
   let status = $state<"detecting" | "installed" | "missing">("detecting");
@@ -42,40 +54,85 @@
     <Loading message="Looking for the Klaxon extension…" />
   {:else if status === "installed"}
     <h2>The Klaxon Cloud extension is installed!</h2>
-    <p class="lede">
-      Alerts are created right from the page you want to watch. Visit a webpage,
-      trigger the <strong>Klaxon Cloud</strong> extension and create a new alert.
-    </p>
+    {#if context === "edit"}
+      <p class="lede">
+        The watched region is picked on the page itself, so it's edited in the
+        extension rather than here. Open
+        {#if site}<a href={site} target="_blank" rel="noopener noreferrer"
+            >the watched page</a
+          >{:else}the watched page{/if}, trigger the
+        <strong>Klaxon Cloud</strong> extension, open this alert and choose
+        <strong>Edit selection</strong>.
+      </p>
+    {:else}
+      <p class="lede">
+        Alerts are created right from the page you want to watch. Visit a
+        webpage, trigger the <strong>Klaxon Cloud</strong> extension and create a
+        new alert.
+      </p>
+    {/if}
     <p class="hint">
       Don't see the Klaxon icon? Open your browser's extensions menu and pin
       Klaxon to the toolbar.
     </p>
   {:else if store}
-    <h2>Create new alerts with the Klaxon browser extension.</h2>
-    <p class="lede">Follow these steps to install:</p>
-    <ol class="steps">
-      <li>
-        Install the extension from <a
-          href={store.url}
-          target="_blank"
-          rel="noopener">your browser&rsquo;s store</a
-        >.
-      </li>
-      <li>
-        Pin the <strong>Klaxon Cloud</strong> icon to your browser toolbar.
-      </li>
-      <li>
-        Open a page you want to watch, click the icon, and choose
-        <strong>Create a new alert</strong>.
-      </li>
-    </ol>
+    {#if context === "edit"}
+      <h2>Change the watched region with the Klaxon browser extension.</h2>
+      <p class="lede">
+        The schedule, name and Slack webhook are editable here. Changing which
+        part of the page is watched needs the extension&rsquo;s picker:
+      </p>
+      <ol class="steps">
+        <li>
+          Install the extension from <a
+            href={store.url}
+            target="_blank"
+            rel="noopener">your browser&rsquo;s store</a
+          >.
+        </li>
+        <li>
+          Pin the <strong>Klaxon Cloud</strong> icon to your browser toolbar.
+        </li>
+        <li>
+          Open
+          {#if site}<a href={site} target="_blank" rel="noopener noreferrer"
+              >the watched page</a
+            >{:else}the watched page{/if}, click the icon, open this alert and
+          choose <strong>Edit selection</strong>.
+        </li>
+      </ol>
+    {:else}
+      <h2>Create new alerts with the Klaxon browser extension.</h2>
+      <p class="lede">Follow these steps to install:</p>
+      <ol class="steps">
+        <li>
+          Install the extension from <a
+            href={store.url}
+            target="_blank"
+            rel="noopener">your browser&rsquo;s store</a
+          >.
+        </li>
+        <li>
+          Pin the <strong>Klaxon Cloud</strong> icon to your browser toolbar.
+        </li>
+        <li>
+          Open a page you want to watch, click the icon, and choose
+          <strong>Create a new alert</strong>.
+        </li>
+      </ol>
+    {/if}
     <a class="btn-primary" href={store.url} target="_blank" rel="noopener">
       {store.label}
     </a>
   {:else}
     <p class="lede">
-      Create alerts with the Klaxon browser extension, which is available for
-      Chrome and Firefox. Safari isn't supported at this time.
+      {#if context === "edit"}
+        Changing the watched region needs the Klaxon browser extension, which is
+        available for Chrome and Firefox. Safari isn't supported at this time.
+      {:else}
+        Create alerts with the Klaxon browser extension, which is available for
+        Chrome and Firefox. Safari isn't supported at this time.
+      {/if}
     </p>
     <div class="store-links">
       <a

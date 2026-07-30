@@ -4,6 +4,7 @@
   import { getDomain, getSite, getSiteLabel } from "@klaxon/lib/utils";
   import Loading from "@klaxon/lib/components/Loading.svelte";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import Pencil from "@lucide/svelte/icons/pencil";
 
   import ChangeList from "$lib/components/ChangeList.svelte";
   import CursorPager from "$lib/components/CursorPager.svelte";
@@ -36,6 +37,10 @@
     <div class="actions">
       <span class="schedule {schedule}">{schedule}</span>
       <OpenPageLink href={alert.parameters.site} label="Open watched page" />
+      <a class="edit" href="/alerts/{alert.id}/edit/">
+        <Pencil size={16} />
+        Edit
+      </a>
     </div>
   </header>
 
@@ -128,6 +133,20 @@
 
   .schedule.disabled {
     opacity: 0.7;
+  }
+
+  .edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .edit:hover {
+    text-decoration: underline;
   }
 
   .changes {
