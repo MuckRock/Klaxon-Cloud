@@ -1,6 +1,7 @@
 <script lang="ts">
   import { SvelteMap } from "svelte/reactivity";
   import type { Event } from "@klaxon/lib/types";
+  import { getDomain } from "@klaxon/lib/utils";
   import type { PageProps } from "./$types";
 
   import AlertListItem from "$lib/components/AlertListItem.svelte";
@@ -9,25 +10,12 @@
 
   let alerts = $derived(data.alerts?.results ?? []);
 
-  // The domain we group an alert under: the hostname of the watched URL, with a
-  // leading "www." dropped so "www.example.com" and "example.com" sit together.
-  // Falls back to the raw site string if it isn't a parseable URL.
-  function getDomain(event: Event): string {
-    const site = event.parameters.site;
-    if (!site) return "Other";
-    try {
-      return new URL(site).hostname.replace(/^www\./, "");
-    } catch {
-      return site;
-    }
-  }
-
   // Group alerts by domain, then sort the domains alphabetically so the list is
   // stable and scannable.
   let groups = $derived.by(() => {
     const byDomain = new SvelteMap<string, Event[]>();
     for (const event of alerts) {
-      const domain = getDomain(event);
+      const domain = getDomain(event) ?? "Other";
       const list = byDomain.get(domain);
       if (list) list.push(event);
       else byDomain.set(domain, [event]);

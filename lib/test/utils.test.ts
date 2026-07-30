@@ -1,5 +1,40 @@
 import { describe, it, expect } from "vitest";
-import { isWholePage, parseTimestamp } from "../src/utils";
+import { getDomain, isWholePage, parseTimestamp } from "../src/utils";
+import type { Event } from "../src/types";
+
+/** A minimal Event, just enough for the site-derived helpers. */
+function eventFor(site: string): Event {
+  return { parameters: { site, selector: "*" } } as Event;
+}
+
+describe("getDomain", () => {
+  it("returns the hostname of the watched URL", () => {
+    expect(getDomain(eventFor("https://example.com/docket/1?tab=2"))).toBe(
+      "example.com",
+    );
+  });
+
+  it("drops a leading www. so subdomain variants group together", () => {
+    expect(getDomain(eventFor("https://www.example.com/"))).toBe("example.com");
+  });
+
+  it("keeps other subdomains", () => {
+    expect(getDomain(eventFor("https://courts.example.com/"))).toBe(
+      "courts.example.com",
+    );
+  });
+
+  it("falls back to the raw site when it isn't a URL", () => {
+    expect(getDomain(eventFor("not a url"))).toBe("not a url");
+  });
+
+  it("returns null without an expanded event or site", () => {
+    expect(getDomain(undefined)).toBeNull();
+    expect(getDomain(null)).toBeNull();
+    expect(getDomain(6)).toBeNull(); // unexpanded event id
+    expect(getDomain(eventFor(""))).toBeNull();
+  });
+});
 
 describe("isWholePage", () => {
   it("treats the '*' selector as whole-page", () => {

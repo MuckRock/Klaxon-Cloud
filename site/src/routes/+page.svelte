@@ -1,13 +1,45 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
+  import type { Event, Run } from "@klaxon/lib/types";
+  import { schedules } from "@klaxon/lib/api";
+  import { getDomain, getRelativeTime, getRunTime } from "@klaxon/lib/utils";
+  import Loading from "@klaxon/lib/components/Loading.svelte";
   import { userState } from "$lib/user.svelte";
+  import ActivityListItem from "$lib/components/ActivityListItem.svelte";
   import ExtensionGuidance from "$lib/components/ExtensionGuidance.svelte";
+  import StatCard from "$lib/components/StatCard.svelte";
 
   let { data }: PageProps = $props();
 
   const name = $derived(
     userState.user?.name || userState.user?.email || "there",
   );
+
+  // Alerts arrive complete, so these counts are exact.
+  function alertStats(alerts: Event[]) {
+    const active = alerts.filter(
+      (alert) => schedules[alert.event] !== "disabled",
+    ).length;
+    const domains = new Set(alerts.map((alert) => getDomain(alert) ?? "Other"));
+
+    return {
+      total: alerts.length,
+      active,
+      paused: alerts.length - active,
+      domains: domains.size,
+    };
+  }
+
+  // Changes are cursor-paginated with no total: report what this page holds, and
+  // mark it "25+" when the API says there's another page behind it.
+  function changeStats(changes: { results: Run[]; next: string | null }) {
+    const latest = getRunTime(changes.results[0]);
+
+    return {
+      count: `${changes.results.length}${changes.next ? "+" : ""}`,
+      latest: latest ? `latest ${getRelativeTime(latest)}` : undefined,
+    };
+  }
 </script>
 
 <svelte:head>
@@ -16,13 +48,63 @@
 
 <ExtensionGuidance />
 {#if data.authenticated}
-  <section class="welcome">
+  <section class="dashboard">
     <h1>Welcome back, {name}.</h1>
-    <p>Jump into your alerts and recent activity.</p>
-    <div class="actions">
-      <a class="btn-primary" href="/alerts/">View your alerts</a>
-      <a class="nav-link" href="/activity">Recent activity</a>
+
+    <div class="stats">
+      {#await data.alerts then alerts}
+        {@const stats = alertStats(alerts ?? [])}
+        <StatCard
+          value={stats.total}
+          label={stats.total === 1 ? "Alert" : "Alerts"}
+          hint="{stats.active} active · {stats.paused} paused"
+          href="/alerts/"
+        />
+        <StatCard
+          value={stats.domains}
+          label={stats.domains === 1 ? "Site watched" : "Sites watched"}
+          href="/alerts/"
+        />
+      {/await}
+      {#await data.changes then changes}
+        {@const stats = changeStats(changes ?? { results: [], next: null })}
+        <StatCard
+          value={stats.count}
+          label="Recent changes"
+          hint={stats.latest}
+          href="/activity/"
+        />
+      {/await}
     </div>
+
+    <section class="recent">
+      <div class="section-head">
+        <h2>Recent changes</h2>
+        <a class="all-link" href="/activity/">All activity</a>
+      </div>
+
+      {#await data.changes}
+        <Loading message="Loading recent changes…" />
+      {:then changes}
+        {@const runs = changes?.results ?? []}
+        {#if runs.length === 0}
+          <p class="empty">
+            No changes detected yet. Once one of your alerts spots a change,
+            it'll show up here.
+          </p>
+        {:else}
+          <ul class="rows">
+            {#each runs as run (run.uuid)}
+              <li class="row">
+                <ActivityListItem {run} />
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      {:catch}
+        <p class="empty">Couldn’t load recent changes. Try again.</p>
+      {/await}
+    </section>
   </section>
 {:else}
   <section class="hero">
@@ -124,11 +206,71 @@
     color: var(--gray-4);
   }
 
-  .welcome {
-    padding: 2rem 0;
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
   }
 
-  .welcome h1 {
+  .dashboard h1 {
+    margin: 0;
+    font-size: var(--font-xl);
     color: var(--red-4);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 1rem;
+  }
+
+  .recent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .section-head h2 {
+    margin: 0;
+    font-size: var(--font-lg);
+    font-weight: 700;
+  }
+
+  .all-link {
+    font-size: var(--font-sm);
+    font-weight: 600;
+  }
+
+  .empty {
+    color: var(--gray-4);
+  }
+
+  .rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--gray-2);
+    border-radius: var(--klaxon-border-radius);
+    overflow: hidden;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .row + .row {
+    border-top: 1px solid var(--gray-2);
   }
 </style>

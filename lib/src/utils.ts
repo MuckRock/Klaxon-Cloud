@@ -150,6 +150,22 @@ export function getSite(event?: Event | null | number): string | null {
   }
 }
 
+/**
+ * The domain an alert watches: the hostname of the watched URL, with a leading
+ * "www." dropped so "www.example.com" and "example.com" group together. Falls
+ * back to the raw site string if it isn't a parseable URL.
+ */
+export function getDomain(event?: Event | null | number): string | null {
+  if (!event || !isEvent(event)) return null;
+  const site = event.parameters.site;
+  if (!site) return null;
+  try {
+    return new URL(site).hostname.replace(/^www\./, "");
+  } catch {
+    return site;
+  }
+}
+
 export function getSiteLabel(event?: Event | null | number): string | null {
   if (!event || !isEvent(event)) return null;
   if (event.parameters.title) return event.parameters.title;
