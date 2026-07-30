@@ -9,7 +9,7 @@
     isEvent,
     type Run,
   } from "@klaxon/lib";
-  import { Camera, Diff } from "@lucide/svelte";
+  import { Camera, CameraOff, Diff, ExternalLink } from "@lucide/svelte";
 
   interface Props {
     run: Run;
@@ -36,6 +36,13 @@
   const label = $derived(getRunLabel(run));
   const domain = $derived(getDomain(run.event));
   const site = $derived(getSite(run.event));
+
+  // The watched page itself, for rows with no snapshot to offer instead. The
+  // Add-On records "Change detected" before it archives, so a run whose capture
+  // failed — or that hit the same-timestamp edge case — is a real detection
+  // with nothing on the Wayback Machine behind it. Sending the reader to the
+  // live page beats a row they can't act on.
+  const website = $derived(alert?.parameters.site ?? null);
 
   // Name the alert's site under the label: on its own the label is ambiguous —
   // it's a title or a bare path, so two alerts can read identically. Domain and
@@ -84,15 +91,22 @@
     {/if}
   </div>
   <div class="links">
-    <a
-      title="View snapshot"
-      href={run.data?.snapshot ?? alert?.parameters.site}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <Camera size={16} />
-      View snapshot
-    </a>
+    {#if run.data?.snapshot}
+      <a
+        title="View snapshot"
+        href={run.data.snapshot}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Camera size={16} />
+        View snapshot
+      </a>
+    {:else}
+      <span class="disabled" aria-disabled="true">
+        <CameraOff size={16} />
+        No snapshot
+      </span>
+    {/if}
     {#if run.data?.compare}
       <a
         class="compare"
@@ -103,6 +117,16 @@
       >
         <Diff size={16} />
         View changes
+      </a>
+    {:else if website}
+      <a
+        title="Open the watched page"
+        href={website}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <ExternalLink size={16} />
+        Visit web page
       </a>
     {/if}
   </div>
@@ -182,16 +206,27 @@
     font-weight: 600;
   }
 
-  .links a {
+  .links a,
+  .links .disabled {
     display: inline-flex;
     flex-direction: row;
     gap: 0.25rem;
     align-items: center;
     align-self: center;
     text-decoration: none;
-    &:hover {
-      color: var(--black);
-    }
+  }
+
+  .links a:hover {
+    color: var(--black);
+  }
+
+  /* A link that isn't one: same shape and weight as the actions beside it, so
+     the columns still line up, but greyed out and inert — nothing to click,
+     and no hover promising otherwise. */
+  .links .disabled {
+    color: var(--gray-3);
+    cursor: default;
+    pointer-events: none;
   }
 
   /* Three columns don't fit a phone: drop the shared tracks and stack the
