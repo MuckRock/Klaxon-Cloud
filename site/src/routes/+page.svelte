@@ -43,7 +43,7 @@
       count: `${changes.results.length}${changes.next ? "+" : ""}`,
       latest: latest ? `latest ${getRelativeTime(latest)}` : undefined,
     };
-  }
+  } 
 </script>
 
 <svelte:head>
@@ -56,7 +56,6 @@
 
 {#if data.authenticated}
   <section class="dashboard">
-    <h1>Welcome back, {name}.</h1>
 
     <div class="stats">
       {#await data.alerts then alerts}
@@ -113,8 +112,8 @@
     <h1>Know the moment a web page changes.</h1>
     <p class="lede">
       Klaxon watches the pages you care about — a court docket, an agency
-      notice, a pricing page — and tells you when something changes. Set an
-      alert, and we check on a schedule and capture the difference.
+      sitemap, a pricing page — and notifies you when it changes. Set an
+      alert, then we'll take scheduled snapshots and look for differences.
     </p>
     <div class="actions">
       <a class="btn-primary" href="/auth/login">Sign in with MuckRock</a>
@@ -126,8 +125,7 @@
     <div class="feature">
       <h2><SquareDashedMousePointer size={20} /> Monitor anything</h2>
       <p>
-        Watch a whole page or just the region you pick with the browser
-        extension.
+        Watch whole pages or just a selection. Use the browser extension to create new alerts.
       </p>
     </div>
     <div class="feature">
@@ -140,8 +138,7 @@
     <div class="feature">
       <h2><FileDiff size={20} /> See what changed</h2>
       <p>
-        Every detected change is archived with a visual diff so you can review
-        the difference.
+        Every snapshot is archived to <a href="https://web.archive.org/" target="_blank" rel="noopener noreferrer">Wayback Machine</a> for posterity. Visual diffs help you find the changes.
       </p>
     </div>
   </section>
