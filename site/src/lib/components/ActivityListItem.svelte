@@ -142,4 +142,29 @@
       color: var(--black);
     }
   }
+
+  /* Three columns don't fit a phone: stack the timestamp, the alert and the
+     diff link so none of them has to wrap mid-word. */
+  @media (max-width: 32rem) {
+    .row-body {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.25rem;
+    }
+
+    .details {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.125rem;
+    }
+
+    .row-meta {
+      margin: 0;
+      order: -1;
+    }
+
+    .links {
+      flex: none;
+    }
+  }
 </style>
