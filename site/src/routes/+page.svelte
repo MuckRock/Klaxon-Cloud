@@ -9,7 +9,7 @@
   import FileDiff from "@lucide/svelte/icons/file-diff";
   import SquareDashedMousePointer from "@lucide/svelte/icons/square-dashed-mouse-pointer";
   import { userState } from "$lib/user.svelte";
-  import ActivityListItem from "$lib/components/ActivityListItem.svelte";
+  import ChangeList from "$lib/components/ChangeList.svelte";
   import ExtensionGuidance from "$lib/components/ExtensionGuidance.svelte";
   import StatCard from "$lib/components/StatCard.svelte";
 
@@ -97,13 +97,7 @@
             it'll show up here.
           </p>
         {:else}
-          <ul class="rows">
-            {#each runs as run (run.uuid)}
-              <li class="row">
-                <ActivityListItem {run} />
-              </li>
-            {/each}
-          </ul>
+          <ChangeList changes={runs} />
         {/if}
       {:catch}
         <p class="empty">Couldn’t load recent changes. Try again.</p>
@@ -270,27 +264,5 @@
 
   .empty {
     color: var(--gray-4);
-  }
-
-  .rows {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    background: var(--white);
-    border: 1px solid var(--gray-2);
-    border-radius: var(--klaxon-border-radius);
-    overflow: hidden;
-  }
-
-  .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.625rem 0.75rem;
-  }
-
-  .row + .row {
-    border-top: 1px solid var(--gray-2);
   }
 </style>

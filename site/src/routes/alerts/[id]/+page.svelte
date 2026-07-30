@@ -5,7 +5,7 @@
   import Loading from "@klaxon/lib/components/Loading.svelte";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 
-  import ActivityListItem from "$lib/components/ActivityListItem.svelte";
+  import ChangeList from "$lib/components/ChangeList.svelte";
   import CursorPager from "$lib/components/CursorPager.svelte";
   import OpenPageLink from "$lib/components/OpenPageLink.svelte";
 
@@ -54,15 +54,9 @@
             : schedule}.
         </p>
       {:else}
-        <ul class="rows">
-          {#each changes as run (run.uuid)}
-            <li class="row">
-              <!-- Every run here belongs to this one alert, so don't repeat its
-                   address on each row. -->
-              <ActivityListItem {run} showSite={false} />
-            </li>
-          {/each}
-        </ul>
+        <!-- Every run here belongs to this one alert, so don't repeat its
+             address on each row. -->
+        <ChangeList {changes} showSite={false} />
 
         <CursorPager prev={page?.previous} next={page?.next} />
       {/if}
@@ -150,27 +144,5 @@
 
   .empty {
     color: var(--gray-4);
-  }
-
-  .rows {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    background: var(--white);
-    border: 1px solid var(--gray-2);
-    border-radius: var(--klaxon-border-radius);
-    overflow: hidden;
-  }
-
-  .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.625rem 0.75rem;
-  }
-
-  .row + .row {
-    border-top: 1px solid var(--gray-2);
   }
 </style>

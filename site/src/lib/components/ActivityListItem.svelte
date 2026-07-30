@@ -28,37 +28,39 @@
   const site = $derived(getSite(run.event));
 
   // Name the alert's site under the label: on its own the label is ambiguous —
-  // it's a title or a bare path, so two alerts can read identically. When the
-  // label is already the path, the domain alone finishes the address.
-  const subtitle = $derived(
-    domain && site && label !== site ? `${domain} · ${site}` : domain,
-  );
+  // it's a title or a bare path, so two alerts can read identically. Domain and
+  // path join back into the full URL; when the label is already the path, or the
+  // path is nothing to speak of, the domain alone finishes the address.
+  const subtitle = $derived.by(() => {
+    if (!domain || !site || site === "/" || label === site) return domain;
+    // An unparseable site falls back to the raw string in both halves.
+    if (!site.startsWith("/")) return domain;
+    return `${domain}${site}`;
+  });
 </script>
 
 <div class="row-body">
-  <div class="details">
-    {#if timestamp}
-      <p class="row-meta">
-        <a
-          title="View snapshot"
-          href={run.data?.snapshot ?? alert?.parameters.site}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <time datetime={timestamp.toISOString()}>
-            {formatTime(timestamp)}
-          </time>
-        </a>
-      </p>
+  {#if timestamp}
+    <p class="row-meta">
+      <a
+        title="View snapshot"
+        href={run.data?.snapshot ?? alert?.parameters.site}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <time datetime={timestamp.toISOString()}>
+          {formatTime(timestamp)}
+        </time>
+      </a>
+    </p>
+  {/if}
+  <div class="alert">
+    <p class="row-title" title={alert?.parameters.site}>
+      {label}
+    </p>
+    {#if showSite && subtitle}
+      <p class="row-site">{subtitle}</p>
     {/if}
-    <div class="alert">
-      <p class="row-title" title={alert?.parameters.site}>
-        {label}
-      </p>
-      {#if showSite && subtitle}
-        <p class="row-site">{subtitle}</p>
-      {/if}
-    </div>
   </div>
   <div class="links">
     {#if run.data?.compare}
@@ -77,13 +79,15 @@
 </div>
 
 <style>
+  /* Adopt the list's columns (see `.rows` in ChangeList) so the timestamp,
+     alert and diff link line up down the whole list instead of each row sizing
+     its own columns. */
   .row-body {
     min-width: 0;
-    width: 100%;
-    display: flex;
-    gap: 1rem;
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
     align-items: baseline;
-    justify-content: space-between;
   }
 
   .row-title {
@@ -94,6 +98,7 @@
   }
 
   .row-meta {
+    grid-column: 1;
     margin: 0.125rem 0 0;
     font-size: var(--font-xs);
     color: var(--gray-4);
@@ -108,29 +113,19 @@
     overflow-wrap: anywhere;
   }
 
-  .details,
-  .links {
-    display: flex;
-    flex-direction: column;
-    font-size: var(--font-sm);
-    font-weight: 600;
-  }
-
-  .details {
-    flex: 1 1 auto;
-    flex-direction: row;
-    align-items: baseline;
-    gap: 1em;
-  }
-
-  /* The alert block is the flexible part of the row: let it shrink so long
+  /* The alert block is the flexible column of the row: let it shrink so long
      paths wrap instead of pushing the actions off the edge. */
   .alert {
+    grid-column: 2;
     min-width: 0;
   }
 
   .links {
-    flex: 0 1 12em;
+    grid-column: 3;
+    display: flex;
+    flex-direction: column;
+    font-size: var(--font-sm);
+    font-weight: 600;
   }
 
   .compare {
@@ -143,28 +138,25 @@
     }
   }
 
-  /* Three columns don't fit a phone: stack the timestamp, the alert and the
-     diff link so none of them has to wrap mid-word. */
+  /* Three columns don't fit a phone: drop the shared tracks and stack the
+     timestamp, the alert and the diff link so none of them has to wrap
+     mid-word. */
   @media (max-width: 32rem) {
     .row-body {
-      flex-direction: column;
+      grid-template-columns: minmax(0, 1fr);
       align-items: stretch;
-      gap: 0.25rem;
+      row-gap: 0.125rem;
     }
 
-    .details {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.125rem;
+    .row-meta,
+    .alert,
+    .links {
+      grid-column: 1;
     }
 
     .row-meta {
       margin: 0;
       order: -1;
-    }
-
-    .links {
-      flex: none;
     }
   }
 </style>

@@ -29,8 +29,11 @@
 <style>
   .stat {
     display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.125rem 1rem;
     padding: 1rem 1.25rem;
     background: var(--white);
     border: 1px solid var(--gray-2);
@@ -44,6 +47,7 @@
   }
 
   .value {
+    flex: 1 1 100%;
     font-size: var(--font-xl);
     font-weight: 700;
     line-height: 1.2;
@@ -51,11 +55,13 @@
   }
 
   .label {
+    flex: 1 1 auto;
     font-size: var(--font-sm);
     font-weight: 600;
   }
 
   .hint {
+    flex: 0 1 auto;
     font-size: var(--font-xs);
     color: var(--gray-4);
   }
