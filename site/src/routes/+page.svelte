@@ -4,6 +4,10 @@
   import { schedules } from "@klaxon/lib/api";
   import { getDomain, getRelativeTime, getRunTime } from "@klaxon/lib/utils";
   import Loading from "@klaxon/lib/components/Loading.svelte";
+  import Siren from "@klaxon/lib/components/Siren.svelte";
+  import CalendarClock from "@lucide/svelte/icons/calendar-clock";
+  import FileDiff from "@lucide/svelte/icons/file-diff";
+  import SquareDashedMousePointer from "@lucide/svelte/icons/square-dashed-mouse-pointer";
   import { userState } from "$lib/user.svelte";
   import ActivityListItem from "$lib/components/ActivityListItem.svelte";
   import ExtensionGuidance from "$lib/components/ExtensionGuidance.svelte";
@@ -108,6 +112,7 @@
   </section>
 {:else}
   <section class="hero">
+    <Siren />
     <h1>Know the moment a web page changes.</h1>
     <p class="lede">
       Klaxon watches the pages you care about — a court docket, an agency
@@ -122,21 +127,21 @@
 
   <section class="features">
     <div class="feature">
-      <h2>Monitor anything</h2>
+      <h2><SquareDashedMousePointer size={20} /> Monitor anything</h2>
       <p>
         Watch a whole page or just the region you pick with the browser
         extension.
       </p>
     </div>
     <div class="feature">
-      <h2>On your schedule</h2>
+      <h2><CalendarClock size={20} /> On your schedule</h2>
       <p>
         Check hourly, daily, or weekly. We only ping you when something actually
         changes.
       </p>
     </div>
     <div class="feature">
-      <h2>See what changed</h2>
+      <h2><FileDiff size={20} /> See what changed</h2>
       <p>
         Every detected change is archived with a visual diff so you can review
         the difference.
@@ -148,19 +153,31 @@
 <style>
   .hero {
     text-align: center;
-    padding: 2rem 0 3rem;
+    padding: 1rem 0 3rem;
+    /* The siren's beams use a negative z-index to slide behind the headline;
+       isolating here keeps them from dropping behind the page background. */
+    isolation: isolate;
+    /* Scale the shared siren up from its extension defaults, and pull the
+       headline into the glow. */
+    --siren-height: 22em;
+    --siren-size: 12em;
+    --siren-offset: -6em;
   }
 
   .hero h1 {
-    font-size: 2.5rem;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.15;
+    text-wrap: balance;
     color: var(--red-4);
-    margin: 0 0 1rem;
+    max-width: 34rem;
+    margin: 0 auto 1rem;
   }
 
   .lede {
     max-width: 38rem;
     margin: 0 auto 2rem;
     font-size: var(--font-lg);
+    text-wrap: pretty;
     color: var(--gray-4);
   }
 
@@ -196,6 +213,9 @@
   }
 
   .feature h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: var(--font-lg);
     margin: 0 0 0.5rem;
     color: var(--red-4);

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import Siren from "./Siren.svelte";
+  import Siren from "@klaxon/lib/components/Siren.svelte";
   import SignInPrompt from "./SignInPrompt.svelte";
   import { authState } from "../auth.svelte.ts";
 
