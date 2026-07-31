@@ -5,6 +5,7 @@
   import "../app.css";
 
   import SiteHeader from "$lib/components/SiteHeader.svelte";
+  import SiteFooter from "$lib/components/SiteFooter.svelte";
 
   import { loadUser, clearUser } from "$lib/user.svelte";
 
@@ -30,6 +31,7 @@
   <main>
     {@render children()}
   </main>
+  <SiteFooter />
 </div>
 
 <style>
