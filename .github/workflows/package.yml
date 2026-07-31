@@ -29,7 +29,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      # `lfs: true` is required, not cosmetic: the icons and fonts under
+      # extension/static/ are Git LFS objects (see .gitattributes). A plain
+      # checkout leaves ~130-byte pointer *text* files in their place, which vite
+      # happily copies into build/<browser>/ — the build succeeds and the zip
+      # looks complete, but every icon and font in it is unreadable. That's what
+      # made the Chrome Web Store reject an upload with "The icon file
+      # icon-128.png could not be processed."
       - uses: actions/checkout@v6
+        with:
+          lfs: true
 
       - uses: actions/setup-node@v6
         with:
@@ -44,6 +53,19 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Belt to the `lfs: true` braces above: fail here, loudly, rather than
+      # shipping a zip whose icons and fonts are LFS pointer text. Catches both a
+      # missing/failed LFS fetch and any future asset that gets LFS-tracked
+      # without the workflow noticing.
+      - name: Verify LFS assets were fetched
+        run: |
+          pointers=$(grep -rl 'https://git-lfs.github.com/spec/v1' build/ || true)
+          if [ -n "$pointers" ]; then
+            echo "::error::Git LFS pointer files found in the build output — LFS objects were not fetched:"
+            echo "$pointers"
+            exit 1
+          fi
 
       - name: Stage packages
         id: stage
