@@ -9,6 +9,7 @@
     "./api": "./src/api.ts",
     "./types": "./src/types.ts",
     "./utils": "./src/utils.ts",
+    "./assets/*": "./src/assets/*",
     "./components/*": "./src/components/*",
     "./fixtures/*": "./test/fixtures/*.ts"
   },

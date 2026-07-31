@@ -1,4 +1,14 @@
 <script lang="ts">
+  // The Klaxon lamp with spinning beams, shared by the extension's welcome and
+  // empty states and the web app's signed-out homepage.
+  //
+  // Two things the consumer owns:
+  //
+  // - Scale, through the `--siren-height`, `--siren-size` and `--siren-offset`
+  //   custom properties (defaults suit the extension's narrow panel).
+  // - A stacking context on an ancestor (`isolation: isolate`), so the beams'
+  //   negative z-index tucks them behind the surrounding text rather than
+  //   dropping them behind the page background.
   import Logo from "./Logo.svelte";
 
   interface Props {
@@ -18,6 +28,9 @@
 
   // Half-width of a beam's base, in viewBox units, at radius 100.
   const halfWidth = 15;
+
+  // Gradient ids are document-global, so scope ours to this instance.
+  const gradientId = $props.id();
 </script>
 
 <div class="siren" class:dimmed title="Klaxon">
@@ -25,7 +38,7 @@
     <svg class="beams" viewBox="0 0 200 200" aria-hidden="true">
       <defs>
         <radialGradient
-          id="beam-gradient"
+          id={gradientId}
           gradientUnits="userSpaceOnUse"
           cx="100"
           cy="100"
@@ -41,7 +54,7 @@
         {#each beams as angle (angle)}
           <polygon
             points={`100,100 ${100 - halfWidth},0 ${100 + halfWidth},0`}
-            fill="url(#beam-gradient)"
+            fill="url(#{gradientId})"
             transform={`rotate(${angle} 100 100)`}
           />
         {/each}
@@ -72,8 +85,10 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 16em;
-    margin-bottom: -3em;
+    height: var(--siren-height, 16em);
+    /* Pulls the following text up into the glow; the beams are mostly empty
+       space, so the illustration's box is taller than it looks. */
+    margin-bottom: var(--siren-offset, -3em);
     overflow: hidden;
     z-index: -1;
   }
@@ -107,8 +122,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 9em;
-    height: 9em;
+    width: var(--siren-size, 9em);
+    height: var(--siren-size, 9em);
   }
 
   /* Both the backing and the logo are absolutely positioned and fill the

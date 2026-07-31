@@ -6,7 +6,7 @@
   import Link from "../components/Link.svelte";
   import Loading from "@klaxon/lib/components/Loading.svelte";
   import RelativeTime from "../components/RelativeTime.svelte";
-  import Siren from "../components/Siren.svelte";
+  import Siren from "@klaxon/lib/components/Siren.svelte";
   import Welcome from "../components/Welcome.svelte";
   import { scheduled, history, schedules, update } from "../api";
   import { getCachedAlerts, setCachedAlerts } from "../alerts-cache";

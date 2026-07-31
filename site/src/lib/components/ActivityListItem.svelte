@@ -1,45 +1,112 @@
 <script lang="ts">
   import {
+    formatTime,
+    getDomain,
+    getRelativeTime,
     getRunLabel,
     getRunTime,
-    formatTime,
     getSite,
+    isEvent,
     type Run,
   } from "@klaxon/lib";
-  import { ExternalLink } from "@lucide/svelte";
+  import { Camera, CameraOff, Diff, ExternalLink } from "@lucide/svelte";
 
   interface Props {
     run: Run;
+    // Off on a single alert's page, where every row shares the same address.
+    showSite?: boolean;
+    // Off on a single alert's page too, where the link would point at the page
+    // the row is already on.
+    linkAlert?: boolean;
   }
 
-  const { run }: Props = $props();
+  const { run, showSite = true, linkAlert = true }: Props = $props();
 
-  const title = $derived(getRunLabel(run));
   const timestamp = $derived(getRunTime(run));
+
+  // The alert that scheduled this run. Runs are fetched with `expand=event`, so
+  // it's normally the full object — fall back gracefully when it isn't.
+  const alert = $derived(isEvent(run.event) ? run.event : null);
+
+  // Enough to link back to the alert even when `event` came through unexpanded,
+  // since then it's the id itself. It's optional on a run, so it can be absent.
+  const alertId = $derived(
+    isEvent(run.event) ? run.event.id : (run.event ?? null),
+  );
+  const label = $derived(getRunLabel(run));
+  const domain = $derived(getDomain(run.event));
   const site = $derived(getSite(run.event));
+
+  // The watched page itself, for rows with no snapshot to offer instead. The
+  // Add-On records "Change detected" before it archives, so a run whose capture
+  // failed — or that hit the same-timestamp edge case — is a real detection
+  // with nothing on the Wayback Machine behind it. Sending the reader to the
+  // live page beats a row they can't act on.
+  const website = $derived(alert?.parameters.site ?? null);
+
+  // Name the alert's site under the label: on its own the label is ambiguous —
+  // it's a title or a bare path, so two alerts can read identically. Domain and
+  // path join back into the full URL; when the label is already the path, or the
+  // path is nothing to speak of, the domain alone finishes the address.
+  const subtitle = $derived.by(() => {
+    if (!domain || !site || site === "/" || label === site) return domain;
+    // An unparseable site falls back to the raw string in both halves.
+    if (!site.startsWith("/")) return domain;
+    return `${domain}${site}`;
+  });
 </script>
 
 <div class="row-body">
-  <div class="details">
-    {#if timestamp}
-      <p class="row-meta">
-        <a
-          title="View snapshot"
-          href={run.data?.snapshot ?? site}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <time datetime={timestamp.toISOString()}>
-            {formatTime(timestamp)}
-          </time>
-        </a>
+  {#if timestamp}
+    <!-- Two lines, so this column fills the same height as the label and
+         address beside it: when the change landed, then exactly when. One
+         `datetime` covers both renderings, and the snapshot link that used to
+         sit here now lives with the other actions. -->
+    <p class="row-meta">
+      <time datetime={timestamp.toISOString()}>
+        <span class="ago">{getRelativeTime(timestamp)}</span>
+        <span class="exact">{formatTime(timestamp)}</span>
+      </time>
+    </p>
+  {/if}
+  <div class="alert">
+    <!-- The label leads to the alert that scheduled this run, matching
+         AlertListItem; the timestamp and diff links go out to the watched page
+         and the snapshot instead. -->
+    {#if linkAlert && alertId !== null}
+      <a
+        class="row-title"
+        href="/alerts/{alertId}/"
+        title={alert?.parameters.site}
+      >
+        {label}
+      </a>
+    {:else}
+      <p class="row-title" title={alert?.parameters.site}>
+        {label}
       </p>
     {/if}
-    <p class="row-title">
-      {title}
-    </p>
+    {#if showSite && subtitle}
+      <p class="row-site">{subtitle}</p>
+    {/if}
   </div>
   <div class="links">
+    {#if run.data?.snapshot}
+      <a
+        title="View snapshot"
+        href={run.data.snapshot}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Camera size={16} />
+        View snapshot
+      </a>
+    {:else}
+      <span class="disabled" aria-disabled="true">
+        <CameraOff size={16} />
+        No snapshot
+      </span>
+    {/if}
     {#if run.data?.compare}
       <a
         class="compare"
@@ -48,61 +115,139 @@
         rel="noopener noreferrer"
         title="Show differences"
       >
-        Show differences
+        <Diff size={16} />
+        View changes
+      </a>
+    {:else if website}
+      <a
+        title="Open the watched page"
+        href={website}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         <ExternalLink size={16} />
+        Visit web page
       </a>
     {/if}
   </div>
 </div>
 
 <style>
+  /* Adopt the list's columns (see `.rows` in ChangeList) so the timestamp,
+     alert and diff link line up down the whole list instead of each row sizing
+     its own columns. */
   .row-body {
     min-width: 0;
-    width: 100%;
-    display: flex;
-    gap: 1rem;
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
     align-items: baseline;
-    justify-content: space-between;
   }
 
   .row-title {
     margin: 0;
-    font-size: var(--font-sm);
+    font-size: var(--font-md);
     font-weight: 600;
+    overflow-wrap: anywhere;
   }
 
   .row-meta {
-    margin: 0.125rem 0 0;
+    grid-column: 1;
+    /* No top nudge: `.ago` is the label's size, so the two columns' first lines
+       share the row's baseline on their own. */
+    margin: 0;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .row-meta time {
+    display: block;
+  }
+
+  /* Lead with how long ago the change landed — the half worth scanning — at the
+     label's size. The exact stamp sits under it, sized like the address. */
+  .ago {
+    display: block;
+    font-size: var(--font-md);
+    color: var(--black);
+    line-height: 1.6;
+  }
+
+  .exact {
+    display: block;
     font-size: var(--font-xs);
     color: var(--gray-4);
   }
 
-  .details,
+  .row-site {
+    margin: 0;
+    font-size: var(--font-xs);
+    font-weight: 400;
+    color: var(--gray-4);
+    overflow-wrap: anywhere;
+  }
+
+  /* The alert block is the flexible column of the row: let it shrink so long
+     paths wrap instead of pushing the actions off the edge. */
+  .alert {
+    grid-column: 2;
+    min-width: 0;
+  }
+
   .links {
+    grid-column: 3;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 1.5rem;
+    padding: 0 1rem;
+    align-items: center;
+    align-self: center;
     font-size: var(--font-sm);
     font-weight: 600;
   }
 
-  .details {
-    flex: 1 1 auto;
-    flex-direction: row;
-    align-items: baseline;
-    gap: 1em;
-  }
-
-  .links {
-    flex: 0 1 12em;
-  }
-
-  .compare {
+  .links a,
+  .links .disabled {
     display: inline-flex;
-    gap: 0.25em;
+    flex-direction: row;
+    gap: 0.25rem;
     align-items: center;
-    text-decoration: underline;
-    &:hover {
-      color: var(--black);
+    align-self: center;
+    text-decoration: none;
+  }
+
+  .links a:hover {
+    color: var(--black);
+  }
+
+  /* A link that isn't one: same shape and weight as the actions beside it, so
+     the columns still line up, but greyed out and inert — nothing to click,
+     and no hover promising otherwise. */
+  .links .disabled {
+    color: var(--gray-3);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  /* Three columns don't fit a phone: drop the shared tracks and stack the
+     timestamp, the alert and the diff link so none of them has to wrap
+     mid-word. */
+  @media (max-width: 32rem) {
+    .row-body {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: stretch;
+      row-gap: 0.125rem;
+    }
+
+    .row-meta,
+    .alert,
+    .links {
+      grid-column: 1;
+    }
+
+    .row-meta {
+      margin: 0;
+      order: -1;
     }
   }
 </style>

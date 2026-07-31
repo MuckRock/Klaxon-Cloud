@@ -8,6 +8,7 @@ node_modules
 /extension/test-results
 /extension/blob-report
 /extension/.playwright
+.playwright-mcp
 
 # OS
 .DS_Store

@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import type { Page, Run } from "@klaxon/lib/types";
-  import ActivityListItem from "$lib/components/ActivityListItem.svelte";
+  import ChangeList from "$lib/components/ChangeList.svelte";
   import CursorPaginator from "$lib/components/CursorPager.svelte";
   import Loading from "@klaxon/lib/components/Loading.svelte";
 
@@ -51,13 +51,7 @@
     {#if changes.length === 0}
       <p class="empty">No changes detected yet.</p>
     {:else}
-      <ul class="rows">
-        {#each changes as run (run.uuid)}
-          <li class="row">
-            <ActivityListItem {run} />
-          </li>
-        {/each}
-      </ul>
+      <ChangeList {changes} />
 
       <CursorPaginator prev={page?.previous} next={page?.next} />
     {/if}
@@ -101,27 +95,5 @@
 
   .empty {
     color: var(--gray-4);
-  }
-
-  .rows {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    background: var(--white);
-    border: 1px solid var(--gray-2);
-    border-radius: var(--klaxon-border-radius);
-    overflow: hidden;
-  }
-
-  .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.625rem 0.75rem;
-  }
-
-  .row + .row {
-    border-top: 1px solid var(--gray-2);
   }
 </style>
