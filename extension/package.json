@@ -25,7 +25,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "redirect-uris": "node scripts/redirect-uris.mjs"
+    "redirect-uris": "node scripts/redirect-uris.mjs",
+    "bump": "node scripts/version.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",

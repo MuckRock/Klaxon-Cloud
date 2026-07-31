@@ -48,6 +48,18 @@ Chrome and Firefox disagree on a few manifest keys (background type, the
 Chrome-only `key`, Firefox-only `browser_specific_settings`), so shipping a
 single shared manifest makes each browser warn about the other's keys.
 
+Two gotchas bite at store-upload time, not build time — see
+[Releasing the extension](../README.md#releasing-the-extension) in the root
+README before you upload anything:
+
+- **Bump the version** with `npm run bump -- <minor|patch|major|x.y.z>`. It lives
+  only in `manifest/base.json`, it isn't semver (`1.1` is a valid two-part
+  version), and the store rejects any upload that doesn't increase it.
+- **Icons and fonts are Git LFS objects.** Without the LFS objects fetched
+  they're pointer text files, the build still succeeds, and the store rejects the
+  zip with "icon-128.png could not be processed". Verify with
+  `file build/chrome/icon-128.png` — it must say `PNG image data`.
+
 ## Testing in Chrome
 
 1. Run `npm run build` (or `npm run build:chrome`)

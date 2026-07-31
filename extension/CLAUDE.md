@@ -23,6 +23,7 @@ npm run lint         # prettier --check .
 npm run format       # prettier --write .
 npm test             # vitest run (happy-dom; vitest.config.ts)
 npm run test:watch
+npm run bump -- minor # bump the store version in manifest/base.json (also: major | patch | x.y.z, --dry-run)
 ```
 
 All build configs live under `vite/` and target one browser per invocation, selected by the `BROWSER` env var (`chrome` | `firefox`, default `chrome`), emitting into `build/<browser>/`. `npm run build` runs both browsers; the watchers default to Chrome — prefix with `BROWSER=firefox` to develop against Firefox.
@@ -58,6 +59,16 @@ Chrome and Firefox disagree on a few manifest keys (and on sidebar APIs), and a 
 - **`manifest/firefox.json`** — `background.scripts` (+ `type: module`), the Firefox-only `sidebar_action` key, and `browser_specific_settings.gecko`.
 
 `scripts/manifest.mjs` exports `buildManifest(browser)`, which shallow-merges `base` + the browser overlay **but unions the `permissions` arrays** (so an overlay can add a browser-only permission like `sidePanel` without dropping the shared ones). It's the single source of truth, reused by the vite plugin, `scripts/clean.mjs`, and `scripts/redirect-uris.mjs`. **There is no `static/manifest.json`** — edit the fragments under `manifest/`.
+
+#### Versioning
+
+`version` lives **only** in `manifest/base.json` (neither overlay sets it, and the `version` fields in the `package.json`s are unrelated npm workspace boilerplate). Bump it with `npm run bump -- <major|minor|patch|x.y.z>` (`scripts/version.mjs`); `--dry-run` prints without writing.
+
+Store versions are **not semver**: Chrome accepts 1–4 dot-separated integers in 0–65535 with no leading zeros, so the published `1.1` is a valid two-part version. The bumps are semver-_shaped_ — `minor` gives `1.1 → 1.2`, `patch` gives `1.1 → 1.1.1` (appending a third part), `major` gives `1.1 → 2.0`. The script validates the range/leading-zero rules and refuses any bump that isn't a strict increase, since both stores reject an upload whose version doesn't sort above the published one.
+
+#### Icons and fonts are Git LFS objects
+
+`static/*.png` and `static/fonts/*.woff2` are tracked by Git LFS (see the repo-root `.gitattributes`). **Any checkout that doesn't fetch LFS objects gets ~130-byte pointer text files under those names instead** — and because vite just copies `publicDir` through, the build succeeds and the zip looks complete while every icon and font in it is unreadable. This shipped once: the Chrome Web Store rejected the upload with "The icon file icon-128.png could not be processed." `.github/workflows/package.yml` therefore checks out with `lfs: true` and has a guard step that greps the build output for the LFS pointer signature and fails the job if it finds one. Check `file build/chrome/icon-128.png` before any manual upload — it must say `PNG image data`, not `ASCII text`.
 
 ### Two realms, joined by a port
 
