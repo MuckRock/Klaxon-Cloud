@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import { CanvasClient, CANVAS_PORT } from "../canvas-client.svelte.ts";
+import { mountEffect } from "./effect-harness.svelte.ts";
 
 // Unit tests for the panel-side CanvasClient: the page↔panel message protocol
 // and the public, view-facing API (the `canvas`-shaped object the views consume
@@ -105,7 +106,12 @@ function createChromeMock() {
       onUpdated,
       query: vi.fn(async () => [tab]),
       get: vi.fn(async (id: number) => (id === tab.id ? tab : undefined)),
-      update: vi.fn(async () => {}),
+      // Driving a tab to a url moves it there, so model that: navigateTab's
+      // "already there?" guard reads the tab's live url, and an inert update
+      // would leave the fake tab lying about where it is.
+      update: vi.fn(async (_id: number, props: { url?: string }) => {
+        if (props?.url) tab.url = props.url;
+      }),
       connect: vi.fn((_tabId: number, info: { name: string }) => {
         const port = new FakePort(info.name, replies);
         ports.push(port);
@@ -403,7 +409,6 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     const portsBefore = mock.ports.length;
 
     // The alert lives on a different page than the one we opened from.
-    mock.tab.url = "https://other.test/";
     mock.page.url = "https://other.test/";
 
     const nav = client.navigateTab("https://other.test/");
@@ -427,7 +432,6 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     await flush();
     client.pinned = true;
     await flush();
-    mock.tab.url = "https://other.test/";
     mock.page.url = "https://other.test/";
 
     const nav = client.navigateTab("https://other.test/");
@@ -457,7 +461,6 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
     client.pinned = true;
     await vi.advanceTimersByTimeAsync(1);
     const portsBefore = mock.ports.length;
-    mock.tab.url = "https://slow.test/";
     mock.page.url = "https://slow.test/";
 
     const nav = client.navigateTab("https://slow.test/");
@@ -487,7 +490,6 @@ describe("navigateTab (drive the tab to an alert's page, issue #71)", () => {
 
     // The pinned tab is driven to the alert's page; its title changes with the
     // new document.
-    mock.tab.url = "https://other.test/";
     mock.tab.title = "Other Page";
     mock.page.url = "https://other.test/";
 
@@ -553,6 +555,88 @@ describe("navigateTab url normalization", () => {
     expect(mock.chrome.tabs.update).toHaveBeenCalledWith(1, {
       url: "https://klaxon.test/article?page=2",
     });
+    client.destroy();
+  });
+});
+
+describe("navigateTab does not loop on a misreported canonical (issue #94)", () => {
+  // What Socrata serves on the page in the issue: a canonical that is *relative*
+  // and names a *different* document than the one being viewed.
+  const SITE = "https://data.test/dataset/explore/query/SELECT%20x/page/filter";
+  const CLAIMED_CANONICAL = "/dataset/data";
+
+  /** A pinned client on a page that misreports its canonical, as a view finds it. */
+  async function pinnedOnLyingPage() {
+    mock.page.url = CLAIMED_CANONICAL;
+    const client = new CanvasClient();
+    await flush();
+    client.pinned = true;
+    await flush();
+    mock.chrome.tabs.update.mockClear();
+    return client;
+  }
+
+  /** Let a driven navigation (and anything it provokes) run to completion. */
+  async function settleNavigation() {
+    await flush();
+    mock.onUpdated.emit(1, { status: "loading" }, mock.tab);
+    mock.onUpdated.emit(1, { status: "complete" }, mock.tab);
+    await flush();
+  }
+
+  it("guards on the tab's real url, not the canonical the page reports", async () => {
+    const client = await pinnedOnLyingPage();
+
+    const nav = client.navigateTab(SITE);
+    await settleNavigation();
+    await nav;
+
+    // The page still claims a canonical that matches neither the tab nor `site`,
+    // so a guard trusting `client.url` would navigate again here.
+    expect(client.url).toBe(CLAIMED_CANONICAL);
+    await client.navigateTab(SITE);
+    expect(mock.chrome.tabs.update).toHaveBeenCalledTimes(1);
+
+    client.destroy();
+  });
+
+  it("drives the tab only once from a mounted effect", async () => {
+    const client = await pinnedOnLyingPage();
+
+    // ViewAlert's effect, verbatim (ViewAlert.svelte / EditAlert.svelte): the
+    // async IIFE means navigateTab's prologue runs inside the tracking context,
+    // so any reactive read there subscribes *this* effect to state the
+    // navigation itself writes — and it re-runs and re-navigates, forever.
+    const stop = mountEffect(() => {
+      void (async () => {
+        await client.navigateTab(SITE);
+        void client.setSelector(".target");
+      })();
+      return () => {
+        client.clearSelection();
+      };
+    });
+
+    // Bounded, so a regression fails the assertion instead of hanging the runner.
+    for (let i = 0; i < 5; i++) await settleNavigation();
+
+    expect(mock.chrome.tabs.update).toHaveBeenCalledTimes(1);
+    expect(mock.chrome.tabs.update).toHaveBeenCalledWith(1, { url: SITE });
+
+    stop();
+    client.destroy();
+  });
+
+  it("ignores a second call while one navigation is still in flight", async () => {
+    const client = await pinnedOnLyingPage();
+
+    const first = client.navigateTab(SITE);
+    const second = client.navigateTab(SITE);
+    await settleNavigation();
+    await Promise.all([first, second]);
+
+    expect(mock.chrome.tabs.update).toHaveBeenCalledTimes(1);
+
     client.destroy();
   });
 });

@@ -20,7 +20,7 @@
 // =====
 
 import type { StructuredSelector } from "./selector.ts";
-import { createContext } from "svelte";
+import { createContext, untrack } from "svelte";
 
 export const CANVAS_PORT = "klaxon-canvas";
 
@@ -164,6 +164,10 @@ export class CanvasClient {
   // the user when they've navigated away from the pinned page.
   #activeTabId = $state<number | null>(null);
 
+  // A navigateTab in flight. Deliberately NOT $state: it guards re-entrancy, and
+  // a reactive read would put it right back in the dependency cycle below.
+  #navigating = false;
+
   #port: chrome.runtime.Port | null = null;
   // Bumped on every #connect so overlapping connects (rapid tab switches) can
   // detect they've been superseded and bail instead of leaking a port.
@@ -285,24 +289,45 @@ export class CanvasClient {
    * Targets the pinned tab (selection flows pin on entry); a no-op when the tab
    * is already showing that page or there's no tab to drive. Resolves after the
    * reconnect so callers can `setSelector` against the freshly loaded page.
+   *
+   * Our callers are `$effect`s (ViewAlert/EditAlert), and an async function's
+   * body runs synchronously up to its first `await` — so anything this prologue
+   * reads reactively becomes a dependency of *their* effect. Since the
+   * navigation writes `url`/`#pinnedTab` on reconnect, such a read would make
+   * the effect re-run and navigate again, forever (issue #94). Hence `untrack`
+   * here, and hence the guard below asking the tab where it is rather than
+   * reading the mirrored (reactive) `this.url`.
    */
   async navigateTab(url: string): Promise<void> {
-    const target = this.#pinnedTab ?? this.#connectedTab;
-    // Already there — don't reload and flicker the page. Compare by document
-    // (ignoring fragment/trailing slash) so a canonical URL and the stored
-    // `site` that differ only cosmetically still count as "already there".
-    if (!target || sameDocument(this.url, url)) return;
+    if (this.#navigating) return;
+    const target = untrack(() => this.#pinnedTab) ?? this.#connectedTab;
+    if (!target) return;
 
-    const tabId = target.id;
-    // Tear the old port down now; the document (and its content script) is about
-    // to be replaced by the navigation.
-    this.#disconnect();
-    this.watchable = false;
+    // Claim the flag before the first await, so two calls in the same tick can't
+    // both pass the check above and drive the tab twice.
+    this.#navigating = true;
+    try {
+      // Already there — don't reload and flicker the page. Ask the tab for its
+      // actual URL: `this.url` holds what the *page* claims is canonical, which
+      // may name a different document altogether (or not even be absolute), in
+      // which case this guard could never latch. Compare by document (ignoring
+      // fragment/trailing slash) so cosmetic differences between the tab's URL
+      // and the stored `site` still count as "already there".
+      const current = await chrome.tabs.get(target.id).catch(() => undefined);
+      if (current?.url && sameDocument(current.url, url)) return;
 
-    // Drive the navigation and wait for the new document to finish loading
-    // before reconnecting — the content script we inject must land on it.
-    await this.#awaitTabComplete(tabId, url);
-    await this.#connectInjected(tabId);
+      // Tear the old port down now; the document (and its content script) is
+      // about to be replaced by the navigation.
+      this.#disconnect();
+      this.watchable = false;
+
+      // Drive the navigation and wait for the new document to finish loading
+      // before reconnecting — the content script we inject must land on it.
+      await this.#awaitTabComplete(target.id, url);
+      await this.#connectInjected(target.id);
+    } finally {
+      this.#navigating = false;
+    }
   }
 
   /**
