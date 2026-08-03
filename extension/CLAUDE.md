@@ -23,6 +23,7 @@ npm run lint         # prettier --check .
 npm run format       # prettier --write .
 npm test             # vitest run (happy-dom; vitest.config.ts)
 npm run test:watch
+npm run bump -- minor # bump the store version in manifest/base.json (also: major | patch | x.y.z, --dry-run)
 ```
 
 All build configs live under `vite/` and target one browser per invocation, selected by the `BROWSER` env var (`chrome` | `firefox`, default `chrome`), emitting into `build/<browser>/`. `npm run build` runs both browsers; the watchers default to Chrome — prefix with `BROWSER=firefox` to develop against Firefox.
@@ -43,7 +44,7 @@ Loading in Chrome: `chrome://extensions` → enable Developer mode → Load unpa
 
 Three vite configs under `vite/`, all emitting into `build/<browser>/`, plus `vitest.config.ts` at the root (so no build config has to double as the default config; vitest auto-resolves it). Each build config is parametrized by the `BROWSER` env var (default `chrome`). The page and worker bundles use stable filenames (Chrome needs the names listed in `manifest.json`, so no hashing/splitting); the side panel is a normal HTML page, so its JS/CSS may be hashed (only `sidepanel.html` is referenced by the manifest).
 
-- **`vite/page.config.ts`** — Canvas content script. IIFE bundle at `build/<browser>/page.js`, entry `src/page.svelte.ts`. CSS is `injected` into JS (Svelte compiler option) so styles work inside the shadow DOM. `static/` is its `publicDir` (icons, fonts), and it runs the `klaxon-manifest` plugin (a `closeBundle` hook) that writes the browser-specific `manifest.json`.
+- **`vite/page.config.ts`** — Canvas content script. IIFE bundle at `build/<browser>/page.js`, entry `src/page.svelte.ts`. CSS is `injected` into JS (Svelte compiler option) so styles work inside the shadow DOM. `static/` is its `publicDir` (icons, fonts), and it runs two `closeBundle` plugins: `klaxon-manifest` (writes the browser-specific `manifest.json`) and `klaxon-dev-assets` (the dev-only asset overlay, below).
 - **`vite/sidepanel.config.ts`** — side panel page. Entry `sidepanel.html` (which loads `src/sidepanel.ts`) → `sidepanel.html` + hashed JS/CSS. Normal page (CSS extracted, **not** injected). `emptyOutDir: false`, `copyPublicDir: false`.
 - **`vite/background.config.ts`** — service worker. ESM bundle at `build/<browser>/background.js`, entry `src/background.ts`. `emptyOutDir: false`, `copyPublicDir: false`.
 
@@ -59,7 +60,7 @@ Chrome and Firefox disagree on a few manifest keys (and on sidebar APIs), and a 
 
 `scripts/manifest.mjs` exports `buildManifest(browser)`, which shallow-merges `base` + the browser overlay **but unions the `permissions` arrays** (so an overlay can add a browser-only permission like `sidePanel` without dropping the shared ones). It's the single source of truth, reused by the vite plugin, `scripts/clean.mjs`, and `scripts/redirect-uris.mjs`. **There is no `static/manifest.json`** — edit the fragments under `manifest/`.
 
-### Opening the panel, and the Arc fallback (#91)
+#### Opening the panel, and the Arc fallback (#91)
 
 The toolbar action opens the sidebar. Per browser (the `__FIREFOX__` build constant gates the branch in both `background.ts` and `sidepanel.ts`, so each bundle ships only its own path — it's defined by `vite/background.config.ts` and `vite/sidepanel.config.ts`):
 
@@ -67,6 +68,25 @@ The toolbar action opens the sidebar. Per browser (the `__FIREFOX__` build const
 - **Chrome** — `onClicked` → `chrome.sidePanel.open({ windowId })` (called synchronously in the click gesture, as the API requires).
 
 Some Chromium browsers — notably **Arc** — _define_ `chrome.sidePanel` and let `open()` resolve (it even creates a `SIDE_PANEL` `getContexts` entry), but never actually render the panel, so the extension used to fail silently. We can't detect this from the service worker (`open()` doesn't reject; the phantom context is real), so **the panel page detects it**: `src/sidepanel.ts` polls its own layout size after load, and if it never lays out to a non-zero size within ~1.5s (a real panel does within a few hundred ms; Arc's phantom stays `0×0`) it messages the worker `panel/fallback`. The worker then opens `sidepanel.html?fallback=1` in a standalone **popup window** (`chrome.windows.create({ type: "popup" })`). That window keeps a slim address bar Chrome's security model won't let us hide, but unlike an anchored action popup (which is chromeless in Arc but **closes on blur** — fatal to the picker) it stays open while the user clicks the page. The `fallback=1` marker makes the panel page skip the phantom check (so the real window can't loop), and the worker remembers the window id: once it exists, later clicks just focus it instead of opening another phantom. `#activeTab()` in `canvas-client.svelte.ts` resolves the active tab of the last-focused **normal** window so the picker still targets the real page, not the popup window's own document.
+
+#### Dev builds are labelled and re-skinned (`DEV_BUILD`)
+
+A dev build loads unpacked alongside the store-installed extension, and with the same name and icon there's no telling which toolbar button or `chrome://extensions` row is which. `DEV_BUILD=true` — set by the `dev:page` script only, so `npm run dev` gets it and `build:*` and the e2e build never do — switches on both halves of the fix:
+
+- `buildManifest`'s `dev` option appends `DEV_SUFFIX` (`" (dev)"`) to `name`, `action.default_title`, and Firefox's `sidebar_action.default_title`.
+- The `klaxon-dev-assets` plugin copies `static-dev/` over the output **after** vite's `publicDir` copy, so same-named files there (`icon-16/48/128.png`) replace the shared icons without any manifest path changing. Ordering is safe by construction: vite copies `publicDir` in `renderStart` (and re-copies on every watch rebuild, since its `watchChange` resets the guard), and this runs in `closeBundle`. The dir is optional and a partial overlay falls through to `static/`; `README.md` and dotfiles are filtered out so they can't reach the build.
+
+Because prod builds skip the overlay entirely, nothing in `static-dev/` can leak into a store zip — but note its `*.png` are LFS-tracked like `static/`'s, so an LFS-less checkout overlays pointer text (see the LFS section below).
+
+#### Versioning
+
+`version` lives **only** in `manifest/base.json` (neither overlay sets it, and the `version` fields in the `package.json`s are unrelated npm workspace boilerplate). Bump it with `npm run bump -- <major|minor|patch|x.y.z>` (`scripts/version.mjs`); `--dry-run` prints without writing.
+
+Store versions are **not semver**: Chrome accepts 1–4 dot-separated integers in 0–65535 with no leading zeros, so the published `1.1` is a valid two-part version. The bumps are semver-_shaped_ — `minor` gives `1.1 → 1.2`, `patch` gives `1.1 → 1.1.1` (appending a third part), `major` gives `1.1 → 2.0`. The script validates the range/leading-zero rules and refuses any bump that isn't a strict increase, since both stores reject an upload whose version doesn't sort above the published one.
+
+#### Icons and fonts are Git LFS objects
+
+`static/*.png` and `static/fonts/*.woff2` are tracked by Git LFS (see the repo-root `.gitattributes`). **Any checkout that doesn't fetch LFS objects gets ~130-byte pointer text files under those names instead** — and because vite just copies `publicDir` through, the build succeeds and the zip looks complete while every icon and font in it is unreadable. This shipped once: the Chrome Web Store rejected the upload with "The icon file icon-128.png could not be processed." `.github/workflows/package.yml` therefore checks out with `lfs: true` and has a guard step that greps the build output for the LFS pointer signature and fails the job if it finds one. Check `file build/chrome/icon-128.png` before any manual upload — it must say `PNG image data`, not `ASCII text`.
 
 ### Two realms, joined by a port
 

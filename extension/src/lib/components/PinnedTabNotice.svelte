@@ -48,19 +48,23 @@
   }
 
   .pinned-text {
+    /* Flex items size to min-content by default, which a long title would blow
+       past — stretch to the notice width and let the title wrap inside it. */
+    align-self: stretch;
+    min-width: 0;
     font-size: var(--font-sm, 14px);
     line-height: 1.4;
     color: #0c1e27;
   }
 
   .pinned-title {
-    /* Clamp long page titles to one line. */
-    display: inline-block;
-    max-width: 100%;
+    /* Clamp long page titles to two lines, then ellipsis. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    vertical-align: bottom;
+    overflow-wrap: anywhere;
   }
 
   .pinned-jump {
