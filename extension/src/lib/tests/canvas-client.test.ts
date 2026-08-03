@@ -112,7 +112,10 @@ function createChromeMock() {
         return port;
       }),
     },
-    windows: { update: vi.fn(async () => {}) },
+    windows: {
+      update: vi.fn(async () => {}),
+      getLastFocused: vi.fn(async () => ({ id: tab.windowId })),
+    },
     permissions: {
       request: vi.fn(async () => grant.ok),
       contains: vi.fn(async () => grant.ok),

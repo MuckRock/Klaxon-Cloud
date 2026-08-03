@@ -14,6 +14,11 @@ if (!BROWSERS.includes(browser)) {
 }
 
 export default defineConfig({
+  // Build-time browser flag, same constant the worker gets. Lets the panel ship
+  // only what its target browser needs; the minifier drops the dead branch.
+  define: {
+    __FIREFOX__: JSON.stringify(browser === "firefox"),
+  },
   resolve: {
     conditions: ["browser"],
   },
