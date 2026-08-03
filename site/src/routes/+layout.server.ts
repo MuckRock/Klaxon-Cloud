@@ -8,9 +8,14 @@ import { env } from "$env/dynamic/private";
 // renders the signed-out page.
 const DEFAULT_ACCOUNTS_HOST = "https://accounts.muckrock.com/";
 
-export function load({ locals }) {
+export function load({ locals, url }) {
   return {
     authenticated: !!locals.session,
     accountsHost: env.MUCKROCK_ACCOUNTS_HOST || DEFAULT_ACCOUNTS_HOST,
+    // Absolute base for canonical + Open Graph URLs, which crawlers won't
+    // resolve relative. Prefer the configured origin so a link shared from a
+    // preview deploy (or from the apex, which redirects to www) still points at
+    // the canonical host; fall back to the request's own origin in dev.
+    origin: (env.MUCKROCK_PUBLIC_ORIGIN || url.origin).replace(/\/$/, ""),
   };
 }

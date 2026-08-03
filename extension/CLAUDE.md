@@ -44,7 +44,7 @@ Loading in Chrome: `chrome://extensions` → enable Developer mode → Load unpa
 
 Three vite configs under `vite/`, all emitting into `build/<browser>/`, plus `vitest.config.ts` at the root (so no build config has to double as the default config; vitest auto-resolves it). Each build config is parametrized by the `BROWSER` env var (default `chrome`). The page and worker bundles use stable filenames (Chrome needs the names listed in `manifest.json`, so no hashing/splitting); the side panel is a normal HTML page, so its JS/CSS may be hashed (only `sidepanel.html` is referenced by the manifest).
 
-- **`vite/page.config.ts`** — Canvas content script. IIFE bundle at `build/<browser>/page.js`, entry `src/page.svelte.ts`. CSS is `injected` into JS (Svelte compiler option) so styles work inside the shadow DOM. `static/` is its `publicDir` (icons, fonts), and it runs the `klaxon-manifest` plugin (a `closeBundle` hook) that writes the browser-specific `manifest.json`.
+- **`vite/page.config.ts`** — Canvas content script. IIFE bundle at `build/<browser>/page.js`, entry `src/page.svelte.ts`. CSS is `injected` into JS (Svelte compiler option) so styles work inside the shadow DOM. `static/` is its `publicDir` (icons, fonts), and it runs two `closeBundle` plugins: `klaxon-manifest` (writes the browser-specific `manifest.json`) and `klaxon-dev-assets` (the dev-only asset overlay, below).
 - **`vite/sidepanel.config.ts`** — side panel page. Entry `sidepanel.html` (which loads `src/sidepanel.ts`) → `sidepanel.html` + hashed JS/CSS. Normal page (CSS extracted, **not** injected). `emptyOutDir: false`, `copyPublicDir: false`.
 - **`vite/background.config.ts`** — service worker. ESM bundle at `build/<browser>/background.js`, entry `src/background.ts`. `emptyOutDir: false`, `copyPublicDir: false`.
 
@@ -59,6 +59,15 @@ Chrome and Firefox disagree on a few manifest keys (and on sidebar APIs), and a 
 - **`manifest/firefox.json`** — `background.scripts` (+ `type: module`), the Firefox-only `sidebar_action` key, and `browser_specific_settings.gecko`.
 
 `scripts/manifest.mjs` exports `buildManifest(browser)`, which shallow-merges `base` + the browser overlay **but unions the `permissions` arrays** (so an overlay can add a browser-only permission like `sidePanel` without dropping the shared ones). It's the single source of truth, reused by the vite plugin, `scripts/clean.mjs`, and `scripts/redirect-uris.mjs`. **There is no `static/manifest.json`** — edit the fragments under `manifest/`.
+
+#### Dev builds are labelled and re-skinned (`DEV_BUILD`)
+
+A dev build loads unpacked alongside the store-installed extension, and with the same name and icon there's no telling which toolbar button or `chrome://extensions` row is which. `DEV_BUILD=true` — set by the `dev:page` script only, so `npm run dev` gets it and `build:*` and the e2e build never do — switches on both halves of the fix:
+
+- `buildManifest`'s `dev` option appends `DEV_SUFFIX` (`" (dev)"`) to `name`, `action.default_title`, and Firefox's `sidebar_action.default_title`.
+- The `klaxon-dev-assets` plugin copies `static-dev/` over the output **after** vite's `publicDir` copy, so same-named files there (`icon-16/48/128.png`) replace the shared icons without any manifest path changing. Ordering is safe by construction: vite copies `publicDir` in `renderStart` (and re-copies on every watch rebuild, since its `watchChange` resets the guard), and this runs in `closeBundle`. The dir is optional and a partial overlay falls through to `static/`; `README.md` and dotfiles are filtered out so they can't reach the build.
+
+Because prod builds skip the overlay entirely, nothing in `static-dev/` can leak into a store zip — but note its `*.png` are LFS-tracked like `static/`'s, so an LFS-less checkout overlays pointer text (see the LFS section below).
 
 #### Versioning
 
