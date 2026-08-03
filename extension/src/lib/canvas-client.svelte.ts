@@ -299,6 +299,12 @@ export class CanvasClient {
    * reading the mirrored (reactive) `this.url`.
    */
   async navigateTab(url: string): Promise<void> {
+    // A stored `site` isn't guaranteed to be a usable URL: alerts created before
+    // getCanonicalURL() absolutized the page's canonical hold a bare path (#94).
+    // chrome resolves a relative url against the *extension's* origin, so
+    // driving the tab to one would yank it to a nonexistent extension resource.
+    // Leave it where it is and let the caller select on the current page.
+    if (!injectable(url)) return;
     if (this.#navigating) return;
     const target = untrack(() => this.#pinnedTab) ?? this.#connectedTab;
     if (!target) return;

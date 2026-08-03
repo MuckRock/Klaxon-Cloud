@@ -2,15 +2,15 @@
 
 ## Status
 
-**Implemented** on branch `94-socrata` (95 unit tests, `check`, `lint`, and the
-Chrome build green). Diagnosis verified against the code and against the live Cook
-County page (see "Confirmed facts"). Three changes in `canvas-client.svelte.ts` +
-`url.ts`, one test-harness fidelity fix, seven new tests. No view changes.
+**Implemented and confirmed fixed** on the reported Socrata page, on branch
+`94-socrata` (96 unit tests, 22 e2e, `check`, `lint`, and the Chrome build green).
+Diagnosis verified against the code and against the live Cook County page (see
+"Confirmed facts"). Changes in `canvas-client.svelte.ts`, `url.ts`, and
+`CLAUDE.md`, one test-harness fidelity fix, eight new tests. No view changes.
 
-The three new `canvas-client` tests were confirmed to **fail against the
-pre-fix client** — 6 `chrome.tabs.update` calls for the mounted effect (the
-runaway loop itself), 2 for the direct-call and re-entrancy cases. Not yet
-validated by hand against a live Socrata page; that's the remaining step.
+The three loop tests were confirmed to **fail against the pre-fix client** — 6
+`chrome.tabs.update` calls for the mounted effect (the runaway loop itself), 2
+for the direct-call and re-entrancy cases.
 
 ## Why
 
@@ -100,6 +100,8 @@ in-flight flag comes in:
 #navigating = false;
 
 async navigateTab(url: string): Promise<void> {
+  // A legacy `site` may be a bare path; never drive a tab to one (see below).
+  if (!injectable(url)) return;
   if (this.#navigating) return;
   // Callers reach us from inside an $effect, and an async function's body runs
   // synchronously up to its first await — so a $state read here would subscribe
@@ -237,7 +239,12 @@ the URL field shows an absolute URL.
 - **A cross-origin canonical** still poisons the stored `site` and the origin
   filter. Absolutizing doesn't make the canonical trustworthy.
 - **Existing bad data.** Alerts whose `site` doesn't start with `http` are dead
-  server-side. Worth a query and a repair pass, outside the extension.
+  server-side. Worth a query and a repair pass, outside the extension. The
+  extension now refuses to drive a tab to one (`navigateTab` bails on a
+  non-`injectable` url) — chrome resolves a relative url against the
+  _extension's_ origin, so without that guard opening a legacy alert yanked the
+  tab to a nonexistent `chrome-extension://` resource. That's containment, not a
+  repair: those alerts still can't run.
 
 ## Biggest risk
 

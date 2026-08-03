@@ -627,6 +627,19 @@ describe("navigateTab does not loop on a misreported canonical (issue #94)", () 
     client.destroy();
   });
 
+  it("refuses to drive the tab to a relative stored site", async () => {
+    const client = await pinnedOnLyingPage();
+
+    // An alert saved before the canonical was absolutized: `site` is a bare path,
+    // which chrome would resolve against the extension's own origin.
+    await client.navigateTab(CLAIMED_CANONICAL);
+
+    expect(mock.chrome.tabs.update).not.toHaveBeenCalled();
+    expect(client.watchable).toBe(true); // port left intact
+
+    client.destroy();
+  });
+
   it("ignores a second call while one navigation is still in flight", async () => {
     const client = await pinnedOnLyingPage();
 
