@@ -6,7 +6,7 @@
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "dev": "npm-run-all -s clean -p dev:page dev:bridge dev:sidepanel dev:service",
-    "dev:page": "vite build --watch -c vite/page.config.ts",
+    "dev:page": "DEV_BUILD=true vite build --watch -c vite/page.config.ts",
     "dev:bridge": "vite build --watch -c vite/web-bridge.config.ts",
     "dev:sidepanel": "vite build --watch -c vite/sidepanel.config.ts",
     "dev:service": "vite build --watch -c vite/background.config.ts",

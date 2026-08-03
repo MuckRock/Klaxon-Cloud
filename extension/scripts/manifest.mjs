@@ -22,13 +22,22 @@ function read(name) {
   return JSON.parse(readFileSync(join(MANIFEST_DIR, `${name}.json`), "utf8"));
 }
 
+/** Appended to every user-visible label in a dev build (see the `dev` option). */
+export const DEV_SUFFIX = " (dev)";
+
 /**
  * @param {string} browser
- * @param {{ omitKey?: boolean, grantHost?: boolean, hosts?: string[], webOrigin?: string }} [options]
+ * @param {{ omitKey?: boolean, grantHost?: boolean, hosts?: string[], webOrigin?: string, dev?: boolean }} [options]
  */
 export function buildManifest(
   browser,
-  { omitKey = false, grantHost = false, hosts = [], webOrigin = "" } = {},
+  {
+    omitKey = false,
+    grantHost = false,
+    hosts = [],
+    webOrigin = "",
+    dev = false,
+  } = {},
 ) {
   if (!BROWSERS.includes(browser)) {
     throw new Error(
@@ -41,6 +50,21 @@ export function buildManifest(
     ...new Set([...(base.permissions ?? []), ...(overlay.permissions ?? [])]),
   ];
   const manifest = { ...base, ...overlay, permissions };
+  // A local dev build and the installed store build sit side by side in the
+  // browser under the same name and icon, which makes it guesswork which one a
+  // toolbar button or a chrome://extensions row belongs to. Dev builds suffix
+  // every user-visible label; their icons are swapped separately by the
+  // static-dev/ overlay (see vite/page.config.ts). Keyed off DEV_BUILD, so this
+  // never touches a shipped build.
+  if (dev) {
+    manifest.name += DEV_SUFFIX;
+    // Hover title on the toolbar button (Chrome) and the sidebar (Firefox).
+    for (const key of ["action", "sidebar_action"]) {
+      const title = manifest[key]?.default_title;
+      if (title)
+        manifest[key] = { ...manifest[key], default_title: title + DEV_SUFFIX };
+    }
+  }
   // The Chrome Web Store rejects any manifest carrying a `key`, so store-bound
   // builds omit it. The source key stays in manifest/chrome.json, so that
   // dev/unpacked loads keep a pinned, stable extension ID, and redirect-uris.mjs
