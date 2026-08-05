@@ -1,5 +1,7 @@
 <script lang="ts">
   import logotype from "@klaxon/lib/assets/logotype.svg";
+  import HelpMenu from "@klaxon/lib/components/HelpMenu.svelte";
+  import { page } from "$app/state";
   import { userState } from "$lib/user.svelte";
   import { profileUrl } from "$lib/user";
 
@@ -28,8 +30,10 @@
         <a class="nav-link" href="/alerts/">Alerts</a>
         <a class="nav-link" href="/activity/">Activity</a>
       </nav>
+    {/if}
 
-      <div class="account">
+    <div class="account">
+      {#if authenticated}
         <a
           class="user nav-link"
           href={accountUrl}
@@ -44,12 +48,16 @@
         <form method="POST" action="/auth/logout">
           <button type="submit" class="link">Sign out</button>
         </form>
-      </div>
-    {:else}
-      <div class="account">
+      {:else}
         <a class="nav-link" href="/auth/login">Sign in</a>
-      </div>
-    {/if}
+      {/if}
+
+      <HelpMenu
+        user={userState.user}
+        client="Web app"
+        details={{ Page: page.url.href }}
+      />
+    </div>
   </div>
 </header>
 

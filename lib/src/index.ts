@@ -3,5 +3,6 @@
 // exists for convenience and for consumers that want a single entry point.
 export type * from "./types";
 export * from "./api";
+export * from "./help";
 export * from "./oidc";
 export * from "./utils";
