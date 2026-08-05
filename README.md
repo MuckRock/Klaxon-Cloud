@@ -25,6 +25,8 @@ npm test -w @klaxon/lib
 
 Each workspace's README covers its own setup, including the `.env` values and the OIDC client registration it needs.
 
+Both front ends put the same **Help** menu in the right of their top navigation — the [MuckRock User Guide](https://help.muckrock.com/Klaxon-Cloud-3acf8892696380ccabeeff596511a6a0), its FAQ, then a prefilled email to support. All three destinations (and the account details the email carries) live in [`lib/src/help.ts`](lib/src/help.ts), rendered by `lib/src/components/HelpMenu.svelte`; change them there and both products follow.
+
 ## Releasing the extension
 
 [`.github/workflows/package.yml`](.github/workflows/package.yml) runs on every push to `main`: it builds both browsers, attaches three zips to a dated GitHub release (`chrome` and `firefox` sideload builds, plus `chrome-webstore`), and it's the `chrome-webstore` zip that goes to the Chrome Web Store. The two zips differ by one key — sideload builds keep the `key` in `manifest/chrome.json` that pins the extension ID (so testers' registered OAuth redirect URI works), and the store rejects any manifest containing `key`, so that build is rebuilt with it stripped.
