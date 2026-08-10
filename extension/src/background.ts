@@ -28,6 +28,10 @@ import {
   randomBase64Url,
   refreshJwt,
 } from "@klaxon/lib/oidc";
+import { initSentry } from "./lib/telemetry.ts";
+
+// Error reporting — noop when MUCKROCK_SENTRY_DSN is unset (e.g. local dev).
+initSentry("background");
 
 // Open the sidebar from the toolbar button.
 //   - Firefox: toggle the native _sidebar_.

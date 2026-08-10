@@ -11,6 +11,10 @@ import App from "./lib/components/App.svelte";
 import { restore } from "./lib/auth.svelte.ts";
 import { loadFonts } from "./lib/fonts.ts";
 import { initCanvasClient } from "./lib/canvas-client.svelte.ts";
+import { initSentry } from "./lib/telemetry.ts";
+
+// Error reporting — noop when MUCKROCK_SENTRY_DSN is unset (e.g. local dev).
+initSentry("sidepanel");
 
 // #91: detect an invisible side-panel context and fall back to a popup window.
 // Some Chromium browsers (Arc) silently resolve the side panels API without handling.

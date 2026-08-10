@@ -3,6 +3,7 @@
   import type { Snippet } from "svelte";
 
   import { page } from "$app/state";
+  import { onMount } from "svelte";
 
   import "../app.css";
 
@@ -10,6 +11,7 @@
   import SiteFooter from "$lib/components/SiteFooter.svelte";
 
   import { loadUser, clearUser } from "$lib/user.svelte";
+  import { PLAUSIBLE_DOMAIN, PLAUSIBLE_ENABLED } from "$lib/telemetry";
 
   let { children, data }: { children: Snippet; data: LayoutData } = $props();
 
@@ -24,6 +26,15 @@
   $effect(() => {
     if (data.authenticated) loadUser();
     else clearUser();
+  });
+
+  onMount(async () => {
+    if (!PLAUSIBLE_ENABLED) return;
+    const { init } = await import("@plausible-analytics/tracker");
+    init({
+      domain: PLAUSIBLE_DOMAIN,
+      autoCapturePageviews: true,
+    });
   });
 </script>
 

@@ -38,6 +38,10 @@ Loading in Chrome: `chrome://extensions` → enable Developer mode → Load unpa
 
 `MUCKROCK_*` vars in `.env` are baked into the bundle at build start (`envPrefix: "MUCKROCK_"` on every config). **Restart the dev watchers after editing `.env`** — Vite only reads env files at startup and will otherwise keep emitting builds with stale values. After a rebuild, also reload the extension at `chrome://extensions`. Required: `MUCKROCK_ACCOUNTS_HOST`, `MUCKROCK_CLIENT_ID`. See `.env.example`.
 
+### Error reporting (Sentry)
+
+`src/lib/telemetry.ts` initializes `@sentry/browser` in **two** of the three bundles — the sidepanel (`src/sidepanel.ts`) and the service worker (`src/background.ts`). It is **deliberately not** initialized in the Canvas content script (`src/page.svelte.ts`): that bundle runs inside the user's own web page, and we don't want to send Sentry events from a context that has access to the user's browsing. If you add another entry point that runs in the extension realm (a new options page, say), call `initSentry("<context>")` from it too. DSN + environment come from `MUCKROCK_SENTRY_DSN` / `MUCKROCK_SENTRY_ENVIRONMENT` (baked at build time; leave DSN blank to disable). A `beforeSend` scrubber strips URL/query/tokens and rewrites fetch/XHR breadcrumbs to drop URLs and bodies — see the file for what's redacted.
+
 ## Architecture
 
 ### Build shape

@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly MUCKROCK_ACCOUNTS_HOST: string;
   readonly MUCKROCK_CLIENT_ID: string;
   readonly MUCKROCK_SCOPES: string;
+  readonly MUCKROCK_ENVIRONMENT?: string;
+  readonly MUCKROCK_SENTRY_DSN?: string;
 }
 
 interface ImportMeta {

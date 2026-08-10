@@ -1,8 +1,15 @@
 import { redirect, type Handle } from "@sveltejs/kit";
+import { sequence } from "@sveltejs/kit/hooks";
+import {
+  handleErrorWithSentry,
+  initCloudflareSentryHandle,
+  sentryHandle,
+} from "@sentry/sveltekit";
 import { ensureFreshSession } from "$lib/server/auth";
 import { readSession } from "$lib/server/session";
+import { ENVIRONMENT, SENTRY_DSN, SENTRY_ENABLED } from "$lib/telemetry";
 
-export const handle: Handle = async ({ event, resolve }) => {
+const appHandle: Handle = async ({ event, resolve }) => {
   event.locals.session = null;
 
   const session = await readSession(event.cookies);
@@ -20,3 +27,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   return resolve(event);
 };
+
+export const handle: Handle = SENTRY_ENABLED
+  ? sequence(
+      initCloudflareSentryHandle({
+        dsn: SENTRY_DSN,
+        environment: ENVIRONMENT,
+        // Errors only — no perf/tracing spans by default. Turn up later once
+        // we've seen how noisy the baseline is (see issue #110 discussion).
+        tracesSampleRate: 0,
+      }),
+      sentryHandle(),
+      appHandle,
+    )
+  : appHandle;
+
+export const handleError = handleErrorWithSentry();
