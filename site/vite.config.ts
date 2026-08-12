@@ -3,6 +3,17 @@ import { playwright } from "@vitest/browser-playwright";
 import adapter from "@sveltejs/adapter-cloudflare";
 import { sveltekit } from "@sveltejs/kit/vite";
 
+// Deploy environment for Sentry + Plausible, derived from Cloudflare Workers
+// Builds' WORKERS_CI_BRANCH (a build-only env var Cloudflare injects). Baked
+// into every bundle via Vite `define` so both hooks.server.ts and hooks.client.ts.
+// Local `vite dev` / `vite build` leaves WORKERS_CI_BRANCH unset.
+function deployEnvironment(): "production" | "staging" | "development" {
+  const branch = process.env.WORKERS_CI_BRANCH;
+  if (branch === "main") return "production";
+  if (branch) return "staging"; // any non-main branch → preview deploy
+  return "development";
+}
+
 export default defineConfig({
   plugins: [
     sveltekit({
@@ -14,6 +25,9 @@ export default defineConfig({
       adapter: adapter(),
     }),
   ],
+  define: {
+    __KLAXON_ENVIRONMENT__: JSON.stringify(deployEnvironment()),
+  },
   // @klaxon/lib ships raw .ts (no build step); inline it so SSR and vitest
   // transpile it rather than treating the workspace package as built ESM.
   ssr: { noExternal: ["@klaxon/lib"] },

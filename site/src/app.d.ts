@@ -4,6 +4,13 @@ import type { PlausibleEventOptions } from "@plausible-analytics/tracker";
 import type { SessionTokens } from "$lib/server/session";
 
 declare global {
+  /**
+   * Deploy environment ("production" | "staging" | "development"), injected by
+   * Vite `define` from WORKERS_CI_BRANCH at build time. Read via
+   * `$lib/telemetry.ENVIRONMENT`, not directly.
+   */
+  const __KLAXON_ENVIRONMENT__: string;
+
   interface Window {
     plausible?: (eventName: string, options?: PlausibleEventOptions) => void;
   }
