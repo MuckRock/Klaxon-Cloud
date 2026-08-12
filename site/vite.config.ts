@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { loadEnv } from "vite";
 import { playwright } from "@vitest/browser-playwright";
 import adapter from "@sveltejs/adapter-cloudflare";
 import { sveltekit } from "@sveltejs/kit/vite";
@@ -14,7 +15,17 @@ function deployEnvironment(): "production" | "staging" | "development" {
   return "development";
 }
 
-export default defineConfig({
+// Sentry DSN, baked in the same way as the environment. Read through
+// Vite's loadEnv (local site/.env, or a Cloudflare Workers Builds environment
+// variable, which wins) rather than `$env/static/public` — a named import from
+// that virtual module fails the build outright when the variable is unset,
+// which is exactly the case for a fresh checkout or an unconfigured project.
+function sentryDsn(mode: string): string {
+  const env = loadEnv(mode, import.meta.dirname, "PUBLIC_");
+  return env.PUBLIC_MUCKROCK_SENTRY_DSN ?? "";
+}
+
+export default defineConfig(({ mode }) => ({
   plugins: [
     sveltekit({
       compilerOptions: {
@@ -27,6 +38,7 @@ export default defineConfig({
   ],
   define: {
     __KLAXON_ENVIRONMENT__: JSON.stringify(deployEnvironment()),
+    __KLAXON_SENTRY_DSN__: JSON.stringify(sentryDsn(mode)),
   },
   // @klaxon/lib ships raw .ts (no build step); inline it so SSR and vitest
   // transpile it rather than treating the workspace package as built ESM.
@@ -59,4 +71,4 @@ export default defineConfig({
       },
     ],
   },
-});
+}));
