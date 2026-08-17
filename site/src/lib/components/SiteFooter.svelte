@@ -5,8 +5,17 @@
 <footer class="site-footer">
   <div class="inner">
     <div class="callout">
-      <p><strong>Want to learn how to use Klaxon Cloud and other MuckRock products?</strong></p>
-      <p>Join one of our free <a href="https://www.muckrock.com/project/building-with-muckrock-1178/">Building with MuckRock training sessions</a>.</p>
+      <p>
+        <strong
+          >Want to learn how to use Klaxon Cloud and other MuckRock products?</strong
+        >
+      </p>
+      <p>
+        Join one of our free <a
+          href="https://www.muckrock.com/project/building-with-muckrock-1178/"
+          >Building with MuckRock training sessions</a
+        >.
+      </p>
     </div>
   </div>
   <div class="inner">
