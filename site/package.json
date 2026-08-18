@@ -20,6 +20,8 @@
   "dependencies": {
     "@klaxon/lib": "*",
     "@lucide/svelte": "^1.3.0",
+    "@plausible-analytics/tracker": "^0.4.6",
+    "@sentry/sveltekit": "^10.70.0",
     "jose": "^6.1.0"
   },
   "devDependencies": {

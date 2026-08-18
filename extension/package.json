@@ -45,5 +45,8 @@
     "typescript": "^5.9.3",
     "vite": "^8.0.0",
     "vitest": "^4.1.5"
+  },
+  "dependencies": {
+    "@sentry/browser": "^10.70.0"
   }
 }
