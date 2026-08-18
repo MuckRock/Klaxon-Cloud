@@ -21,6 +21,9 @@ env:
   MUCKROCK_SCOPES: ${{ vars.MUCKROCK_SCOPES || 'openid profile email uuid organizations' }}
   MUCKROCK_DOCUMENTCLOUD_API: ${{ vars.MUCKROCK_DOCUMENTCLOUD_API || 'https://api.www.documentcloud.org/api/' }}
   MUCKROCK_KLAXON_ID: ${{ vars.MUCKROCK_KLAXON_ID || 436 }}
+  MUCKROCK_SENTRY_DSN: ${{ vars.MUCKROCK_SENTRY_DSN || '' }}
+  MUCKROCK_ENVIRONMENT: ${{ vars.MUCKROCK_ENVIRONMENT || 'production' }}
+  MUCKROCK_WEB_ORIGIN: ${{ vars.MUCKROCK_WEB_ORIGIN || 'https://www.klaxoncloud.org/' }}
 
 jobs:
   package:
