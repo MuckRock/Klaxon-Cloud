@@ -97,4 +97,83 @@ describe("eventPayload", () => {
     expect(schedules.map((s) => eventValues[s])).toEqual([0, 1, 2, 3]);
     expect(eventPayload(KLAXON_ID, "disabled", {}).event).toBe(0);
   });
+
+  // The API types `slack_webhook` as a URI and rejects "", so an unset webhook
+  // has to be absent from `parameters`. Every write goes through this builder,
+  // which makes it the one place that can guarantee it.
+  describe("slack_webhook", () => {
+    const base = { site: "https://example.com", selector: "#main" };
+
+    it("keeps a valid webhook URL", () => {
+      const webhook = "https://hooks.slack.com/services/T000/B000/XXXX";
+      const { parameters } = eventPayload(KLAXON_ID, "daily", {
+        ...base,
+        slack_webhook: webhook,
+      });
+
+      expect(parameters.slack_webhook).toBe(webhook);
+    });
+
+    it.each([
+      ["an empty string", ""],
+      ["whitespace", "   "],
+      ["a malformed URL", "not-a-url"],
+      ["a non-http scheme", "javascript:alert(1)"],
+    ])("omits the key entirely when it's %s", (_label, raw) => {
+      const { parameters } = eventPayload(KLAXON_ID, "daily", {
+        ...base,
+        slack_webhook: raw,
+      });
+
+      expect("slack_webhook" in parameters).toBe(false);
+      expect(parameters).toEqual(base);
+    });
+
+    it("sends no empty string over the wire", () => {
+      const payload = eventPayload(KLAXON_ID, "weekly", {
+        ...base,
+        slack_webhook: "",
+      });
+
+      expect(JSON.stringify(payload)).not.toContain("slack_webhook");
+    });
+
+    it("trims a webhook that arrives padded", () => {
+      const { parameters } = eventPayload(KLAXON_ID, "weekly", {
+        ...base,
+        slack_webhook: "  https://hooks.slack.com/services/T/B/C  ",
+      });
+
+      expect(parameters.slack_webhook).toBe(
+        "https://hooks.slack.com/services/T/B/C",
+      );
+    });
+
+    it("leaves the other parameters untouched", () => {
+      const { parameters } = eventPayload(KLAXON_ID, "hourly", {
+        ...base,
+        filter_selector: ".ads",
+        title: "Docket",
+        slack_webhook: "",
+      });
+
+      expect(parameters).toEqual({
+        ...base,
+        filter_selector: ".ads",
+        title: "Docket",
+      });
+    });
+
+    it("drops a blank webhook carried over from a stored alert", () => {
+      // A re-save spreads the alert's existing parameters, which for older
+      // alerts can still hold the empty string this normalization prevents.
+      const stored = { ...base, slack_webhook: "" };
+      const { parameters } = eventPayload(KLAXON_ID, "weekly", {
+        ...stored,
+        selector: "#other",
+      });
+
+      expect("slack_webhook" in parameters).toBe(false);
+    });
+  });
 });

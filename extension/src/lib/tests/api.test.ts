@@ -274,6 +274,35 @@ describe("dispatch", () => {
 
     expect(result.error?.status).toBe(500);
   });
+
+  // The API types `slack_webhook` as a URI, so a form left blank has to omit
+  // the key rather than POST an empty string the backend rejects.
+  it("omits an unset slack_webhook instead of sending an empty string", async () => {
+    await dispatch("daily", {
+      site: "https://example.com",
+      selector: "#main",
+      slack_webhook: "",
+    });
+
+    const { init } = lastFetchCall(sendMessage);
+    expect(init.body as string).not.toContain("slack_webhook");
+    expect(JSON.parse(init.body as string).parameters).toEqual({
+      site: "https://example.com",
+      selector: "#main",
+    });
+  });
+
+  it("POSTs a slack_webhook that is a real URL", async () => {
+    const webhook = "https://hooks.slack.com/services/T000/B000/XXXX";
+    await dispatch("daily", {
+      site: "https://example.com",
+      selector: "#main",
+      slack_webhook: webhook,
+    });
+
+    const body = JSON.parse(lastFetchCall(sendMessage).init.body as string);
+    expect(body.parameters.slack_webhook).toBe(webhook);
+  });
 });
 
 describe("update", () => {
@@ -341,6 +370,31 @@ describe("update", () => {
 
     expect(result.data).toBeUndefined();
     expect(result.error).toBeUndefined();
+  });
+
+  // Edits spread the alert's stored parameters, so a blank webhook saved by an
+  // older build would otherwise be PATCHed straight back at the API.
+  it("drops a blank slack_webhook carried in from the stored alert", async () => {
+    await update(533, "weekly", {
+      site: "https://example.com",
+      selector: "#main",
+      slack_webhook: "",
+    });
+
+    const { init } = lastFetchCall(sendMessage);
+    expect(init.body as string).not.toContain("slack_webhook");
+  });
+
+  it("PATCHes a slack_webhook the user actually set", async () => {
+    const webhook = "https://hooks.slack.com/services/T000/B000/XXXX";
+    await update(533, "weekly", {
+      site: "https://example.com",
+      selector: "#main",
+      slack_webhook: webhook,
+    });
+
+    const body = JSON.parse(lastFetchCall(sendMessage).init.body as string);
+    expect(body.parameters.slack_webhook).toBe(webhook);
   });
 });
 

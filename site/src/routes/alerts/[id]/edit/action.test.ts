@@ -239,6 +239,58 @@ describe("edit alert action", () => {
     });
   });
 
+  // The webhook is POSTed to, and the API types the field as a URI: anything
+  // that isn't an absolute http(s) URL has to be caught here, and a field the
+  // user left empty has to be omitted rather than sent as "".
+  it.each([
+    "mailto:someone@example.com",
+    "javascript:alert(1)",
+    "hooks.slack.com",
+  ])(
+    "rejects the slack webhook %s, which isn't an http(s) URL",
+    async (webhook) => {
+      const result = await run(
+        submit({ schedule: "weekly", slack_webhook: webhook }),
+      );
+
+      expect(update).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        status: 400,
+        data: { errors: { slack_webhook: expect.any(Array) } },
+      });
+    },
+  );
+
+  it("saves a valid slack webhook, trimmed", async () => {
+    await run(
+      submit({
+        schedule: "weekly",
+        slack_webhook: "  https://hooks.slack.com/services/T/B/C  ",
+      }),
+    );
+
+    expect(update).toHaveBeenCalledWith(
+      7,
+      "weekly",
+      expect.objectContaining({
+        slack_webhook: "https://hooks.slack.com/services/T/B/C",
+      }),
+    );
+  });
+
+  it.each([
+    ["empty", ""],
+    ["whitespace only", "   "],
+  ])("sends no slack_webhook value when the field is %s", async (_l, raw) => {
+    await run(submit({ schedule: "weekly", slack_webhook: raw }));
+
+    const [, , parameters] = update.mock.calls[0];
+    expect(parameters.slack_webhook).toBeUndefined();
+    // undefined drops out of the JSON body, so nothing reaches the API's URI
+    // validation. An empty string would not.
+    expect(JSON.stringify(parameters)).not.toContain("slack_webhook");
+  });
+
   it("echoes the submitted values back on failure so the form repopulates", async () => {
     const result = await run(
       submit({ schedule: "bogus", title: "Docket", slack_webhook: "" }),

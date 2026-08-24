@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { getDomain, isWholePage, parseTimestamp } from "../src/utils";
+import {
+  getDomain,
+  isHttpUrl,
+  isWholePage,
+  optionalUri,
+  parseTimestamp,
+} from "../src/utils";
 import type { Event } from "../src/types";
 
 /** A minimal Event, just enough for the site-derived helpers. */
@@ -104,5 +110,70 @@ describe("parseTimestamp", () => {
     ["20260129070147", "2026-01-29T07:01:47.000Z"],
   ])("parses real fixture timestamp %s", (timestamp, expected) => {
     expect(parseTimestamp(timestamp)?.toISOString()).toBe(expected);
+  });
+});
+
+describe("isHttpUrl", () => {
+  it.each([
+    "https://example.com",
+    "http://example.com/docket?page=2#top",
+    "https://hooks.slack.com/services/T000/B000/XXXX",
+  ])("accepts the absolute http(s) URL %s", (url) => {
+    expect(isHttpUrl(url)).toBe(true);
+  });
+
+  it.each([
+    "",
+    "   ",
+    "example.com",
+    "/alerts/7/",
+    "hooks.slack.com/services/T000/B000/XXXX",
+  ])("rejects %s, which isn't an absolute URL", (url) => {
+    expect(isHttpUrl(url)).toBe(false);
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "mailto:someone@example.com",
+    "ftp://x.test",
+  ])("rejects the non-http scheme in %s", (url) => {
+    expect(isHttpUrl(url)).toBe(false);
+  });
+});
+
+// The add-on's parameter spec types `slack_webhook` as a URI, so the API
+// rejects an empty string: unset has to mean "absent", not "blank".
+describe("optionalUri", () => {
+  it("returns a valid URL unchanged", () => {
+    const webhook = "https://hooks.slack.com/services/T000/B000/XXXX";
+    expect(optionalUri(webhook)).toBe(webhook);
+  });
+
+  it("trims surrounding whitespace", () => {
+    expect(optionalUri("  https://example.com/hook  ")).toBe(
+      "https://example.com/hook",
+    );
+  });
+
+  it.each([
+    ["an empty string", ""],
+    ["whitespace only", "   "],
+    ["undefined", undefined],
+    ["null", null],
+  ])("returns undefined for %s", (_label, raw) => {
+    expect(optionalUri(raw)).toBeUndefined();
+  });
+
+  it.each(["not-a-url", "example.com", "javascript:alert(1)", "mailto:a@b.co"])(
+    "returns undefined rather than passing along %s",
+    (raw) => {
+      expect(optionalUri(raw)).toBeUndefined();
+    },
+  );
+
+  it("never returns an empty string", () => {
+    for (const raw of ["", " ", "nope", null, undefined]) {
+      expect(optionalUri(raw)).not.toBe("");
+    }
   });
 });

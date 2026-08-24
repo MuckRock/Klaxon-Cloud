@@ -9,14 +9,13 @@
 
   import { untrack } from "svelte";
 
-  import PinnedTabNotice from "../components/PinnedTabNotice.svelte";
   import { authState } from "../auth.svelte.ts";
   import { getCanvas } from "../canvas-client.svelte";
   import { getRouter } from "../router.svelte";
   import { getToaster } from "../toaster.svelte";
   import { dispatch } from "../api";
   import { completeSave, reportSaveError } from "../save";
-  import { WHOLE_PAGE_SELECTOR } from "@klaxon/lib/utils";
+  import { optionalUri, WHOLE_PAGE_SELECTOR } from "@klaxon/lib/utils";
 
   interface Props {
     // Seed values, carried back from the sign-in interstitial OR restored from a
@@ -60,7 +59,8 @@
       // Fall back to the page title when the user leaves the field blank, so the
       // saved alert matches the placeholder shown in the form.
       title: title.trim() || defaultTitle,
-      slack_webhook: slackWebhook.trim() || undefined,
+      // Omitted, never blanked: the API types this as a URI and rejects "".
+      slack_webhook: optionalUri(slackWebhook),
       site: url,
       // Only a *locked* selection is a real choice. An unlocked canvas (or one
       // with no real selector) means "watch the whole page", saved as "*" — the

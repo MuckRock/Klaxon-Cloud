@@ -13,7 +13,7 @@
   import { getRouter } from "../router.svelte";
   import { eventValues, schedules, update } from "../api";
   import { completeSave, reportSaveError } from "../save";
-  import { isWholePage } from "@klaxon/lib/utils";
+  import { isWholePage, optionalUri } from "@klaxon/lib/utils";
 
   interface Props {
     event: Event;
@@ -57,11 +57,14 @@
   async function handleSave() {
     saving = true;
 
+    // Both fields are optional, so a blank input means "cleared" and has to be
+    // omitted rather than written as "" — the API types `slack_webhook` as a URI
+    // and rejects an empty string.
     const fd = new FormData(form);
     const params: KlaxonParams = {
       ...event.parameters,
-      title: fd.get("title") as string,
-      slack_webhook: fd.get("slack_webhook") as string,
+      title: String(fd.get("title") ?? "").trim() || undefined,
+      slack_webhook: optionalUri(String(fd.get("slack_webhook") ?? "")),
     };
 
     const result: APIResponse<Event, ValidationError> = await update(

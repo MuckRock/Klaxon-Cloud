@@ -22,6 +22,8 @@ import type {
   ValidationError,
 } from "./types";
 
+import { optionalUri } from "./utils";
+
 // schedules and eventValues are the inverse of each other, so store them together
 export const schedules: AddOnSchedule[] = [
   "disabled",
@@ -118,16 +120,24 @@ export function eventsCreateUrl(apiUrl: string): URL {
 /**
  * Build the request payload for creating or updating an add-on event. Including
  * the `event` property schedules runs (or cancels, when it's zero).
+ *
+ * `slack_webhook` is normalized here rather than only at the forms, because
+ * every write funnels through this builder: the API types the field as a URI
+ * and rejects an empty string, and an alert saved before this normalization can
+ * still be carrying one in the `parameters` a re-save spreads back.
  */
 export function eventPayload(
   klaxonId: string,
   schedule: AddOnSchedule,
   parameters: Partial<KlaxonParams>,
 ): AddOnPayload {
+  const { slack_webhook, ...rest } = parameters;
+  const webhook = optionalUri(slack_webhook);
+
   return {
     addon: Number(klaxonId),
     event: eventValues[schedule],
-    parameters,
+    parameters: webhook ? { ...rest, slack_webhook: webhook } : rest,
   };
 }
 
