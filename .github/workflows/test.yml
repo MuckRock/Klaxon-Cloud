@@ -38,6 +38,39 @@ jobs:
       - name: Test (extension)
         run: npm test -w klaxon-browser-extension
 
+  site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      # The site's vitest "client" project runs component tests in a real
+      # browser (@vitest/browser-playwright), so Chromium has to be installed.
+      # Its own job rather than a step in `test`, so the lib/extension unit
+      # tests don't wait on the browser download.
+      - name: Install Playwright with Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Server config is read lazily through $env/dynamic/private, and the API
+      # is mocked, so neither step needs the MUCKROCK_* values.
+      - name: Check (site)
+        run: npm run check
+
+      - name: Test (site)
+        run: npm test
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
