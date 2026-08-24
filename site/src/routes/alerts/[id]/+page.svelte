@@ -95,7 +95,8 @@
     text-decoration: underline;
   }
 
-  .head, .nav {
+  .head,
+  .nav {
     display: flex;
     align-items: baseline;
     justify-content: space-between;

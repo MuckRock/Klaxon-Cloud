@@ -8,16 +8,11 @@
   import CalendarClock from "@lucide/svelte/icons/calendar-clock";
   import FileDiff from "@lucide/svelte/icons/file-diff";
   import SquareDashedMousePointer from "@lucide/svelte/icons/square-dashed-mouse-pointer";
-  import { userState } from "$lib/user.svelte";
   import ChangeList from "$lib/components/ChangeList.svelte";
   import ExtensionGuidance from "$lib/components/ExtensionGuidance.svelte";
   import StatCard from "$lib/components/StatCard.svelte";
 
   let { data }: PageProps = $props();
-
-  const name = $derived(
-    userState.user?.name || userState.user?.email || "there",
-  );
 
   // Alerts arrive complete, so these counts are exact.
   function alertStats(alerts: Event[]) {
@@ -43,7 +38,7 @@
       count: `${changes.results.length}${changes.next ? "+" : ""}`,
       latest: latest ? `latest ${getRelativeTime(latest)}` : undefined,
     };
-  } 
+  }
 </script>
 
 <svelte:head>
@@ -56,7 +51,6 @@
 
 {#if data.authenticated}
   <section class="dashboard">
-
     <div class="stats">
       {#await data.alerts then alerts}
         {@const stats = alertStats(alerts ?? [])}
@@ -112,8 +106,8 @@
     <h1>Know the moment a web page changes.</h1>
     <p class="lede">
       Klaxon watches the pages you care about — a court docket, an agency
-      sitemap, a pricing page — and notifies you when it changes. Set an
-      alert, then we'll take scheduled snapshots and look for differences.
+      sitemap, a pricing page — and notifies you when it changes. Set an alert,
+      then we'll take scheduled snapshots and look for differences.
     </p>
     <div class="actions">
       <a class="btn-primary" href="/auth/login">Sign in with MuckRock</a>
@@ -125,7 +119,8 @@
     <div class="feature">
       <h2><SquareDashedMousePointer size={20} /> Monitor anything</h2>
       <p>
-        Watch whole pages or just a selection. Use the browser extension to create new alerts.
+        Watch whole pages or just a selection. Use the browser extension to
+        create new alerts.
       </p>
     </div>
     <div class="feature">
@@ -138,7 +133,11 @@
     <div class="feature">
       <h2><FileDiff size={20} /> See what changed</h2>
       <p>
-        Every snapshot is archived to <a href="https://web.archive.org/" target="_blank" rel="noopener noreferrer">Wayback Machine</a> for posterity. Visual diffs help you find the changes.
+        Every snapshot is archived to <a
+          href="https://web.archive.org/"
+          target="_blank"
+          rel="noopener noreferrer">Wayback Machine</a
+        > for posterity. Visual diffs help you find the changes.
       </p>
     </div>
   </section>
@@ -228,12 +227,6 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-  }
-
-  .dashboard h1 {
-    margin: 0;
-    font-size: var(--font-xl);
-    color: var(--red-4);
   }
 
   .stats {
