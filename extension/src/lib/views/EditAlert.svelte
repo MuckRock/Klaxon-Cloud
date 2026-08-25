@@ -67,11 +67,7 @@
       slack_webhook: optionalUri(String(fd.get("slack_webhook") ?? "")),
     };
 
-    const result: APIResponse<Event, ValidationError> = await update(
-      event.id,
-      frequency,
-      params,
-    );
+    const result: APIResponse<Event, ValidationError> = await update(event.id, frequency, params);
 
     saving = false;
 
@@ -126,8 +122,7 @@
         type="button"
         class="edit-selection-link"
         disabled={away}
-        onclick={() =>
-          router.navigate("editSelection", { event, origin: "editAlert" })}
+        onclick={() => router.navigate("editSelection", { event, origin: "editAlert" })}
       >
         Edit selection
       </button>
@@ -137,12 +132,7 @@
     <div class="field">
       {#if frequency === "disabled"}
         <p class="description">This alert is currently disabled.</p>
-        <button
-          type="button"
-          class="btn-primary"
-          disabled={away}
-          onclick={reactivate}
-        >
+        <button type="button" class="btn-primary" disabled={away} onclick={reactivate}>
           Reactivate
         </button>
       {:else}
@@ -150,12 +140,7 @@
           How often should Klaxon check this page?
         </label>
         <div class="select-wrapper">
-          <select
-            id="frequency"
-            bind:value={frequency}
-            name="schedule"
-            disabled={away}
-          >
+          <select id="frequency" bind:value={frequency} name="schedule" disabled={away}>
             <option value="hourly">Hourly</option>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -168,12 +153,9 @@
     <!-- title -->
     <div class="field">
       <div class="field-header">
-        <label class="field-label" for="alert-name">
-          Name this alert (optional):
-        </label>
+        <label class="field-label" for="alert-name"> Name this alert (optional): </label>
         <p class="field-hint">
-          Give this alert a custom name. (By default, we'll use the title of
-          this webpage.)
+          Give this alert a custom name. (By default, we'll use the title of this webpage.)
         </p>
       </div>
       <input
@@ -189,9 +171,7 @@
     <!-- slack webhook -->
     <div class="field">
       <div class="field-header">
-        <label class="field-label" for="slack-webhook">
-          Slack Webhook (optional):
-        </label>
+        <label class="field-label" for="slack-webhook"> Slack Webhook (optional): </label>
         <p class="field-hint">
           Enter a <a
             href="https://api.slack.com/messaging/webhooks"

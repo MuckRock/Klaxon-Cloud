@@ -17,9 +17,7 @@
 
   // Seed each field from the alert, but prefer what the last failed submit sent
   // back so a validation error doesn't discard the user's edits.
-  const schedule = $derived(
-    form?.values?.schedule ?? schedules[alert.event] ?? "weekly",
-  );
+  const schedule = $derived(form?.values?.schedule ?? schedules[alert.event] ?? "weekly");
   const site = $derived(form?.values?.site ?? alert.parameters.site ?? "");
   const title = $derived(form?.values?.title ?? alert.parameters.title ?? "");
   const slackWebhook = $derived(
@@ -30,9 +28,7 @@
   // "watching…" sentence and its own syntax check — so it tracks what's in the
   // textarea. `null` means untouched, leaving the seeding above to it.
   let typed = $state<string | null>(null);
-  const selector = $derived(
-    typed ?? form?.values?.selector ?? alert.parameters.selector ?? "",
-  );
+  const selector = $derived(typed ?? form?.values?.selector ?? alert.parameters.selector ?? "");
   const wholePage = $derived(isWholePage(selector));
 
   // Only a syntax check: whether the selector matches anything can't be known
@@ -104,13 +100,11 @@
 
           <div class="field">
             <div class="field-header">
-              <label class="field-label" for="site">
-                Which page should we watch?
-              </label>
+              <label class="field-label" for="site"> Which page should we watch? </label>
               {#if !wholePage}
                 <p class="field-hint">
-                  The watched region was picked on the current page, so pointing
-                  this alert somewhere else may leave nothing for it to match.
+                  The watched region was picked on the current page, so pointing this alert
+                  somewhere else may leave nothing for it to match.
                 </p>
               {/if}
             </div>
@@ -148,11 +142,7 @@
                 onclick={() => (selectorOpen = !selectorOpen)}
               >
                 Customize the selector
-                <span
-                  class="chevron"
-                  class:up={selectorOpen}
-                  aria-hidden="true"
-                >
+                <span class="chevron" class:up={selectorOpen} aria-hidden="true">
                   <ChevronDown size={16} />
                 </span>
               </button>
@@ -161,8 +151,8 @@
             <div class="details" id="selector-details" hidden={!selectorOpen}>
               <label class="field-label" for="selector">CSS selector</label>
               <p class="field-hint" id="selector-hint">
-                Klaxon watches whatever this selector matches; leave it empty to
-                watch the whole page.
+                Klaxon watches whatever this selector matches; leave it empty to watch the whole
+                page.
               </p>
               <textarea
                 id="selector"
@@ -200,8 +190,7 @@
             </select>
             {#if schedule === "disabled"}
               <p class="field-hint">
-                This alert is currently disabled. Pick a frequency to start
-                checking again.
+                This alert is currently disabled. Pick a frequency to start checking again.
               </p>
             {/if}
             {#if errors.schedule}
@@ -211,21 +200,13 @@
 
           <div class="field">
             <div class="field-header">
-              <label class="field-label" for="alert-name">
-                Name this alert (optional):
-              </label>
+              <label class="field-label" for="alert-name"> Name this alert (optional): </label>
               <p class="field-hint">
-                Give this alert a custom name. (By default, we'll use the title
-                of the watched webpage.)
+                Give this alert a custom name. (By default, we'll use the title of the watched
+                webpage.)
               </p>
             </div>
-            <input
-              id="alert-name"
-              type="text"
-              placeholder="Title"
-              name="title"
-              value={title}
-            />
+            <input id="alert-name" type="text" placeholder="Title" name="title" value={title} />
             {#if errors.title}
               <p class="field-error">{errors.title.join(" ")}</p>
             {/if}
@@ -233,9 +214,7 @@
 
           <div class="field">
             <div class="field-header">
-              <label class="field-label" for="slack-webhook">
-                Slack Webhook (optional):
-              </label>
+              <label class="field-label" for="slack-webhook"> Slack Webhook (optional): </label>
               <p class="field-hint">
                 Enter a <a
                   href="https://api.slack.com/messaging/webhooks"

@@ -20,8 +20,7 @@
       ? {
           name: authState.user.name,
           email: authState.user.email,
-          username:
-            authState.user.preferred_username || authState.user.nickname,
+          username: authState.user.preferred_username || authState.user.nickname,
           uuid: authState.user.uuid,
         }
       : null,
@@ -35,9 +34,7 @@
         {#if isLoggedIn}
           <div class="auth">
             <UserInfo />
-            <button class="signOut link" onclick={() => logout()}
-              >Sign out</button
-            >
+            <button class="signOut link" onclick={() => logout()}>Sign out</button>
           </div>
         {:else}
           <div class="logo">

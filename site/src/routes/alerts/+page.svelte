@@ -36,8 +36,7 @@
 
   {#if alerts.length === 0}
     <p class="empty">
-      You aren't watching any pages yet. Use the Klaxon extension to start an
-      alert.
+      You aren't watching any pages yet. Use the Klaxon extension to start an alert.
     </p>
   {:else}
     {#each groups as { domain, events } (domain)}

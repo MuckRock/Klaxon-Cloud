@@ -8,12 +8,7 @@
   import Mail from "@lucide/svelte/icons/mail";
   import MessageCircleQuestionMark from "@lucide/svelte/icons/message-circle-question-mark";
 
-  import {
-    HELP_FAQ_URL,
-    HELP_GUIDE_URL,
-    supportMailto,
-    type SupportContext,
-  } from "../help";
+  import { HELP_FAQ_URL, HELP_GUIDE_URL, supportMailto, type SupportContext } from "../help";
 
   interface Props extends SupportContext {
     /**

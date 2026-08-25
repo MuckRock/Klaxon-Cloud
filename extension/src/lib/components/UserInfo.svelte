@@ -7,10 +7,7 @@
   const user = $derived(authState.user);
   const name = $derived(
     user
-      ? (user?.preferred_username ??
-          user?.name ??
-          user?.email ??
-          "Squarelet user")
+      ? (user?.preferred_username ?? user?.name ?? user?.email ?? "Squarelet user")
       : "Anonymous",
   );
   const profileUrl = $derived(`${ACCOUNTS_HOST}users/${user?.nickname}`);
@@ -18,13 +15,7 @@
 
 <a class="user" href={profileUrl} target="_blank" rel="noopener noreferrer">
   {#if user?.picture}
-    <img
-      height="24"
-      width="24"
-      class="userAvatar"
-      src={user.picture}
-      alt={user.name}
-    />
+    <img height="24" width="24" class="userAvatar" src={user.picture} alt={user.name} />
   {:else}
     <CircleUserRound size="24" />
   {/if}

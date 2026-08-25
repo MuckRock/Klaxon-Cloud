@@ -16,9 +16,7 @@
 
   // Alerts arrive complete, so these counts are exact.
   function alertStats(alerts: Event[]) {
-    const active = alerts.filter(
-      (alert) => schedules[alert.event] !== "disabled",
-    ).length;
+    const active = alerts.filter((alert) => schedules[alert.event] !== "disabled").length;
     const domains = new Set(alerts.map((alert) => getDomain(alert) ?? "Other"));
 
     return {
@@ -89,8 +87,7 @@
         {@const runs = changes?.results ?? []}
         {#if runs.length === 0}
           <p class="empty">
-            No changes detected yet. Once one of your alerts spots a change,
-            it'll show up here.
+            No changes detected yet. Once one of your alerts spots a change, it'll show up here.
           </p>
         {:else}
           <ChangeList changes={runs} />
@@ -105,9 +102,9 @@
     <Siren />
     <h1>Know the moment a web page changes.</h1>
     <p class="lede">
-      Klaxon watches the pages you care about — a court docket, an agency
-      sitemap, a pricing page — and notifies you when it changes. Set an alert,
-      then we'll take scheduled snapshots and look for differences.
+      Klaxon watches the pages you care about — a court docket, an agency sitemap, a pricing page —
+      and notifies you when it changes. Set an alert, then we'll take scheduled snapshots and look
+      for differences.
     </p>
     <div class="actions">
       <a class="btn-primary" href="/auth/login">Sign in with MuckRock</a>
@@ -118,17 +115,11 @@
   <section class="features">
     <div class="feature">
       <h2><SquareDashedMousePointer size={20} /> Monitor anything</h2>
-      <p>
-        Watch whole pages or just a selection. Use the browser extension to
-        create new alerts.
-      </p>
+      <p>Watch whole pages or just a selection. Use the browser extension to create new alerts.</p>
     </div>
     <div class="feature">
       <h2><CalendarClock size={20} /> On your schedule</h2>
-      <p>
-        Check hourly, daily, or weekly. We only ping you when something actually
-        changes.
-      </p>
+      <p>Check hourly, daily, or weekly. We only ping you when something actually changes.</p>
     </div>
     <div class="feature">
       <h2><FileDiff size={20} /> See what changed</h2>

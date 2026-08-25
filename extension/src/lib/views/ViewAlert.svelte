@@ -5,12 +5,7 @@
   import RelativeTime from "../components/RelativeTime.svelte";
   import { getRouter } from "../router.svelte";
   import { history, schedules } from "../api";
-  import {
-    getRunLabel,
-    getSiteLabel,
-    isEvent,
-    isWholePage,
-  } from "@klaxon/lib/utils";
+  import { getRunLabel, getSiteLabel, isEvent, isWholePage } from "@klaxon/lib/utils";
   import { getCanvas } from "../canvas-client.svelte";
 
   interface Props {
@@ -58,9 +53,7 @@
     loading = true;
     const { data } = await history({ site, event: eventId, per_page: 10 });
     if (data) {
-      runs = data.results.filter(
-        (r) => isEvent(r.event) && r.event.id === eventId,
-      );
+      runs = data.results.filter((r) => isEvent(r.event) && r.event.id === eventId);
     }
     loading = false;
   }
@@ -80,8 +73,7 @@
         type="button"
         class="edit-selection-link"
         disabled={away}
-        onclick={() =>
-          router.navigate("editSelection", { event, origin: "viewAlert" })}
+        onclick={() => router.navigate("editSelection", { event, origin: "viewAlert" })}
       >
         Edit selection
       </button>
@@ -111,9 +103,7 @@
       {#if loading}
         <p class="description">Loading recent changes…</p>
       {:else if runs.length === 0}
-        <p class="description">
-          No changes have been recorded for this alert yet.
-        </p>
+        <p class="description">No changes have been recorded for this alert yet.</p>
       {:else}
         <div class="table">
           {#each runs as run (run.uuid)}

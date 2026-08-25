@@ -56,8 +56,7 @@
       {@const changes = page?.results ?? []}
       {#if changes.length === 0}
         <p class="empty">
-          No changes detected yet. Klaxon checks this page {schedule ===
-          "disabled"
+          No changes detected yet. Klaxon checks this page {schedule === "disabled"
             ? "when the alert is re-enabled"
             : schedule}.
         </p>

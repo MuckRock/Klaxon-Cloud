@@ -59,11 +59,7 @@
         d="M60.7693 17.7791L0.0247192 17.7791V23.7791L60.7693 23.7791C62.4261 23.7791 63.7693 22.4359 63.7693 20.7791C63.7693 19.1222 62.4261 17.7791 60.7693 17.7791Z"
         fill="#D9D9D9"
       />
-      <rect
-        width="27.0281"
-        height="41.2341"
-        fill="url(#paint0_linear_533_1375)"
-      />
+      <rect width="27.0281" height="41.2341" fill="url(#paint0_linear_533_1375)" />
       <g filter="url(#filter0_d_533_1375)">
         <circle
           cx="37.5984"
@@ -102,15 +98,8 @@
           <feOffset dy="2" />
           <feGaussianBlur stdDeviation="2" />
           <feComposite in2="hardAlpha" operator="out" />
-          <feColorMatrix
-            type="matrix"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.73 0"
-          />
-          <feBlend
-            mode="normal"
-            in2="BackgroundImageFix"
-            result="effect1_dropShadow_533_1375"
-          />
+          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.73 0" />
+          <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_533_1375" />
           <feBlend
             mode="normal"
             in="SourceGraphic"
@@ -194,10 +183,7 @@
 {/if}
 
 <div class="selector-panel">
-  <button
-    class="selector-panel-toggle"
-    onclick={() => (selectorPanelOpen = !selectorPanelOpen)}
-  >
+  <button class="selector-panel-toggle" onclick={() => (selectorPanelOpen = !selectorPanelOpen)}>
     <span class="toggle-arrow" class:open={selectorPanelOpen}>
       <ChevronRight />
     </span>

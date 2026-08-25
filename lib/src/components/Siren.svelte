@@ -37,13 +37,7 @@
   {#if !dimmed}
     <svg class="beams" viewBox="0 0 200 200" aria-hidden="true">
       <defs>
-        <radialGradient
-          id={gradientId}
-          gradientUnits="userSpaceOnUse"
-          cx="100"
-          cy="100"
-          r="100"
-        >
+        <radialGradient id={gradientId} gradientUnits="userSpaceOnUse" cx="100" cy="100" r="100">
           <stop offset="0" stop-color="var(--red-3)" stop-opacity="0" />
           <stop offset="0.18" stop-color="var(--red-3)" stop-opacity="0.55" />
           <stop offset="0.55" stop-color="#f2789c" stop-opacity="0.3" />
@@ -109,11 +103,7 @@
   .floor {
     position: absolute;
     inset: 50% 0 0 0;
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      var(--klaxon-bg) 25%
-    );
+    background: linear-gradient(to bottom, transparent 0%, var(--klaxon-bg) 25%);
     pointer-events: none;
   }
 

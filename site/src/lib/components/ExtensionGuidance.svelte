@@ -3,12 +3,7 @@
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import Loader from "@lucide/svelte/icons/loader";
   import Puzzle from "@lucide/svelte/icons/puzzle";
-  import {
-    detectExtension,
-    detectBrowser,
-    STORE_URLS,
-    type Browser,
-  } from "$lib/extension-bridge";
+  import { detectExtension, detectBrowser, STORE_URLS, type Browser } from "$lib/extension-bridge";
 
   // Detects whether the Klaxon extension is installed and reports it as a
   // one-line status row: found, or a single install instruction for this
@@ -79,8 +74,7 @@
         Looking for the Klaxon extension…
       {:else if status === "installed"}
         {#if context === "edit"}
-          The Klaxon extension is installed &mdash; update the selection from
-          the page itself.
+          The Klaxon extension is installed &mdash; update the selection from the page itself.
         {:else}
           The Klaxon extension is installed and ready.
         {/if}
@@ -113,45 +107,41 @@
     {#if status === "installed"}
       {#if context === "edit"}
         <p>
-          The watched region is picked on the page itself, so it&rsquo;s edited
-          in the extension rather than here. Open
-          {#if site}<a href={site} target="_blank" rel="noopener noreferrer"
-              >the watched page</a
+          The watched region is picked on the page itself, so it&rsquo;s edited in the extension
+          rather than here. Open
+          {#if site}<a href={site} target="_blank" rel="noopener noreferrer">the watched page</a
             >{:else}the watched page{/if}, trigger the
           <strong>Klaxon Cloud</strong> extension, open this alert and choose
           <strong>Edit selection</strong>.
         </p>
       {:else}
         <p>
-          Alerts are created right from the page you want to watch. Visit a
-          webpage, trigger the <strong>Klaxon Cloud</strong> extension, and create
-          a new alert. Klaxon then checks that page on the schedule you pick and archives
-          every change it finds.
+          Alerts are created right from the page you want to watch. Visit a webpage, trigger the <strong
+            >Klaxon Cloud</strong
+          > extension, and create a new alert. Klaxon then checks that page on the schedule you pick and
+          archives every change it finds.
         </p>
       {/if}
       <p class="hint">
-        Don&rsquo;t see the Klaxon icon? Open your browser&rsquo;s extensions
-        menu and pin Klaxon to the toolbar.
+        Don&rsquo;t see the Klaxon icon? Open your browser&rsquo;s extensions menu and pin Klaxon to
+        the toolbar.
       </p>
     {:else if store}
       {#if context === "edit"}
         <p>
-          The address, schedule, name and Slack webhook are editable here, and
-          so is the raw selector. <em>Picking</em> the watched region on the page
-          itself requires the browser extension.
+          The address, schedule, name and Slack webhook are editable here, and so is the raw
+          selector. <em>Picking</em> the watched region on the page itself requires the browser extension.
         </p>
       {:else}
         <p>
-          Klaxon watches pages you choose in the browser, so alerts start from
-          the extension rather than from this site.
+          Klaxon watches pages you choose in the browser, so alerts start from the extension rather
+          than from this site.
         </p>
       {/if}
       <ol class="steps">
         <li>
           Install the extension from
-          <a href={store.url} target="_blank" rel="noopener"
-            >your browser&rsquo;s store</a
-          >.
+          <a href={store.url} target="_blank" rel="noopener">your browser&rsquo;s store</a>.
         </li>
         <li>
           Pin the <strong>Klaxon Cloud</strong> icon to your browser toolbar.
@@ -159,10 +149,9 @@
         {#if context === "edit"}
           <li>
             Open
-            {#if site}<a href={site} target="_blank" rel="noopener noreferrer"
-                >the watched page</a
-              >{:else}the watched page{/if}, click the icon, open this alert and
-            choose <strong>Edit selection</strong>.
+            {#if site}<a href={site} target="_blank" rel="noopener noreferrer">the watched page</a
+              >{:else}the watched page{/if}, click the icon, open this alert and choose
+            <strong>Edit selection</strong>.
           </li>
         {:else}
           <li>
@@ -171,28 +160,23 @@
           </li>
         {/if}
       </ol>
+    {:else if context === "edit"}
+      <p>
+        The watched region is picked in the browser, so changing it needs the extension&rsquo;s
+        picker. It&rsquo;s available for Chrome and Firefox; Safari isn&rsquo;t supported at this
+        time.
+      </p>
+      <p class="hint">
+        The address, schedule, name, Slack webhook and raw selector are still editable here from any
+        browser.
+      </p>
     {:else}
-      {#if context === "edit"}
-        <p>
-          The watched region is picked in the browser, so changing it needs the
-          extension&rsquo;s picker. It&rsquo;s available for Chrome and Firefox;
-          Safari isn&rsquo;t supported at this time.
-        </p>
-        <p class="hint">
-          The address, schedule, name, Slack webhook and raw selector are still
-          editable here from any browser.
-        </p>
-      {:else}
-        <p>
-          Klaxon watches pages you choose in the browser, so alerts start from
-          the extension rather than from this site. The extension is available
-          for Chrome and Firefox; Safari isn&rsquo;t supported at this time.
-        </p>
-        <p class="hint">
-          You can still review your alerts and their changes here from any
-          browser.
-        </p>
-      {/if}
+      <p>
+        Klaxon watches pages you choose in the browser, so alerts start from the extension rather
+        than from this site. The extension is available for Chrome and Firefox; Safari isn&rsquo;t
+        supported at this time.
+      </p>
+      <p class="hint">You can still review your alerts and their changes here from any browser.</p>
     {/if}
   </div>
 </section>

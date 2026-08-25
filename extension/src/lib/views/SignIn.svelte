@@ -50,8 +50,8 @@
   <div class="intro">
     <h3>Sign in to save your alert</h3>
     <p class="description">
-      You're almost there. Sign in or create a free MuckRock account, and we'll
-      finish saving this alert as soon as you're back.
+      You're almost there. Sign in or create a free MuckRock account, and we'll finish saving this
+      alert as soon as you're back.
     </p>
   </div>
   <SignInPrompt />

@@ -5,16 +5,11 @@
   import { userState } from "$lib/user.svelte";
   import { profileUrl } from "$lib/user";
 
-  let {
-    authenticated,
-    accountsHost,
-  }: { authenticated: boolean; accountsHost: string } = $props();
+  let { authenticated, accountsHost }: { authenticated: boolean; accountsHost: string } = $props();
 
   // The name comes from the client-side store (localStorage); fall back to a
   // neutral label if it isn't cached yet.
-  const label = $derived(
-    userState.user?.name || userState.user?.email || "Account",
-  );
+  const label = $derived(userState.user?.name || userState.user?.email || "Account");
 
   const accountUrl = $derived(profileUrl(accountsHost, userState.user));
 </script>
@@ -34,12 +29,7 @@
 
     <div class="account">
       {#if authenticated}
-        <a
-          class="user nav-link"
-          href={accountUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a class="user nav-link" href={accountUrl} target="_blank" rel="noopener noreferrer">
           {#if userState.user?.picture}
             <img class="avatar" src={userState.user.picture} alt="" />
           {/if}
@@ -52,11 +42,7 @@
         <a class="nav-link" href="/auth/login">Sign in</a>
       {/if}
 
-      <HelpMenu
-        user={userState.user}
-        client="Web app"
-        details={{ Page: page.url.href }}
-      />
+      <HelpMenu user={userState.user} client="Web app" details={{ Page: page.url.href }} />
     </div>
   </div>
 </header>

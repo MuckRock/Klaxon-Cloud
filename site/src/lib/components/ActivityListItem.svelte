@@ -30,9 +30,7 @@
 
   // Enough to link back to the alert even when `event` came through unexpanded,
   // since then it's the id itself. It's optional on a run, so it can be absent.
-  const alertId = $derived(
-    isEvent(run.event) ? run.event.id : (run.event ?? null),
-  );
+  const alertId = $derived(isEvent(run.event) ? run.event.id : (run.event ?? null));
   const label = $derived(getRunLabel(run));
   const domain = $derived(getDomain(run.event));
   const site = $derived(getSite(run.event));
@@ -74,11 +72,7 @@
          AlertListItem; the timestamp and diff links go out to the watched page
          and the snapshot instead. -->
     {#if linkAlert && alertId !== null}
-      <a
-        class="row-title"
-        href="/alerts/{alertId}/"
-        title={alert?.parameters.site}
-      >
+      <a class="row-title" href="/alerts/{alertId}/" title={alert?.parameters.site}>
         {label}
       </a>
     {:else}
@@ -92,12 +86,7 @@
   </div>
   <div class="links">
     {#if run.data?.snapshot}
-      <a
-        title="View snapshot"
-        href={run.data.snapshot}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
+      <a title="View snapshot" href={run.data.snapshot} target="_blank" rel="noopener noreferrer">
         <Camera size={16} />
         View snapshot
       </a>
@@ -119,12 +108,7 @@
         View changes
       </a>
     {:else if website}
-      <a
-        title="Open the watched page"
-        href={website}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
+      <a title="Open the watched page" href={website} target="_blank" rel="noopener noreferrer">
         <ExternalLink size={16} />
         Visit web page
       </a>

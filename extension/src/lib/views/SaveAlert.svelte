@@ -35,9 +35,7 @@
   // Local form state, seeded once from props (carried back from the sign-in
   // interstitial via the navigate `restore` option). Plain $state so it's
   // decoupled from later props churn.
-  let frequency = $state<AddOnSchedule>(
-    untrack(() => props.schedule) ?? "weekly",
-  );
+  let frequency = $state<AddOnSchedule>(untrack(() => props.schedule) ?? "weekly");
   let title = $state(untrack(() => props.title) ?? "");
   let slackWebhook = $state(untrack(() => props.slackWebhook) ?? "");
   let url = $state(untrack(() => props.url) ?? "");
@@ -83,10 +81,7 @@
 
     saving = true;
 
-    const result: APIResponse<Event, ValidationError> = await dispatch(
-      frequency,
-      params,
-    );
+    const result: APIResponse<Event, ValidationError> = await dispatch(frequency, params);
 
     saving = false;
 
@@ -114,9 +109,7 @@
           {locked ? "part of the page" : "the entire page"}
         </strong> for changes.
       </p>
-      <p class="description">
-        We just need a bit more info to save your alert.
-      </p>
+      <p class="description">We just need a bit more info to save your alert.</p>
     </div>
 
     <!-- url -->
@@ -124,8 +117,8 @@
       <div class="field-header">
         <label for="alert-url" class="field-label"> URL </label>
         <p class="field-hint">
-          Check that this URL is correct. A mismatch could make this alert
-          harder to find later, or cause changes to be missed.
+          Check that this URL is correct. A mismatch could make this alert harder to find later, or
+          cause changes to be missed.
         </p>
       </div>
       <input type="url" name="url" id="alert-url" bind:value={url} />
@@ -133,9 +126,7 @@
 
     <!-- schedule -->
     <div class="field">
-      <label class="field-label" for="frequency">
-        How often should Klaxon check this page?
-      </label>
+      <label class="field-label" for="frequency"> How often should Klaxon check this page? </label>
       <div class="select-wrapper">
         <select id="frequency" bind:value={frequency} name="schedule">
           <option value="hourly">Hourly</option>
@@ -148,12 +139,9 @@
     <!-- title -->
     <div class="field">
       <div class="field-header">
-        <label class="field-label" for="alert-name">
-          Name this alert (optional):
-        </label>
+        <label class="field-label" for="alert-name"> Name this alert (optional): </label>
         <p class="field-hint">
-          Give this alert a custom name. (By default, we'll use the title of
-          this webpage.)
+          Give this alert a custom name. (By default, we'll use the title of this webpage.)
         </p>
       </div>
       <input
@@ -168,9 +156,7 @@
     <!-- slack webhook -->
     <div class="field">
       <div class="field-header">
-        <label class="field-label" for="slack-webhook">
-          Slack Webhook (optional):
-        </label>
+        <label class="field-label" for="slack-webhook"> Slack Webhook (optional): </label>
         <p class="field-hint">
           Enter a <a
             href="https://api.slack.com/messaging/webhooks"
