@@ -11,11 +11,7 @@
 </script>
 
 {#if canvas.away}
-  <button
-    type="button"
-    class="pinned-notice"
-    onclick={() => canvas.focusPinnedTab()}
-  >
+  <button type="button" class="pinned-notice" onclick={() => canvas.focusPinnedTab()}>
     <span class="pinned-text">
       Your selection is on another tab{#if canvas.pinnedTitle}:
         <strong class="pinned-title">{canvas.pinnedTitle}</strong>{/if}

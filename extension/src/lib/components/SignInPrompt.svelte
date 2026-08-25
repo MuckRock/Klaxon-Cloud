@@ -17,9 +17,7 @@
   {:else if authenticated}
     <Loading message="Signed in!" />
   {:else}
-    <button class="primary signIn" onclick={() => login()}>
-      Sign in with MuckRock
-    </button>
+    <button class="primary signIn" onclick={() => login()}> Sign in with MuckRock </button>
     <button class="secondary createAccount" onclick={() => createAccount()}>
       Create an account
     </button>

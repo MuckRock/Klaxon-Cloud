@@ -52,28 +52,23 @@
     runs = emptyPage<Run>();
     loadingAlerts = true;
 
-    Promise.all([scheduled({ domain }), history({ domain })]).then(
-      ([eventsRes, runsRes]) => {
-        if (cancelled) return;
+    Promise.all([scheduled({ domain }), history({ domain })]).then(([eventsRes, runsRes]) => {
+      if (cancelled) return;
 
-        loadingAlerts = false;
+      loadingAlerts = false;
 
-        // The API surfaces failures as a `.error` field rather than throwing.
-        // Leave any already-loaded data in place rather than blanking it out.
-        if (eventsRes.error || runsRes.error) {
-          console.error(
-            "Failed to load alerts:",
-            eventsRes.error ?? runsRes.error,
-          );
-          toaster.error("Something went wrong loading your alerts.");
-          return;
-        }
+      // The API surfaces failures as a `.error` field rather than throwing.
+      // Leave any already-loaded data in place rather than blanking it out.
+      if (eventsRes.error || runsRes.error) {
+        console.error("Failed to load alerts:", eventsRes.error ?? runsRes.error);
+        toaster.error("Something went wrong loading your alerts.");
+        return;
+      }
 
-        events = eventsRes.data ?? emptyPage<Event>();
-        runs = runsRes.data ?? emptyPage<Run>();
-        setCachedAlerts(domain, { events, runs });
-      },
-    );
+      events = eventsRes.data ?? emptyPage<Event>();
+      runs = runsRes.data ?? emptyPage<Run>();
+      setCachedAlerts(domain, { events, runs });
+    });
 
     return () => {
       cancelled = true;
@@ -98,26 +93,18 @@
       .map((event) => ({ event, run: latest.get(event.id) }))
       .sort((a, b) => {
         if (a.run && b.run) {
-          return (
-            new Date(b.run.created_at).getTime() -
-            new Date(a.run.created_at).getTime()
-          );
+          return new Date(b.run.created_at).getTime() - new Date(a.run.created_at).getTime();
         }
         if (a.run) return -1;
         if (b.run) return 1;
-        return (
-          new Date(b.event.created_at).getTime() -
-          new Date(a.event.created_at).getTime()
-        );
+        return new Date(b.event.created_at).getTime() - new Date(a.event.created_at).getTime();
       });
   });
 
   let loading: boolean = $state(false);
   let selected: Event[] = $state([]);
 
-  let allSelected = $derived(
-    rows.length > 0 && selected.length === rows.length,
-  );
+  let allSelected = $derived(rows.length > 0 && selected.length === rows.length);
   // Drives the header checkbox's indeterminate state (some but not all).
   let someSelected = $derived(selected.length > 0 && !allSelected);
 
@@ -132,9 +119,7 @@
 
   async function disable(toDisable: Event[]) {
     loading = true;
-    const promises = toDisable.map((event) =>
-      update(event.id, "disabled", event.parameters),
-    );
+    const promises = toDisable.map((event) => update(event.id, "disabled", event.parameters));
 
     const results = await Promise.all(promises);
 
@@ -161,9 +146,7 @@
       );
     } else {
       toaster.success(
-        toDisable.length === 1
-          ? "Alert disabled."
-          : `${toDisable.length} alerts disabled.`,
+        toDisable.length === 1 ? "Alert disabled." : `${toDisable.length} alerts disabled.`,
       );
     }
 
@@ -185,17 +168,14 @@
           <Siren dimmed />
           <h3 class="empty-head">Can't watch this page</h3>
           <p class="empty-message">
-            Klaxon can only watch ordinary web pages. Browse to a site to create
-            an alert.
+            Klaxon can only watch ordinary web pages. Browse to a site to create an alert.
           </p>
         </div>
       {:else if !hasEvents}
         <div class="empty-state welcome-empty">
           <Siren dimmed />
           <h3 class="empty-head">No alerts</h3>
-          <p class="empty-message">
-            Create a new alert to watch this page for changes.
-          </p>
+          <p class="empty-message">Create a new alert to watch this page for changes.</p>
         </div>
       {:else}
         <h3 class="alert-count">
@@ -238,11 +218,7 @@
               />
               <div class="row-body">
                 <p class="row-title">
-                  <Link
-                    view="viewAlert"
-                    {event}
-                    guard={() => canvas.requestWatch()}
-                  >
+                  <Link view="viewAlert" {event} guard={() => canvas.requestWatch()}>
                     {getSiteLabel(event)}
                   </Link>
                 </p>

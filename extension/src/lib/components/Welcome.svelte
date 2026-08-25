@@ -20,18 +20,13 @@
     <div class="introduction">
       <Siren />
       <h3 class="head">Welcome to Klaxon!</h3>
-      <p class="lede">
-        Klaxon monitors web pages for you and alerts you when they’ve changed.
-      </p>
+      <p class="lede">Klaxon monitors web pages for you and alerts you when they’ve changed.</p>
     </div>
     <div class="sign-in">
       <SignInPrompt />
     </div>
     <div class="get-started">
-      <p>
-        Want to dive in and monitor this page for changes? We can set up your
-        account later.
-      </p>
+      <p>Want to dive in and monitor this page for changes? We can set up your account later.</p>
       <p><strong>Let's get started.</strong></p>
     </div>
   </div>

@@ -55,12 +55,7 @@
 
   function handleRouteChange(view: View) {
     const selecting = SELECTION_VIEWS.has(view);
-    canvas.active = [
-      "createAlert",
-      "editAlert",
-      "editSelection",
-      "viewAlert",
-    ].includes(view);
+    canvas.active = ["createAlert", "editAlert", "editSelection", "viewAlert"].includes(view);
     canvas.editable = !["editAlert", "viewAlert"].includes(view);
     // Clear before unpinning, so the "clear" reaches the pinned tab rather than
     // whatever tab tracking reconnects to.

@@ -18,6 +18,14 @@ import { getSiteLabel } from "@klaxon/lib/utils";
 const ALERT = scheduled.results[0];
 const ALERT_LABEL = getSiteLabel(ALERT);
 
+// An alert with a Slack webhook already saved, for the tests that clear or
+// change it.
+const WEBHOOK = "https://hooks.slack.com/services/T000/B000/XXXX";
+const WEBHOOK_ALERT = makeEvent({
+  id: 556,
+  parameters: { title: "Slack alert", slack_webhook: WEBHOOK },
+});
+
 // A disabled alert (schedule 0): EditAlert shows a Reactivate action instead of
 // the schedule picker. getSiteLabel falls back to the title.
 const DISABLED_ALERT = makeEvent({
@@ -61,6 +69,61 @@ test("editing an alert's details saves the changes", async ({
   expect(requests.updated[0].id).toBe(ALERT.id);
   expect(requests.updated[0].payload.event).toBe(scheduleValues.hourly);
   expect(requests.updated[0].payload.parameters.title).toBe("Renamed alert");
+  // This alert has no webhook, so the untouched field must stay absent from the
+  // PATCH: the API types it as a URI and rejects an empty string.
+  expect(requests.updated[0].payload.parameters).not.toHaveProperty(
+    "slack_webhook",
+  );
+});
+
+test("clearing the Slack webhook drops it instead of blanking it", async ({
+  context,
+  page,
+  serviceWorker,
+}) => {
+  const { panel, requests } = await renderSignedIn(
+    context,
+    page,
+    serviceWorker,
+    { events: eventsPage([WEBHOOK_ALERT]) },
+  );
+  await openEditAlert(panel, "Slack alert");
+
+  // The saved webhook pre-fills the field; emptying it means "remove it".
+  const webhook = panel.locator("#slack-webhook");
+  await expect(webhook).toHaveValue(WEBHOOK);
+  await webhook.fill("");
+  await panel.getByRole("button", { name: "Update alert" }).click();
+
+  await expect(panel.getByText("Alert saved successfully!")).toBeVisible();
+  expect(requests.updated).toHaveLength(1);
+  expect(requests.updated[0].payload.parameters).not.toHaveProperty(
+    "slack_webhook",
+  );
+});
+
+test("an edited Slack webhook is saved", async ({
+  context,
+  page,
+  serviceWorker,
+}) => {
+  const { panel, requests } = await renderSignedIn(
+    context,
+    page,
+    serviceWorker,
+    { events: eventsPage([WEBHOOK_ALERT]) },
+  );
+  await openEditAlert(panel, "Slack alert");
+
+  const replacement = "https://hooks.slack.com/services/T999/B999/ZZZZ";
+  await panel.locator("#slack-webhook").fill(replacement);
+  await panel.getByRole("button", { name: "Update alert" }).click();
+
+  await expect(panel.getByText("Alert saved successfully!")).toBeVisible();
+  expect(requests.updated).toHaveLength(1);
+  expect(requests.updated[0].payload.parameters.slack_webhook).toBe(
+    replacement,
+  );
 });
 
 test("editing an alert's selection saves and returns to the alert", async ({

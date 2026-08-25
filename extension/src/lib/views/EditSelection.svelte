@@ -54,11 +54,7 @@
     };
     const frequency = schedules[event.event] ?? "weekly";
 
-    const result: APIResponse<Event, ValidationError> = await update(
-      event.id,
-      frequency,
-      params,
-    );
+    const result: APIResponse<Event, ValidationError> = await update(event.id, frequency, params);
 
     saving = false;
 
@@ -83,20 +79,15 @@
     <PinnedTabNotice />
     <h3>Edit selection</h3>
     <p class="description">
-      Adjust which <strong>part of the page</strong> this alert watches for changes.
-      Clear the selection to watch the entire page.
+      Adjust which <strong>part of the page</strong> this alert watches for changes. Clear the selection
+      to watch the entire page.
     </p>
 
     <SelectionPicker />
   </main>
 
   <footer class="button-row">
-    <button
-      class="btn-primary"
-      type="button"
-      onclick={handleSave}
-      disabled={saving || away}
-    >
+    <button class="btn-primary" type="button" onclick={handleSave} disabled={saving || away}>
       {saving ? "Saving…" : "Save selection"}
     </button>
   </footer>

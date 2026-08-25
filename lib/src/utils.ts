@@ -196,6 +196,34 @@ export function isWholePage(selector: string | null | undefined): boolean {
   return !trimmed || trimmed === WHOLE_PAGE_SELECTOR;
 }
 
+/**
+ * Whether a string is an absolute http(s) URL. Anything else — a bare hostname,
+ * a `mailto:` or `javascript:` scheme — is unusable both for the page the
+ * Add-On fetches and for the Slack webhook it POSTs to.
+ */
+export function isHttpUrl(raw: string): boolean {
+  if (!URL.canParse(raw)) return false;
+  const { protocol } = new URL(raw);
+  return protocol === "http:" || protocol === "https:";
+}
+
+/**
+ * Normalize an optional URI parameter: the trimmed URL, or undefined when it's
+ * blank or not an http(s) address.
+ *
+ * The Add-On's parameter spec types `slack_webhook` as a URI, so the API
+ * rejects an empty string — an unset webhook has to be left out of
+ * `parameters` entirely rather than written as "". Use this anywhere a URI
+ * parameter is read off a form.
+ */
+export function optionalUri(
+  raw: string | null | undefined,
+): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed || !isHttpUrl(trimmed)) return undefined;
+  return trimmed;
+}
+
 export function isErrorCode(status: number): status is NumericRange<400, 599> {
   return status >= 400 && status <= 599;
 }

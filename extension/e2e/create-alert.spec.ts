@@ -56,6 +56,56 @@ test("create an alert watching the whole page", async ({
   expect(requests.created[0].parameters.title).toBe("Homepage watch");
   // Whole page → "*" selector.
   expect(requests.created[0].parameters.selector).toBe("*");
+  // The webhook field was left blank. The API types it as a URI and rejects an
+  // empty string, so the key has to be absent, not "".
+  expect(requests.created[0].parameters).not.toHaveProperty("slack_webhook");
+});
+
+test("an unset Slack webhook is left out of the payload", async ({
+  context,
+  page,
+  serviceWorker,
+}) => {
+  const { panel, requests } = await renderSignedIn(
+    context,
+    page,
+    serviceWorker,
+  );
+  await startCreating(panel);
+  await panel.getByRole("button", { name: "Add alert details" }).click();
+
+  // Type into the webhook field and clear it again: whether the input was ever
+  // touched must not change what's sent.
+  const webhook = panel.locator("#slack-webhook");
+  await webhook.fill("https://hooks.slack.com/services/T000/B000/XXXX");
+  await webhook.fill("");
+  await panel.getByRole("button", { name: "Save alert" }).click();
+
+  await expect(panel.getByText("Alert saved successfully!")).toBeVisible();
+  expect(requests.created).toHaveLength(1);
+  expect(requests.created[0].parameters).not.toHaveProperty("slack_webhook");
+});
+
+test("a Slack webhook the user entered is sent as-is", async ({
+  context,
+  page,
+  serviceWorker,
+}) => {
+  const { panel, requests } = await renderSignedIn(
+    context,
+    page,
+    serviceWorker,
+  );
+  await startCreating(panel);
+  await panel.getByRole("button", { name: "Add alert details" }).click();
+
+  const webhook = "https://hooks.slack.com/services/T000/B000/XXXX";
+  await panel.locator("#slack-webhook").fill(webhook);
+  await panel.getByRole("button", { name: "Save alert" }).click();
+
+  await expect(panel.getByText("Alert saved successfully!")).toBeVisible();
+  expect(requests.created).toHaveLength(1);
+  expect(requests.created[0].parameters.slack_webhook).toBe(webhook);
 });
 
 test("create an alert watching a page selection", async ({

@@ -14,15 +14,13 @@
     <PinnedTabNotice />
     <h3>Create an alert</h3>
     <p class="description">
-      By default, Klaxon watches the entire page for changes. If that sounds
-      good, you can proceed to the next step.
+      By default, Klaxon watches the entire page for changes. If that sounds good, you can proceed
+      to the next step.
     </p>
     <p class="description">
       Or, Klaxon can watch <strong>part of the page</strong> for changes.
     </p>
-    <p class="description">
-      Once the selection looks right, you can proceed to the next step.
-    </p>
+    <p class="description">Once the selection looks right, you can proceed to the next step.</p>
     <SelectionPicker />
   </main>
   <footer class="button-row">

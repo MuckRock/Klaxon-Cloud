@@ -13,12 +13,7 @@
 </script>
 
 <!-- svelte:element keeps one set of styles for both the linked and plain card. -->
-<svelte:element
-  this={href ? "a" : "div"}
-  {href}
-  class="stat"
-  class:linked={Boolean(href)}
->
+<svelte:element this={href ? "a" : "div"} {href} class="stat" class:linked={Boolean(href)}>
   <span class="value">{value}</span>
   <span class="label">{label}</span>
   {#if hint}

@@ -13,7 +13,7 @@
   import { getRouter } from "../router.svelte";
   import { eventValues, schedules, update } from "../api";
   import { completeSave, reportSaveError } from "../save";
-  import { isWholePage } from "@klaxon/lib/utils";
+  import { isWholePage, optionalUri } from "@klaxon/lib/utils";
 
   interface Props {
     event: Event;
@@ -57,18 +57,17 @@
   async function handleSave() {
     saving = true;
 
+    // Both fields are optional, so a blank input means "cleared" and has to be
+    // omitted rather than written as "" — the API types `slack_webhook` as a URI
+    // and rejects an empty string.
     const fd = new FormData(form);
     const params: KlaxonParams = {
       ...event.parameters,
-      title: fd.get("title") as string,
-      slack_webhook: fd.get("slack_webhook") as string,
+      title: String(fd.get("title") ?? "").trim() || undefined,
+      slack_webhook: optionalUri(String(fd.get("slack_webhook") ?? "")),
     };
 
-    const result: APIResponse<Event, ValidationError> = await update(
-      event.id,
-      frequency,
-      params,
-    );
+    const result: APIResponse<Event, ValidationError> = await update(event.id, frequency, params);
 
     saving = false;
 
@@ -123,8 +122,7 @@
         type="button"
         class="edit-selection-link"
         disabled={away}
-        onclick={() =>
-          router.navigate("editSelection", { event, origin: "editAlert" })}
+        onclick={() => router.navigate("editSelection", { event, origin: "editAlert" })}
       >
         Edit selection
       </button>
@@ -134,12 +132,7 @@
     <div class="field">
       {#if frequency === "disabled"}
         <p class="description">This alert is currently disabled.</p>
-        <button
-          type="button"
-          class="btn-primary"
-          disabled={away}
-          onclick={reactivate}
-        >
+        <button type="button" class="btn-primary" disabled={away} onclick={reactivate}>
           Reactivate
         </button>
       {:else}
@@ -147,12 +140,7 @@
           How often should Klaxon check this page?
         </label>
         <div class="select-wrapper">
-          <select
-            id="frequency"
-            bind:value={frequency}
-            name="schedule"
-            disabled={away}
-          >
+          <select id="frequency" bind:value={frequency} name="schedule" disabled={away}>
             <option value="hourly">Hourly</option>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -165,12 +153,9 @@
     <!-- title -->
     <div class="field">
       <div class="field-header">
-        <label class="field-label" for="alert-name">
-          Name this alert (optional):
-        </label>
+        <label class="field-label" for="alert-name"> Name this alert (optional): </label>
         <p class="field-hint">
-          Give this alert a custom name. (By default, we'll use the title of
-          this webpage.)
+          Give this alert a custom name. (By default, we'll use the title of this webpage.)
         </p>
       </div>
       <input
@@ -186,9 +171,7 @@
     <!-- slack webhook -->
     <div class="field">
       <div class="field-header">
-        <label class="field-label" for="slack-webhook">
-          Slack Webhook (optional):
-        </label>
+        <label class="field-label" for="slack-webhook"> Slack Webhook (optional): </label>
         <p class="field-hint">
           Enter a <a
             href="https://api.slack.com/messaging/webhooks"

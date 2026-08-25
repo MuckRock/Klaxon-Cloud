@@ -16,8 +16,7 @@
   let { children, data }: { children: Snippet; data: LayoutData } = $props();
 
   const TITLE = "Klaxon Cloud";
-  const DESCRIPTION =
-    "Klaxon notifies you when the pages you care about change.";
+  const DESCRIPTION = "Klaxon notifies you when the pages you care about change.";
 
   const canonical = $derived(new URL(page.url.pathname, data.origin).href);
 
@@ -65,10 +64,7 @@
 </svelte:head>
 
 <div class="app">
-  <SiteHeader
-    authenticated={data.authenticated ?? false}
-    accountsHost={data.accountsHost}
-  />
+  <SiteHeader authenticated={data.authenticated ?? false} accountsHost={data.accountsHost} />
   <main>
     {@render children()}
   </main>

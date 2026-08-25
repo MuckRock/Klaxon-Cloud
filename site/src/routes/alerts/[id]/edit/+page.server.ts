@@ -1,6 +1,6 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { schedules } from "@klaxon/lib/api";
-import { WHOLE_PAGE_SELECTOR } from "@klaxon/lib/utils";
+import { isHttpUrl, optionalUri, WHOLE_PAGE_SELECTOR } from "@klaxon/lib/utils";
 import type {
   AddOnSchedule,
   KlaxonParams,
@@ -14,16 +14,6 @@ function alertId(raw: string | undefined): number {
   const id = Number(raw);
   if (!Number.isSafeInteger(id) || id <= 0) error(404, "No such alert");
   return id;
-}
-
-/**
- * The watched page is fetched by the add-on, so only an absolute http(s) URL is
- * usable — a bare hostname or some other scheme would never resolve.
- */
-function isFetchableUrl(raw: string): boolean {
-  if (!URL.canParse(raw)) return false;
-  const { protocol } = new URL(raw);
-  return protocol === "http:" || protocol === "https:";
 }
 
 export async function load(event) {
@@ -71,15 +61,21 @@ export const actions = {
       return invalid({ site: ["Enter the address of the page to watch."] });
     }
 
-    if (!isFetchableUrl(site)) {
+    // The watched page is fetched by the add-on, so only an absolute http(s)
+    // URL is usable — a bare hostname or some other scheme would never resolve.
+    if (!isHttpUrl(site)) {
       return invalid({
         site: ["Enter a full web address starting with http:// or https://."],
       });
     }
 
-    if (slackWebhook && !URL.canParse(slackWebhook)) {
+    // Slack is POSTed to, so the same http(s) rule applies. Reject rather than
+    // quietly dropping it, so a typo doesn't look like a saved webhook.
+    if (slackWebhook && !isHttpUrl(slackWebhook)) {
       return invalid({
-        slack_webhook: ["Enter a full URL, or leave this empty."],
+        slack_webhook: [
+          "Enter a full URL starting with http:// or https://, or leave this empty.",
+        ],
       });
     }
 
@@ -100,7 +96,7 @@ export const actions = {
       site,
       selector: selector || WHOLE_PAGE_SELECTOR,
       title: title || undefined,
-      slack_webhook: slackWebhook || undefined,
+      slack_webhook: optionalUri(slackWebhook),
     };
 
     const { error: writeErr } = await api.update(

@@ -1,53 +1,46 @@
 <script lang="ts">
   import MuckRockLogo from "./MuckRockLogo.svelte";
+
+  const trainingUrl = "https://www.muckrock.com/project/building-with-muckrock-1178/";
+  const muckrockUrl = "https://www.muckrock.com";
+  const donateUrl = "https://www.muckrock.com/donate/";
+  const privacyUrl = "https://www.muckrock.com/privacy-policy/";
+  const tosUrl = "https://www.muckrock.com/tos/";
+
+  const external = { target: "_blank", rel: "noopener noreferrer" };
 </script>
 
 <footer class="site-footer">
   <div class="inner">
     <div class="callout">
-      <p><strong>Want to learn how to use Klaxon Cloud and other MuckRock products?</strong></p>
-      <p>Join one of our free <a href="https://www.muckrock.com/project/building-with-muckrock-1178/">Building with MuckRock training sessions</a>.</p>
+      <p>
+        <strong>Want to learn how to use Klaxon Cloud and other MuckRock products?</strong>
+      </p>
+      <p>
+        Join one of our free
+        <a href={trainingUrl}>Building with MuckRock training sessions</a>.
+      </p>
     </div>
   </div>
   <div class="inner">
-    <a
-      class="brand"
-      href="https://www.muckrock.com"
-      aria-label="MuckRock Foundation"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
+    <a class="brand" href={muckrockUrl} aria-label="MuckRock Foundation" {...external}>
       <MuckRockLogo />
     </a>
 
     <div class="about">
       <p>
-        Klaxon Cloud is a project of the <a
-          href="https://www.muckrock.com"
-          target="_blank"
-          rel="noopener noreferrer">MuckRock Foundation</a
-        >, a <span class="nowrap">501(c)(3)</span> organization committed to trust,
-        transparency, and civic engagement.
+        Klaxon Cloud is a project of the
+        <a href={muckrockUrl} {...external}>MuckRock Foundation</a>, a
+        <span class="nowrap">501(c)(3)</span> organization committed to trust, transparency, and civic
+        engagement.
       </p>
       <p class="support">
-        Klaxon Cloud is free to use. If it's useful to you, please <a
-          href="https://www.muckrock.com/donate/"
-          target="_blank"
-          rel="noopener noreferrer">donate to support our work</a
-        >.
+        Klaxon Cloud is free to use. If it's useful to you, please
+        <a href={donateUrl} {...external}>donate to support our work</a>.
       </p>
       <p>
-        Our <a
-          href="https://www.muckrock.com/privacy-policy/"
-          target="_blank"
-          rel="noopener noreferrer">privacy policy</a
-        >
-        and
-        <a
-          href="https://www.muckrock.com/tos/"
-          target="_blank"
-          rel="noopener noreferrer">terms of service</a
-        > apply to all users on this site.
+        Our <a href={privacyUrl} {...external}>privacy policy</a>
+        and <a href={tosUrl} {...external}>terms of service</a> apply to all users on this site.
       </p>
     </div>
   </div>
