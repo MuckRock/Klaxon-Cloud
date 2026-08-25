@@ -11,8 +11,11 @@ env:
   MUCKROCK_KLAXON_ID: "999"
 
 jobs:
-  test:
+  lib:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lib
     steps:
       - uses: actions/checkout@v6
 
@@ -25,18 +28,37 @@ jobs:
       # One install at the workspace root links @klaxon/lib into each package.
       - name: Install
         run: npm ci
+        working-directory: ${{ github.workspace }}
 
       - name: Check (lib)
-        run: npm run check -w @klaxon/lib
-
-      - name: Check (extension)
-        run: npm run check -w klaxon-browser-extension
+        run: npm run check
 
       - name: Test (lib)
-        run: npm test -w @klaxon/lib
+        run: npm test
+
+  extension:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Check (extension)
+        run: npm run check
 
       - name: Test (extension)
-        run: npm test -w klaxon-browser-extension
+        run: npm test
 
   site:
     runs-on: ubuntu-latest
@@ -58,7 +80,7 @@ jobs:
 
       # The site's vitest "client" project runs component tests in a real
       # browser (@vitest/browser-playwright), so Chromium has to be installed.
-      # Its own job rather than a step in `test`, so the lib/extension unit
+      # Its own job rather than a shared step, so the lib and extension unit
       # tests don't wait on the browser download.
       - name: Install Playwright with Chromium
         run: npx playwright install --with-deps chromium
